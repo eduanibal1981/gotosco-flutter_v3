@@ -28,7 +28,7 @@ class DashboardTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final hasChildren = ref.watch(hasChildrenProvider);
+    ref.watch(hasChildrenProvider);
     final hasBookings = ref.watch(hasBookingsProvider);
     final hasActiveTrip = ref.watch(hasActiveTripProvider);
 
