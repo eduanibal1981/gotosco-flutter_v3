@@ -16,7 +16,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   // State to hold active filters
   final Map<String, dynamic> _filters = {
     'gender': 'All',
-    'maxPrice': 300.0,
+    'maxPrice': 100.0,
     'vehicleType': 'All',
     // Add these new keys:
     'cityId': null,

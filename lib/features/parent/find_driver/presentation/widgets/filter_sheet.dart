@@ -26,7 +26,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
   void initState() {
     super.initState();
     _selectedGender = widget.currentFilters['gender'] ?? 'All';
-    _maxPrice = (widget.currentFilters['maxPrice'] ?? 300.0).toDouble();
+    _maxPrice = (widget.currentFilters['maxPrice'] ?? 200.0).toDouble();
     _vehicleType = widget.currentFilters['vehicleType'] ?? 'All';
 
     // Restore location state if previously selected
@@ -160,9 +160,9 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                 ),
                 Slider(
                   value: _maxPrice,
-                  min: 50,
-                  max: 500,
-                  divisions: 9,
+                  min: 10,
+                  max: 250,
+                  divisions: 15,
                   activeColor: Colors.indigo,
                   onChanged: (val) => setState(() => _maxPrice = val),
                 ),
