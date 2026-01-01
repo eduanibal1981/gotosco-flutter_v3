@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../dashboard_controller.dart'; // Import the controller
 
-class ActionableEmptyStateCard extends StatelessWidget {
+class ActionableEmptyStateCard extends ConsumerWidget {
   const ActionableEmptyStateCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Container(
-      height: 180, // Matches LiveStatusCard height for layout stability
+      height: 180,
       width: double.infinity,
       decoration: BoxDecoration(
-        // Professional Gradient: Subtle Indigo/White mix
         gradient: LinearGradient(
           colors: [Colors.indigo.shade50, Colors.white],
           begin: Alignment.topLeft,
@@ -28,26 +28,25 @@ class ActionableEmptyStateCard extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // 1. Background Decor (Subtle bus icon for branding)
           Positioned(
             right: -20,
             bottom: -20,
             child: Icon(
               Icons.directions_bus_filled_outlined,
               size: 140,
-              color: Colors.indigo.shade50, // Very subtle watermark
+              color: Colors.indigo.shade50,
             ),
           ),
-
-          // 2. Content
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.indigo.shade100,
                     borderRadius: BorderRadius.circular(20),
@@ -61,10 +60,7 @@ class ActionableEmptyStateCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                
                 const Spacer(),
-                
-                // Main Message
                 const Text(
                   'Ready to book a ride?',
                   style: TextStyle(
@@ -76,24 +72,17 @@ class ActionableEmptyStateCard extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   'Find top-rated drivers in your area.',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
                 ),
-
                 const SizedBox(height: 16),
 
-                // CTA Button
+                // --- THE MODIFIED BUTTON ---
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // Navigate to "Find Driver" tab or screen
-                      // Since we are using IndexedStack in ParentDashboardScreen,
-                      // we might need a callback or just push a new route.
-                      // For now, let's push the filter screen as an example:
-                      context.push('/driver-filters'); 
+                      // SWITCH TO TAB 0 ("Find" Tab)
+                      ref.read(parentDashboardIndexProvider.notifier).state = 0;
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.indigo.shade600,

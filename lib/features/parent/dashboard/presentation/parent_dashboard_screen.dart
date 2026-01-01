@@ -1,38 +1,36 @@
-// lib/features/parent/dashboard/presentation/parent_dashboard_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../find_driver/presentation/find_drivers_screen.dart'; // Ensure import
 import 'tabs/dashboard_tab.dart';
+import 'dashboard_controller.dart'; // Import the new controller
 
-class ParentDashboardScreen extends ConsumerStatefulWidget {
+class ParentDashboardScreen extends ConsumerWidget {
   const ParentDashboardScreen({super.key});
 
-  @override
-  ConsumerState<ParentDashboardScreen> createState() => _ParentDashboardScreenState();
-}
-
-class _ParentDashboardScreenState extends ConsumerState<ParentDashboardScreen> {
-  int _selectedIndex = 1; // Default to 'Home' (Index 1)
-
-  // Pages corresponding to your requested Navbar items
+  // Pages corresponding to Navbar items
   final List<Widget> _pages = const [
-    Center(child: Text("Find Drivers Page")), // Index 0
-    DashboardTab(),                           // Index 1 (Home)
-    Center(child: Text("Children List Page")),// Index 2
-    Center(child: Text("Profile Page")),      // Index 3
-    Center(child: Text("My Bookings Page")),  // Index 4
+    FindDriversScreen(),        // Index 0: The Driver Ads Screen
+    DashboardTab(),             // Index 1: Home
+    Center(child: Text("Children List Page")),
+    Center(child: Text("Profile Page")),
+    Center(child: Text("My Bookings Page")),
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    // 1. Watch the provider
+    final selectedIndex = ref.watch(parentDashboardIndexProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: IndexedStack(
-        index: _selectedIndex,
+        index: selectedIndex,
         children: _pages,
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+        selectedIndex: selectedIndex,
+        // 2. Update provider on click
+        onDestinationSelected: (i) => ref.read(parentDashboardIndexProvider.notifier).state = i,
         backgroundColor: Colors.white,
         elevation: 8,
         shadowColor: Colors.black12,
