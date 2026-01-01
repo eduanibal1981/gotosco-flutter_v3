@@ -78,7 +78,8 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 GestureDetector(
                   onTap: _openFilters,
                   child: Container(
-                    height: 50, width: 50,
+                    height: 50,
+                    width: 50,
                     decoration: BoxDecoration(
                       color: Colors.indigo,
                       borderRadius: BorderRadius.circular(12),
@@ -108,7 +109,10 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 );
               }
               return SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
                     (context, index) => DriverAdCard(driver: drivers[index]),
@@ -117,8 +121,11 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 ),
               );
             },
-            loading: () => const SliverFillRemaining(child: Center(child: CircularProgressIndicator())),
-            error: (err, stack) => SliverFillRemaining(child: Center(child: Text("Error: $err"))),
+            loading: () => const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            ),
+            error: (err, stack) =>
+                SliverFillRemaining(child: Center(child: Text("Error: $err"))),
           ),
         ],
       ),

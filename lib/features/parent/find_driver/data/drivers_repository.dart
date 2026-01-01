@@ -20,46 +20,24 @@ class DriversRepository {
   final SupabaseClient _supabase;
   DriversRepository(this._supabase);
 
-  Future<List<DriverAdModel>> searchDrivers(
-    Map<String, dynamic> filters,
-  ) async {
+  Future<List<DriverAdModel>> searchDrivers(Map<String, dynamic> filters) async {
     try {
-      // Logic: Fetch from 'drivers' table and join with 'users' table to get name/photo.
-      // NOTE: Ensure you have a Foreign Key set up between drivers.user_id and users.id
+      // Map Dart filters to SQL RPC parameters
+      final params = {
+        'filter_gender': filters['gender'] == 'All' ? null : filters['gender'],
+        'max_price': filters['maxPrice'],
+        'filter_area_id': filters['areaId'],     // New: UUID string or null
+        'filter_school_id': filters['schoolId'], // New: UUID string or null
+      };
 
-      var query = _supabase
-          .from('drivers')
-          .select('*, users!inner(full_name, photo_url, gender)');
+      // Call the RPC
+      final response = await _supabase.rpc('search_drivers', params: params);
 
-      // 1. Gender Filter
-      if (filters['gender'] != null && filters['gender'] != 'All') {
-        query = query.eq('users.gender', filters['gender']);
-      }
-
-      // 2. Max Price Filter
-      if (filters['maxPrice'] != null) {
-        query = query.lte('price_monthly_two_way', filters['maxPrice']);
-      }
-
-      // 3. Vehicle Type Filter
-      if (filters['vehicleType'] != null && filters['vehicleType'] != 'All') {
-        query = query.eq('vehicle_type', filters['vehicleType']);
-      }
-
-      // 4. Verification Filter (Optional default)
-      // query = query.eq('verified', true);
-
-      final response = await query;
-
-      return (response as List).map((data) {
-        // Flatten the data for the model
-        final driverData = data as Map<String, dynamic>;
-        final userData = driverData['users'] as Map<String, dynamic>;
-        final combinedData = {...driverData, ...userData};
-        return DriverAdModel.fromMap(combinedData);
-      }).toList();
+      return (response as List)
+          .map((data) => DriverAdModel.fromMap(data))
+          .toList();
+          
     } catch (e) {
-      // In production, log this error
       print('Error searching drivers: $e');
       return [];
     }

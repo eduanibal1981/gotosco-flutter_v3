@@ -26,25 +26,21 @@ class DriverAdModel {
     required this.bio,
   });
 
-  factory DriverAdModel.fromMap(Map<String, dynamic> map) {
-    // Handle simplified flat structure (from RPC) or nested structure (from client-side join)
-    final user =
-        map['users'] ??
-        map; // If 'users' key exists (join), use it, else use root
-
-    return DriverAdModel(
-      driverId: map['user_id'] ?? map['driver_id'] ?? '',
-      name: user['full_name'] ?? 'Driver',
-      photoUrl: user['photo_url'],
-      gender: user['gender'] ?? 'male', // Default to male if missing
-      vehicleType: map['vehicle_type'] ?? 'Bus',
-      rating: (map['rating'] ?? 0.0).toDouble(),
-      totalReviews:
-          map['total_reviews'] ?? 0, // Ensure your DB view calculates this
-      priceMonthlyTwoWay: (map['price_monthly_two_way'] ?? 0).toDouble(),
-      priceMonthlyOneWay: (map['price_monthly_one_way'] ?? 0).toDouble(),
-      isVerified: map['verified'] ?? false,
-      bio: map['bio'] ?? '',
-    );
-  }
+  // The View returns 'driver_id', 'name', etc. directly.
+// No need for nested 'users' map logic anymore.
+factory DriverAdModel.fromMap(Map<String, dynamic> map) {
+  return DriverAdModel(
+    driverId: map['driver_id'] ?? '',
+    name: map['name'] ?? 'Driver',
+    photoUrl: map['photo_url'],
+    gender: map['gender'] ?? 'male',
+    vehicleType: map['vehicle_type'] ?? 'Bus',
+    rating: (map['rating'] ?? 0.0).toDouble(),
+    totalReviews: map['total_reviews'] ?? 0,
+    priceMonthlyTwoWay: (map['price_monthly_two_way'] ?? 0).toDouble(),
+    priceMonthlyOneWay: (map['price_monthly_one_way'] ?? 0).toDouble(),
+    isVerified: true, // The view filters only verified ones
+    bio: map['bio'] ?? '',
+  );
+}
 }
