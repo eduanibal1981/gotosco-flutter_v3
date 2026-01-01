@@ -18,6 +18,10 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
     'gender': 'All',
     'maxPrice': 300.0,
     'vehicleType': 'All',
+    // Add these new keys:
+    'cityId': null,
+    'areaId': null,
+    'schoolId': null,
   };
 
   void _openFilters() async {
