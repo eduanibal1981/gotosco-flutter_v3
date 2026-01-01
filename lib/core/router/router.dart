@@ -3,9 +3,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gotosco_v3/core/constants/dev_config.dart';
+import 'package:gotosco_v3/features/parent/bookings/presentation/booking_screen.dart';
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/add_child_screen.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/edit_child_screen.dart';
+import 'package:gotosco_v3/features/shared/chat/presentation/chat_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Screen Imports
@@ -46,16 +48,41 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/add-student', // Matches the context.push('/add-student')
         builder: (context, state) => const AddChildScreen(),
       ),
-    // ... inside routes list:
 
-GoRoute(
-  path: '/edit-student',
-  builder: (context, state) {
-    // Retrieve the passed object
-    final child = state.extra as ChildModel; 
-    return EditChildScreen(child: child);
-  },
-),
+      // ... inside routes list
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) {
+          // Get args from the "extra" map
+          final args = state.extra as Map<String, dynamic>? ?? {};
+
+          return ChatScreen(
+            otherUserId:
+                args['userId'] ??
+                '', // Ensure these keys match what DriverAdCard sends
+            otherUserName: args['userName'] ?? 'Driver',
+          );
+        },
+      ),
+      // ... inside routes list:
+      GoRoute(
+        path: '/edit-student',
+        builder: (context, state) {
+          // Retrieve the passed object
+          final child = state.extra as ChildModel;
+          return EditChildScreen(child: child);
+        },
+      ),
+      GoRoute(
+        path: '/booking',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return BookingScreen(
+            driverId: args['driverId'],
+            driverName: args['driverName'],
+          );
+        },
+      ),
     ],
 
     // REDIRECT LOGIC

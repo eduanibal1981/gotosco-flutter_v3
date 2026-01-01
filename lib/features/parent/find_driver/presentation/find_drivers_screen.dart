@@ -13,12 +13,11 @@ class FindDriversScreen extends ConsumerStatefulWidget {
 }
 
 class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
-  // State to hold active filters
-  final Map<String, dynamic> _filters = {
+  // 1. REMOVE 'final' so we can reassign it
+  Map<String, dynamic> _filters = {
     'gender': 'All',
     'maxPrice': 100.0,
     'vehicleType': 'All',
-    // Add these new keys:
     'cityId': null,
     'areaId': null,
     'schoolId': null,
@@ -34,14 +33,19 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
     if (result != null) {
       setState(() {
-        _filters.addAll(result);
+        // 2. CREATE A NEW MAP INSTANCE
+        // This forces Riverpod to see a "change" and re-fetch data.
+        _filters = Map.from(_filters)..addAll(result);
+
+        // Alternative syntax:
+        // _filters = {..._filters, ...result};
       });
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Watch the repository provider with current filters
+    // Now this will trigger because _filters is a new object
     final driversAsync = ref.watch(driverAdsProvider(_filters));
 
     return Scaffold(
@@ -73,7 +77,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                         contentPadding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       onChanged: (val) {
-                        // Implement text search logic here if needed
+                        // For text search, you would update state here similarly
                       },
                     ),
                   ),
@@ -87,6 +91,13 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                     decoration: BoxDecoration(
                       color: Colors.indigo,
                       borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.indigo.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: const Icon(Icons.tune, color: Colors.white),
                   ),
