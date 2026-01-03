@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final bookingsRepositoryProvider = Provider((ref) => BookingsRepository(Supabase.instance.client));
-final myBookingsProvider = StreamProvider((ref) => ref.watch(bookingsRepositoryProvider).getBookingsStream());
+part 'bookings_repository.g.dart';
+
+@riverpod
+BookingsRepository bookingsRepository(Ref ref) {
+  return BookingsRepository(Supabase.instance.client);
+}
+
+@riverpod
+Stream<List<Map<String, dynamic>>> myBookings(Ref ref) {
+  return ref.watch(bookingsRepositoryProvider).getBookingsStream();
+}
 
 class BookingsRepository {
   final SupabaseClient _supabase;
@@ -36,34 +45,45 @@ class BookingsRepository {
     }
 
     // 1. Insert Booking
-    final bookingData = await _supabase.from('bookings').insert({
-      'parent_id': userId,
-      'driver_id': driverId,
-      'status': 'pending',
-      'booking_type': bookingType,
-      'home_location': homeLocation,
-      'school_location': schoolLocation,
-      'home_lat': homeLat,
-      'home_lng': homeLng,
-      'school_lat': schoolLat,
-      'school_lng': schoolLng,
-      'home_pickup_time': formatTime(homePickupTime),
-      'school_pickup_time': formatTime(schoolPickupTime),
-      'notes': notes,
-      // price is omitted, so it will be null
-    }).select().single();
+    final bookingData = await _supabase
+        .from('bookings')
+        .insert({
+          'parent_id': userId,
+          'driver_id': driverId,
+          'status': 'pending',
+          'booking_type': bookingType,
+          'home_location': homeLocation,
+          'school_location': schoolLocation,
+          'home_lat': homeLat,
+          'home_lng': homeLng,
+          'school_lat': schoolLat,
+          'school_lng': schoolLng,
+          'home_pickup_time': formatTime(homePickupTime),
+          'school_pickup_time': formatTime(schoolPickupTime),
+          'notes': notes,
+          // price is omitted, so it will be null
+        })
+        .select()
+        .single();
 
     final bookingId = bookingData['id'] as String;
 
     // 2. Link Children
     if (childIds.isNotEmpty) {
-      final childrenMap = childIds.map((childId) => {
-        'booking_id': bookingId,
-        'child_id': childId,
-      }).toList();
-      
+      final childrenMap = childIds
+          .map((childId) => {'booking_id': bookingId, 'child_id': childId})
+          .toList();
+
       await _supabase.from('booking_children').insert(childrenMap);
     }
+  }
+
+  /// Cancels a booking by updating its status to 'cancelled'.
+  Future<void> cancelBooking(String bookingId) async {
+    await _supabase
+        .from('bookings')
+        .update({'status': 'cancelled'})
+        .eq('id', bookingId);
   }
 
   // Stream remains mostly the same, just fetching the new columns happens automatically via *
@@ -82,7 +102,7 @@ class BookingsRepository {
                 .select('full_name, photo_url')
                 .eq('id', booking['driver_id'])
                 .single();
-            
+
             final kidsCount = await _supabase
                 .from('booking_children')
                 .count(CountOption.exact)

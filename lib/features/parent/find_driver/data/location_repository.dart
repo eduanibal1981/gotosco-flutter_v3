@@ -1,28 +1,40 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Providers for the UI to watch
-final locationRepositoryProvider = Provider((ref) => LocationRepository(Supabase.instance.client));
+part 'location_repository.g.dart';
 
-// Fetch cities
-final citiesProvider = FutureProvider((ref) => ref.watch(locationRepositoryProvider).getCities());
+@riverpod
+LocationRepository locationRepository(Ref ref) {
+  return LocationRepository(Supabase.instance.client);
+}
 
-// Fetch areas (depends on selectedCityId)
-final areasProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, cityId) {
+/// Fetch all cities
+@riverpod
+Future<List<Map<String, dynamic>>> cities(Ref ref) {
+  return ref.watch(locationRepositoryProvider).getCities();
+}
+
+/// Fetch areas for a specific city
+@riverpod
+Future<List<Map<String, dynamic>>> areas(Ref ref, String cityId) {
   return ref.watch(locationRepositoryProvider).getAreas(cityId);
-});
+}
 
-// Fetch schools (depends on selectedAreaId)
-final schoolsProvider = FutureProvider.family<List<Map<String, dynamic>>, String>((ref, areaId) {
+/// Fetch schools for a specific area
+@riverpod
+Future<List<Map<String, dynamic>>> schools(Ref ref, String areaId) {
   return ref.watch(locationRepositoryProvider).getSchools(areaId);
-});
+}
 
 class LocationRepository {
   final SupabaseClient _supabase;
   LocationRepository(this._supabase);
 
   Future<List<Map<String, dynamic>>> getCities() async {
-    final data = await _supabase.from('cities').select('id, name').order('name');
+    final data = await _supabase
+        .from('cities')
+        .select('id, name')
+        .order('name');
     return List<Map<String, dynamic>>.from(data);
   }
 

@@ -1,30 +1,18 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/drivers_repository.dart';
 
-// 1. The Provider: Holds a List of Strings (Driver IDs)
-final favoritesProvider =
-    StateNotifierProvider<FavoritesNotifier, AsyncValue<List<String>>>((ref) {
-      return FavoritesNotifier(ref.watch(driversRepositoryProvider));
-    });
+part 'favorites_provider.g.dart';
 
-// 2. The Notifier: Manages the logic
-class FavoritesNotifier extends StateNotifier<AsyncValue<List<String>>> {
-  final DriversRepository _repository;
-
-  FavoritesNotifier(this._repository) : super(const AsyncValue.loading()) {
-    _loadFavorites();
+/// Manages the list of favorite driver IDs for the current user.
+/// Uses AsyncNotifier pattern for proper async state management.
+@riverpod
+class Favorites extends _$Favorites {
+  @override
+  Future<List<String>> build() async {
+    return ref.watch(driversRepositoryProvider).getSavedDriverIds();
   }
 
-  Future<void> _loadFavorites() async {
-    try {
-      final ids = await _repository.getSavedDriverIds();
-      state = AsyncValue.data(ids);
-    } catch (e, st) {
-      state = AsyncValue.error(e, st);
-    }
-  }
-
+  /// Toggles a driver's favorite status with optimistic update.
   Future<void> toggleFavorite(String driverId) async {
     // Optimistic Update: Update UI immediately before API call finishes
     final currentList = state.value ?? [];
@@ -38,10 +26,10 @@ class FavoritesNotifier extends StateNotifier<AsyncValue<List<String>>> {
 
     // Call API
     try {
-      await _repository.toggleFavorite(driverId);
+      await ref.read(driversRepositoryProvider).toggleFavorite(driverId);
     } catch (e) {
-      // Revert if API fails
-      _loadFavorites();
+      // Revert if API fails by re-fetching
+      ref.invalidateSelf();
     }
   }
 }

@@ -9,8 +9,8 @@ class ParentDashboardScreen extends ConsumerWidget {
 
   // Pages corresponding to Navbar items
   final List<Widget> _pages = const [
-    FindDriversScreen(),        // Index 0: The Driver Ads Screen
-    DashboardTab(),             // Index 1: Home
+    FindDriversScreen(), // Index 0: The Driver Ads Screen
+    DashboardTab(), // Index 1: Home
     Center(child: Text("Children List Page")),
     Center(child: Text("Profile Page")),
     Center(child: Text("My Bookings Page")),
@@ -23,14 +23,12 @@ class ParentDashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: IndexedStack(
-        index: selectedIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: selectedIndex, children: _pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         // 2. Update provider on click
-        onDestinationSelected: (i) => ref.read(parentDashboardIndexProvider.notifier).state = i,
+        onDestinationSelected: (i) =>
+            ref.read(parentDashboardIndexProvider.notifier).setIndex(i),
         backgroundColor: Colors.white,
         elevation: 8,
         shadowColor: Colors.black12,

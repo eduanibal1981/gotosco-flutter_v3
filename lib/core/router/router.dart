@@ -1,22 +1,27 @@
 // lib/core/router/router.dart
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/core/constants/dev_config.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/booking_screen.dart';
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/add_child_screen.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/edit_child_screen.dart';
 import 'package:gotosco_v3/features/shared/chat/presentation/chat_screen.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 // Screen Imports
 import 'package:gotosco_v3/features/auth/presentation/login_screen.dart';
 import 'package:gotosco_v3/features/auth/presentation/splash_screen.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/parent_dashboard_screen.dart';
+import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_screen.dart';
 // import '../../features/driver/dashboard/presentation/driver_dashboard.dart';
 
-final routerProvider = Provider<GoRouter>((ref) {
+part 'router.g.dart';
+
+@riverpod
+GoRouter router(Ref ref) {
   return GoRouter(
     initialLocation: '/',
     routes: [
@@ -83,6 +88,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
+      // LIVE TRACKING ROUTE
+      GoRoute(
+        path: '/tracking',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return LiveTrackingScreen(
+            bookingId: args['bookingId'] ?? '',
+            driverId: args['driverId'] ?? '',
+            driverName: args['driverName'] ?? 'Driver',
+            driverPhotoUrl: args['driverPhotoUrl'],
+            homeLocation: args['homeLocation'],
+            schoolLocation: args['schoolLocation'],
+          );
+        },
+      ),
     ],
 
     // REDIRECT LOGIC
@@ -111,4 +131,4 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
   );
-});
+}

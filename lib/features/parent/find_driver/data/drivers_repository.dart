@@ -1,20 +1,21 @@
 // lib/features/parent/find_driver/data/drivers_repository.dart
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'driver_ad_model.dart';
 
-final driversRepositoryProvider = Provider<DriversRepository>((ref) {
-  return DriversRepository(Supabase.instance.client);
-});
+part 'drivers_repository.g.dart';
 
-// The Provider the UI will watch
-final driverAdsProvider =
-    FutureProvider.family<List<DriverAdModel>, Map<String, dynamic>>((
-      ref,
-      filters,
-    ) {
-      return ref.watch(driversRepositoryProvider).searchDrivers(filters);
-    });
+@riverpod
+DriversRepository driversRepository(Ref ref) {
+  return DriversRepository(Supabase.instance.client);
+}
+
+/// Provider for searching driver ads with filters.
+/// The UI watches this to display filtered results.
+@riverpod
+Future<List<DriverAdModel>> driverAds(Ref ref, Map<String, dynamic> filters) {
+  return ref.watch(driversRepositoryProvider).searchDrivers(filters);
+}
 
 class DriversRepository {
   final SupabaseClient _supabase;
@@ -43,10 +44,8 @@ class DriversRepository {
       return [];
     }
   }
-  // ... inside DriversRepository class
-  // ... existing code ...
 
-  // 1. Get list of Driver IDs that I have favorited
+  // Get list of Driver IDs that I have favorited
   Future<List<String>> getSavedDriverIds() async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return [];
@@ -59,16 +58,12 @@ class DriversRepository {
     return (data as List).map((e) => e['driver_id'] as String).toList();
   }
 
-  // 2. Toggle Favorite (Add if missing, Remove if exists)
+  // Toggle Favorite (Add if missing, Remove if exists)
   Future<void> toggleFavorite(String driverId) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) return;
 
     try {
-      // Try to insert. If it fails due to conflict (already exists), we delete it.
-      // However, Supabase simple insert doesn't return conflict details easily in Dart.
-      // So we check first (or use upsert logic).
-
       // Check if exists
       final existing = await _supabase
           .from('saved_drivers')

@@ -1,24 +1,25 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'message_model.dart';
 
-final chatRepositoryProvider = Provider((ref) {
-  return ChatRepository(Supabase.instance.client);
-});
+part 'chat_repository.g.dart';
 
-// Stream provider to listen to messages for a specific chat
-final chatStreamProvider = StreamProvider.family<List<MessageModel>, String>((
-  ref,
-  otherUserId,
-) {
+@riverpod
+ChatRepository chatRepository(Ref ref) {
+  return ChatRepository(Supabase.instance.client);
+}
+
+/// Stream provider to listen to messages for a specific chat
+@riverpod
+Stream<List<MessageModel>> chatStream(Ref ref, String otherUserId) {
   return ref.watch(chatRepositoryProvider).getMessagesStream(otherUserId);
-});
+}
 
 class ChatRepository {
   final SupabaseClient _supabase;
   ChatRepository(this._supabase);
 
-  // 1. Get Real-time Stream of Messages
+  // Get Real-time Stream of Messages
   Stream<List<MessageModel>> getMessagesStream(String otherUserId) {
     final myId = _supabase.auth.currentUser!.id;
 
@@ -41,7 +42,7 @@ class ChatRepository {
         });
   }
 
-  // 2. Send Message
+  // Send Message
   Future<void> sendMessage(String receiverId, String content) async {
     final myId = _supabase.auth.currentUser!.id;
 

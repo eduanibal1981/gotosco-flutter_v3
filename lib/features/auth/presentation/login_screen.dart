@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/core/constants/dev_config.dart';
-import '../data/auth_repository.dart';
+import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -14,7 +14,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   // State to toggle between Login and Sign Up views
   bool _isLogin = true;
-  bool _isLoading = false;
 
   // Controllers (Mocking them for UI purposes)
   final _emailController = TextEditingController();
@@ -36,92 +35,60 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   // ============== GOOGLE SIGN-IN HANDLER ==============
   Future<void> _handleGoogleSignIn() async {
-    setState(() => _isLoading = true);
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .signInWithGoogle();
 
-    try {
-      final authRepo = ref.read(authRepositoryProvider);
-      final response = await authRepo.signInWithGoogle();
+    if (!mounted) return;
 
-      if (!mounted) return;
+    // Web OAuth redirects, so result is null
+    if (result == null) return;
 
-      // On web, response is null because the page redirects to Google.
-      // The auth state change will be handled by GoRouter's redirect.
-      if (response == null) {
-        // Web OAuth redirect in progress - do nothing, page will redirect
-        return;
+    if (result.success && result.role != null) {
+      if (result.role == 'driver') {
+        context.go('/driver-home');
+      } else {
+        context.go('/parent-home');
       }
-
-      if (response.user != null) {
-        // Success! Navigate based on role
-        final role = response.user!.userMetadata?['role'];
-        if (role == 'driver') {
-          context.go('/driver-home');
-        } else {
-          context.go('/parent-home');
-        }
-      }
-    } catch (e) {
-      if (!mounted) return;
-
+    } else if (result.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Google Sign-In failed: ${e.toString()}'),
+          content: Text('Google Sign-In failed: ${result.error}'),
           backgroundColor: Colors.red.shade700,
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
   // ============== DEV MODE SIGN-IN HANDLER ==============
   Future<void> _handleDevSignIn(String role) async {
-    setState(() => _isLoading = true);
+    final result = await ref
+        .read(authControllerProvider.notifier)
+        .devSignIn(role);
 
-    try {
-      final authRepo = ref.read(authRepositoryProvider);
+    if (!mounted) return;
 
-      // Get the appropriate test user based on role
-      final testUser = role == 'driver'
-          ? DevConfig.testDriver
-          : DevConfig.testParent;
-      // Sign in with test credentials
-      final response = await authRepo.signIn(
-        email: testUser['email'] as String,
-        password: DevConfig.testPassword,
-      );
-
-      if (!mounted) return;
-
-      if (response.user != null) {
-        // Navigate to the appropriate home screen
-        if (role == 'driver') {
-          context.go('/driver-home');
-        } else {
-          context.go('/parent-home');
-        }
+    if (result.success) {
+      if (role == 'driver') {
+        context.go('/driver-home');
+      } else {
+        context.go('/parent-home');
       }
-    } catch (e) {
-      if (!mounted) return;
-
+    } else if (result.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('DEV Sign-In failed: ${e.toString()}'),
+          content: Text('DEV Sign-In failed: ${result.error}'),
           backgroundColor: Colors.red.shade700,
         ),
       );
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final authState = ref.watch(authControllerProvider);
+    final isLoading = authState.isLoading;
 
     return Scaffold(
       backgroundColor: _bgColor,
@@ -253,14 +220,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                     // Social Buttons stacked
                     _buildSocialButton(
-                      label: _isLoading
+                      label: isLoading
                           ? 'Signing in...'
                           : 'Continue with Google',
                       // Using built-in icons for UI demo. In real app use brand SVGs
                       icon: Icons.g_mobiledata,
                       color: Colors.red.shade700,
-                      onTap: _isLoading ? null : _handleGoogleSignIn,
-                      isLoading: _isLoading,
+                      onTap: isLoading ? null : _handleGoogleSignIn,
+                      isLoading: isLoading,
                     ),
                     const SizedBox(height: 16),
                     _buildSocialButton(
@@ -334,7 +301,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               children: [
                                 Expanded(
                                   child: ElevatedButton.icon(
-                                    onPressed: _isLoading
+                                    onPressed: isLoading
                                         ? null
                                         : () => _handleDevSignIn('parent'),
                                     icon: const Icon(Icons.family_restroom),
@@ -348,7 +315,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: ElevatedButton.icon(
-                                    onPressed: _isLoading
+                                    onPressed: isLoading
                                         ? null
                                         : () => _handleDevSignIn('driver'),
                                     icon: const Icon(Icons.directions_bus),

@@ -1,15 +1,18 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:gotosco_v3/core/constants/enums.dart'; // From the 'Core' structure I gave you
-import 'package:gotosco_v3/core/models/user_model.dart'; // We will define this small model below
+import 'package:gotosco_v3/core/constants/enums.dart';
+import 'package:gotosco_v3/core/models/user_model.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-// 1. Dependency Injection (The "Service Container")
-// This allows any widget to say `ref.watch(authRepositoryProvider)` to get this instance.
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
+part 'auth_repository.g.dart';
+
+/// Provides the AuthRepository instance via dependency injection.
+@riverpod
+AuthRepository authRepository(Ref ref) {
   return AuthRepository(Supabase.instance.client);
-});
+}
 
 class AuthRepository {
   final SupabaseClient _supabase;

@@ -1,18 +1,22 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'child_model.dart';
 
-final childrenRepositoryProvider = Provider<ChildrenRepository>((ref) {
-  return ChildrenRepository(Supabase.instance.client);
-});
+part 'children_repository.g.dart';
 
-final myChildrenProvider = FutureProvider<List<ChildModel>>((ref) async {
+@riverpod
+ChildrenRepository childrenRepository(Ref ref) {
+  return ChildrenRepository(Supabase.instance.client);
+}
+
+@riverpod
+Future<List<ChildModel>> myChildren(Ref ref) async {
   // Use a unique key to force refresh when needed
   final user = ref.watch(authRepositoryProvider).currentUser;
   if (user == null) return [];
   return ref.watch(childrenRepositoryProvider).getChildren(user.id);
-});
+}
 
 class ChildrenRepository {
   final SupabaseClient _supabase;
@@ -36,7 +40,7 @@ class ChildrenRepository {
     }
   }
 
-  // --- NEW: ADD CHILD FUNCTION ---
+  // --- ADD CHILD FUNCTION ---
   Future<void> addChild({
     required String name,
     required String school,
@@ -61,7 +65,8 @@ class ChildrenRepository {
       'created_at': DateTime.now().toIso8601String(),
     });
   }
-  // --- NEW: UPDATE CHILD ---
+
+  // --- UPDATE CHILD ---
   Future<void> updateChild({
     required String childId,
     required String name,
@@ -72,18 +77,21 @@ class ChildrenRepository {
     String? medicalConditions,
     String? notes,
   }) async {
-    await _supabase.from('children').update({
-      'name': name,
-      'school': school,
-      'grade': grade,
-      'gender': gender,
-      'date_of_birth': dob.toIso8601String(),
-      'medical_conditions': medicalConditions,
-      'notes': notes,
-    }).eq('id', childId);
+    await _supabase
+        .from('children')
+        .update({
+          'name': name,
+          'school': school,
+          'grade': grade,
+          'gender': gender,
+          'date_of_birth': dob.toIso8601String(),
+          'medical_conditions': medicalConditions,
+          'notes': notes,
+        })
+        .eq('id', childId);
   }
 
-  // --- NEW: DELETE CHILD ---
+  // --- DELETE CHILD ---
   Future<void> deleteChild(String childId) async {
     await _supabase.from('children').delete().eq('id', childId);
   }

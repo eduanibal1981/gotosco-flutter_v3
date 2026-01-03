@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/drivers_repository.dart';
 import 'widgets/driver_ad_card.dart';
 import 'widgets/filter_sheet.dart';
+import 'drivers_controller.dart';
 
 class FindDriversScreen extends ConsumerStatefulWidget {
   const FindDriversScreen({super.key});
@@ -13,40 +14,32 @@ class FindDriversScreen extends ConsumerStatefulWidget {
 }
 
 class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
-  // 1. REMOVE 'final' so we can reassign it
-  Map<String, dynamic> _filters = {
-    'gender': 'All',
-    'maxPrice': 100.0,
-    'vehicleType': 'All',
-    'cityId': null,
-    'areaId': null,
-    'schoolId': null,
-  };
-
   void _openFilters() async {
+    final currentFilters = ref.read(driversFilterControllerProvider);
     final result = await showModalBottomSheet<Map<String, dynamic>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => FilterSheet(currentFilters: _filters),
+      builder: (context) => FilterSheet(currentFilters: currentFilters),
     );
 
     if (result != null) {
-      setState(() {
-        // 2. CREATE A NEW MAP INSTANCE
-        // This forces Riverpod to see a "change" and re-fetch data.
-        _filters = Map.from(_filters)..addAll(result);
-
-        // Alternative syntax:
-        // _filters = {..._filters, ...result};
-      });
+      ref.read(driversFilterControllerProvider.notifier).updateFilters(result);
     }
+  }
+
+  void _clearFilters() {
+    ref.read(driversFilterControllerProvider.notifier).clearFilters();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Now this will trigger because _filters is a new object
-    final driversAsync = ref.watch(driverAdsProvider(_filters));
+    final filters = ref.watch(driversFilterControllerProvider);
+    final filterController = ref.watch(
+      driversFilterControllerProvider.notifier,
+    );
+    final driversAsync = ref.watch(driverAdsProvider(filters));
+    final filterSummary = filterController.filterSummary;
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -77,34 +70,108 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                         contentPadding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       onChanged: (val) {
-                        // For text search, you would update state here similarly
+                        // Implement text search logic if needed
                       },
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
+
+                // Filter Button (Highlight if filters are active)
                 GestureDetector(
                   onTap: _openFilters,
-                  child: Container(
-                    height: 50,
-                    width: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.indigo,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.indigo.withOpacity(0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Container(
+                        height: 50,
+                        width: 50,
+                        decoration: BoxDecoration(
+                          color: Colors.indigo,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.indigo.withOpacity(0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: const Icon(Icons.tune, color: Colors.white),
+                        child: const Icon(Icons.tune, color: Colors.white),
+                      ),
+                      // Red Dot Badge if filtered
+                      if (filterSummary != null)
+                        Positioned(
+                          top: -2,
+                          right: -2,
+                          child: Container(
+                            height: 14,
+                            width: 14,
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
+
+          // --- 4. NEW: Filter Summary Bar ---
+          if (filterSummary != null)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.indigo.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.filter_list,
+                        size: 18,
+                        color: Colors.indigo,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          "Filtered by: $filterSummary",
+                          style: TextStyle(
+                            color: Colors.indigo.shade900,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      InkWell(
+                        onTap: _clearFilters,
+                        child: const Padding(
+                          padding: EdgeInsets.all(4.0),
+                          child: Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Colors.indigo,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           // --- Drivers List ---
           driversAsync.when(

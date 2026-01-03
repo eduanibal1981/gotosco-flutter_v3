@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart'; // Add intl: ^0.18.0 to pubspec.yaml for date formatting
-import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
+import 'package:intl/intl.dart';
+import 'children_controller.dart';
 
 class AddChildScreen extends ConsumerStatefulWidget {
   const AddChildScreen({super.key});
@@ -13,18 +13,17 @@ class AddChildScreen extends ConsumerStatefulWidget {
 
 class _AddChildScreenState extends ConsumerState<AddChildScreen> {
   final _formKey = GlobalKey<FormState>();
-  
+
   // Controllers
   final _nameController = TextEditingController();
   final _schoolController = TextEditingController();
   final _gradeController = TextEditingController();
   final _medicalController = TextEditingController();
   final _notesController = TextEditingController();
-  
+
   // State
   String _selectedGender = 'male'; // Default
   DateTime? _selectedDate;
-  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -45,47 +44,50 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
     try {
-      await ref.read(childrenRepositoryProvider).addChild(
-        name: _nameController.text.trim(),
-        school: _schoolController.text.trim(),
-        grade: _gradeController.text.trim(),
-        gender: _selectedGender,
-        dob: _selectedDate!,
-        medicalConditions: _medicalController.text.trim(),
-        notes: _notesController.text.trim(),
-      );
+      final success = await ref
+          .read(childrenControllerProvider.notifier)
+          .addChild(
+            name: _nameController.text.trim(),
+            school: _schoolController.text.trim(),
+            grade: _gradeController.text.trim(),
+            gender: _selectedGender,
+            dob: _selectedDate!,
+            medicalConditions: _medicalController.text.trim(),
+            notes: _notesController.text.trim(),
+          );
 
       if (!mounted) return;
 
-      // Success! Refresh list and go back
-      ref.invalidate(myChildrenProvider); // Forces the dashboard list to reload
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Child profile added successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      context.pop(); // Go back to Dashboard
-
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Child profile added successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        context.pop();
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error adding child: $e'), backgroundColor: Colors.red),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final controllerState = ref.watch(childrenControllerProvider);
+    final isLoading = controllerState.isLoading;
+
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text("Add Child Profile", style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text(
+          "Add Child Profile",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.white,
         centerTitle: true,
         elevation: 0,
@@ -104,7 +106,11 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                     CircleAvatar(
                       radius: 50,
                       backgroundColor: Colors.grey.shade200,
-                      child: Icon(Icons.person, size: 50, color: Colors.grey.shade400),
+                      child: Icon(
+                        Icons.person,
+                        size: 50,
+                        color: Colors.grey.shade400,
+                      ),
                     ),
                     Positioned(
                       bottom: 0,
@@ -115,7 +121,11 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                           color: Colors.indigo,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ),
                   ],
@@ -132,15 +142,29 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                 validator: (v) => v!.isEmpty ? 'Name is required' : null,
               ),
               const SizedBox(height: 16),
-              
+
               // Gender Selector
-              const Text("Gender", style: TextStyle(fontWeight: FontWeight.w600, color: Colors.black54)),
+              const Text(
+                "Gender",
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black54,
+                ),
+              ),
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Expanded(child: _buildGenderCard('male', Icons.male, Colors.blue)),
+                  Expanded(
+                    child: _buildGenderCard('male', Icons.male, Colors.blue),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildGenderCard('female', Icons.female, Colors.pink)),
+                  Expanded(
+                    child: _buildGenderCard(
+                      'female',
+                      Icons.female,
+                      Colors.pink,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -150,14 +174,19 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                 onTap: () async {
                   final picked = await showDatePicker(
                     context: context,
-                    initialDate: DateTime.now().subtract(const Duration(days: 365 * 6)), // Default to 6 years old
+                    initialDate: DateTime.now().subtract(
+                      const Duration(days: 365 * 6),
+                    ), // Default to 6 years old
                     firstDate: DateTime(2000),
                     lastDate: DateTime.now(),
                   );
                   if (picked != null) setState(() => _selectedDate = picked);
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(color: Colors.grey.shade300),
@@ -172,7 +201,9 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                             ? "Date of Birth"
                             : DateFormat('MMMM d, yyyy').format(_selectedDate!),
                         style: TextStyle(
-                          color: _selectedDate == null ? Colors.grey.shade600 : Colors.black87,
+                          color: _selectedDate == null
+                              ? Colors.grey.shade600
+                              : Colors.black87,
                           fontSize: 16,
                         ),
                       ),
@@ -224,19 +255,31 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
                 width: double.infinity,
                 height: 54,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submit,
+                  onPressed: isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.indigo.shade700,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 2,
                   ),
-                  child: _isLoading
+                  child: isLoading
                       ? const SizedBox(
-                          height: 24, width: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
                         )
-                      : const Text("Save Child Profile", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      : const Text(
+                          "Save Child Profile",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -254,7 +297,11 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.indigo),
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.indigo,
+        ),
       ),
     );
   }
