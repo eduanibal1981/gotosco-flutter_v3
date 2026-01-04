@@ -7,6 +7,7 @@ import 'package:gotosco_v3/features/parent/bookings/presentation/booking_screen.
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/add_child_screen.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/edit_child_screen.dart';
+import 'package:gotosco_v3/features/parent/children/presentation/attendance_history_screen.dart';
 import 'package:gotosco_v3/features/shared/chat/presentation/chat_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -96,10 +97,17 @@ GoRouter router(Ref ref) {
           return LiveTrackingScreen(
             bookingId: args['bookingId'] ?? '',
             driverId: args['driverId'] ?? '',
-            driverName: args['driverName'] ?? 'Driver',
-            driverPhotoUrl: args['driverPhotoUrl'],
-            homeLocation: args['homeLocation'],
-            schoolLocation: args['schoolLocation'],
+          );
+        },
+      ),
+      // ATTENDANCE HISTORY ROUTE
+      GoRoute(
+        path: '/child-attendance',
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>;
+          return AttendanceHistoryScreen(
+            childId: args['childId'],
+            childName: args['childName'],
           );
         },
       ),

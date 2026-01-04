@@ -1,7 +1,10 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class MapPickerScreen extends StatefulWidget {
   const MapPickerScreen({super.key});
@@ -13,13 +16,13 @@ class MapPickerScreen extends StatefulWidget {
 class _MapPickerScreenState extends State<MapPickerScreen> {
   final MapController _mapController = MapController();
   LatLng _currentCenter = const LatLng(23.5880, 58.3829); // Default: Muscat
-// CHANGE 1: Set this to false so the map shows immediately
+  // CHANGE 1: Set this to false so the map shows immediately
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-// CHANGE 3: Keep this commented out so it doesn't ask for permissions immediately
+    // CHANGE 3: Keep this commented out so it doesn't ask for permissions immediately
     // _locateUser();
   }
 
@@ -72,16 +75,25 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               initialCenter: _currentCenter,
               initialZoom: 15.0,
               onPositionChanged: (position, hasGesture) {
-                if (position.center != null) {
-                  _currentCenter = position.center!;
-                }
+                _currentCenter = position.center;
               },
             ),
             children: [
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName:
-                    'com.example.gotosco_v3', // Add your package name
+                userAgentPackageName: 'com.example.gotosco_v3',
+                // Use cancellable tile provider for better performance on web
+                tileProvider: CancellableNetworkTileProvider(),
+                // Evict error tiles to prevent stuck loading states
+                evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
+                // Reduce tile requests on web
+                keepBuffer: kIsWeb ? 2 : 5,
+              ),
+              // OpenStreetMap Attribution (Required)
+              SimpleAttributionWidget(
+                source: const Text('© OpenStreetMap'),
+                onTap: () =>
+                    launchUrl(Uri.parse('https://openstreetmap.org/copyright')),
               ),
             ],
           ),

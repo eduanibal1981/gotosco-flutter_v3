@@ -67,6 +67,7 @@ class QuickActionsGrid extends StatelessWidget {
           ],
         ),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(icon, color: color, size: 28),
             const SizedBox(height: 8),
@@ -79,6 +80,7 @@ class QuickActionsGrid extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
               maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),

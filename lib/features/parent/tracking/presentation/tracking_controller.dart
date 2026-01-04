@@ -6,6 +6,7 @@ part 'tracking_controller.g.dart';
 
 /// StreamProvider that listens to real-time driver location updates.
 /// Using a family provider allows tracking different drivers.
+/// Uses Supabase Realtime for instant updates.
 ///
 /// Usage in UI:
 /// ```dart
@@ -18,36 +19,9 @@ Stream<DriverLocation> driverLocation(Ref ref, String driverId) {
       .getDriverLocationStream(driverId);
 }
 
-/// Controller for simulation and other tracking actions.
+/// Provider to fetch booking locations (home and school coordinates).
+/// This is a one-time fetch, not a stream.
 @riverpod
-class TrackingController extends _$TrackingController {
-  @override
-  FutureOr<void> build() {}
-
-  /// Starts a simulated driver movement for testing.
-  /// Moves from startPosition to endPosition over the specified duration.
-  Future<void> startSimulation({
-    required String driverId,
-    required double startLat,
-    required double startLng,
-    required double endLat,
-    required double endLng,
-    int steps = 20,
-  }) async {
-    state = const AsyncLoading();
-
-    state = await AsyncValue.guard(() async {
-      final repository = ref.read(trackingRepositoryProvider);
-
-      await repository.simulateDriverMovement(
-        driverId: driverId,
-        startLat: startLat,
-        startLng: startLng,
-        endLat: endLat,
-        endLng: endLng,
-        steps: steps,
-        interval: const Duration(seconds: 2),
-      );
-    });
-  }
+Future<BookingLocations> bookingLocations(Ref ref, String bookingId) {
+  return ref.watch(trackingRepositoryProvider).getBookingLocations(bookingId);
 }

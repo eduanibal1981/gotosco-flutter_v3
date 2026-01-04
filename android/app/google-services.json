@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "7285013352",
+    "project_id": "gotoscoai-ec5bd",
+    "storage_bucket": "gotoscoai-ec5bd.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:7285013352:android:ccb2ff613e44ddee7934dd",
+        "android_client_info": {
+          "package_name": "com.example.gotosco_v3"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgBU-BSrX6YQejqD-4AuBnUNvWYNH9Rw0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,7 +1,14 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/children_repository.dart';
+import '../data/attendance_model.dart';
 
 part 'children_controller.g.dart';
+
+/// Provider to fetch attendance history for a specific child
+@riverpod
+Future<List<AttendanceRecord>> attendanceHistory(Ref ref, String childId) {
+  return ref.watch(childrenRepositoryProvider).getAttendanceHistory(childId);
+}
 
 /// Controller that encapsulates all children management business logic.
 /// Handles validation, CRUD operations, and state management.

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:latlong2/latlong.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'driver_location_model.dart';
@@ -10,6 +11,18 @@ TrackingRepository trackingRepository(Ref ref) {
   return TrackingRepository(Supabase.instance.client);
 }
 
+/// Represents the home and school locations from a booking.
+class BookingLocations {
+  final LatLng? home;
+  final LatLng? school;
+  final String? driverId;
+  final String? driverName;
+
+  BookingLocations({this.home, this.school, this.driverId, this.driverName});
+
+  bool get hasLocations => home != null || school != null;
+}
+
 class TrackingRepository {
   final SupabaseClient _supabase;
 
@@ -17,8 +30,8 @@ class TrackingRepository {
 
   /// Returns a stream of real-time driver location updates.
   /// Uses Supabase Realtime to listen for changes to the driver_locations table.
+  /// Only returns data when driver is online.
   Stream<DriverLocation> getDriverLocationStream(String driverId) {
-    // Use Supabase stream for real-time updates
     return _supabase
         .from('driver_locations')
         .stream(primaryKey: ['driver_id'])
@@ -27,7 +40,11 @@ class TrackingRepository {
           if (data.isEmpty) {
             throw Exception('No location data found for driver: $driverId');
           }
-          return DriverLocation.fromMap(data.first);
+          final location = DriverLocation.fromMap(data.first);
+          if (!location.isOnline) {
+            throw Exception('Driver is currently offline');
+          }
+          return location;
         });
   }
 
@@ -43,48 +60,57 @@ class TrackingRepository {
     return DriverLocation.fromMap(response);
   }
 
-  /// Updates driver location - used for simulation/testing.
-  /// In production, this would be called from the Driver app.
-  Future<void> updateDriverLocation({
-    required String driverId,
-    required double latitude,
-    required double longitude,
-  }) async {
-    await _supabase.from('driver_locations').upsert({
-      'driver_id': driverId,
-      'latitude': latitude,
-      'longitude': longitude,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    });
+  /// Fetches home and school locations from a booking.
+  Future<BookingLocations> getBookingLocations(String bookingId) async {
+    final response = await _supabase
+        .from('bookings')
+        .select('''
+          home_lat, home_lng, school_lat, school_lng, driver_id,
+          drivers!bookings_driver_id_fkey(
+            users!drivers_user_id_fkey(full_name)
+          )
+        ''')
+        .eq('id', bookingId)
+        .maybeSingle();
+
+    if (response == null) {
+      return BookingLocations();
+    }
+
+    final homeLat = response['home_lat'] as num?;
+    final homeLng = response['home_lng'] as num?;
+    final schoolLat = response['school_lat'] as num?;
+    final schoolLng = response['school_lng'] as num?;
+
+    // Navigate through the nested structure: drivers -> users -> full_name
+    final driverName = response['drivers']?['users']?['full_name'] as String?;
+
+    return BookingLocations(
+      home: (homeLat != null && homeLng != null)
+          ? LatLng(homeLat.toDouble(), homeLng.toDouble())
+          : null,
+      school: (schoolLat != null && schoolLng != null)
+          ? LatLng(schoolLat.toDouble(), schoolLng.toDouble())
+          : null,
+      driverId: response['driver_id'] as String?,
+      driverName: driverName,
+    );
   }
 
-  /// Simulates driver movement for testing.
-  /// Moves the driver along a path from start to end coordinates.
-  Future<void> simulateDriverMovement({
-    required String driverId,
-    required double startLat,
-    required double startLng,
-    required double endLat,
-    required double endLng,
-    int steps = 20,
-    Duration interval = const Duration(seconds: 2),
-  }) async {
-    final latStep = (endLat - startLat) / steps;
-    final lngStep = (endLng - startLng) / steps;
+  /// Calculates estimated time of arrival in minutes.
+  /// Uses Haversine distance and current speed.
+  double? calculateEtaMinutes(DriverLocation driver, LatLng destination) {
+    if (driver.speed <= 0) return null;
 
-    for (int i = 0; i <= steps; i++) {
-      final currentLat = startLat + (latStep * i);
-      final currentLng = startLng + (lngStep * i);
+    const distance = Distance();
+    final distanceKm = distance.as(
+      LengthUnit.Kilometer,
+      driver.position,
+      destination,
+    );
 
-      await updateDriverLocation(
-        driverId: driverId,
-        latitude: currentLat,
-        longitude: currentLng,
-      );
-
-      if (i < steps) {
-        await Future.delayed(interval);
-      }
-    }
+    // ETA = distance / speed (in hours), convert to minutes
+    final etaHours = distanceKm / driver.speed;
+    return etaHours * 60;
   }
 }

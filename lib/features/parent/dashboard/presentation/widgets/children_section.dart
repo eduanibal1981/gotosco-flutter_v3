@@ -151,10 +151,7 @@ class ChildrenSection extends ConsumerWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () {
-          // Navigate to edit screen and pass the child object
-          context.push('/edit-student', extra: child);
-        },
+        onTap: () => _showChildOptions(context, child),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           width: 130, // Fixed width for uniform cards
@@ -172,11 +169,12 @@ class ChildrenSection extends ConsumerWidget {
             ],
           ),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Avatar
               CircleAvatar(
-                radius: 22,
+                radius: 18,
                 backgroundColor: color.withOpacity(0.1),
                 backgroundImage: child.photoUrl != null
                     ? NetworkImage(child.photoUrl!)
@@ -187,12 +185,12 @@ class ChildrenSection extends ConsumerWidget {
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.bold,
-                          fontSize: 18,
+                          fontSize: 14,
                         ),
                       )
                     : null,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6),
               // Name
               Text(
                 child.name,
@@ -200,7 +198,7 @@ class ChildrenSection extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 14,
+                  fontSize: 12,
                 ),
               ),
               // School/Grade
@@ -208,10 +206,59 @@ class ChildrenSection extends ConsumerWidget {
                 child.grade.isNotEmpty ? child.grade : child.schoolName,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                style: TextStyle(fontSize: 10, color: Colors.grey.shade500),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showChildOptions(BuildContext context, ChildModel child) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+              leading: const Icon(Icons.history, color: Colors.blue),
+              title: const Text('View Attendance History'),
+              subtitle: const Text(
+                'See when your child was picked up/dropped off',
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                context.push(
+                  '/child-attendance',
+                  extra: {'childId': child.id, 'childName': child.name},
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.edit, color: Colors.orange),
+              title: const Text('Edit Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                context.push('/edit-student', extra: child);
+              },
+            ),
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );

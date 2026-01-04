@@ -1,3 +1,4 @@
+// lib/features/parent/dashboard/presentation/widgets/actionable_empty_state_card.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../dashboard_controller.dart'; // Import the controller
@@ -40,6 +41,7 @@ class ActionableEmptyStateCard extends ConsumerWidget {
           Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
@@ -60,21 +62,25 @@ class ActionableEmptyStateCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(height: 12),
                 const Text(
                   'Ready to book a ride?',
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Find top-rated drivers in your area.',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
 
                 // --- THE MODIFIED BUTTON ---
                 SizedBox(
@@ -90,7 +96,7 @@ class ActionableEmptyStateCard extends ConsumerWidget {
                       backgroundColor: Colors.indigo.shade600,
                       foregroundColor: Colors.white,
                       elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

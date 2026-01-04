@@ -10,6 +10,7 @@ part of 'tracking_controller.dart';
 // ignore_for_file: type=lint, type=warning
 /// StreamProvider that listens to real-time driver location updates.
 /// Using a family provider allows tracking different drivers.
+/// Uses Supabase Realtime for instant updates.
 ///
 /// Usage in UI:
 /// ```dart
@@ -21,6 +22,7 @@ final driverLocationProvider = DriverLocationFamily._();
 
 /// StreamProvider that listens to real-time driver location updates.
 /// Using a family provider allows tracking different drivers.
+/// Uses Supabase Realtime for instant updates.
 ///
 /// Usage in UI:
 /// ```dart
@@ -37,6 +39,7 @@ final class DriverLocationProvider
     with $FutureModifier<DriverLocation>, $StreamProvider<DriverLocation> {
   /// StreamProvider that listens to real-time driver location updates.
   /// Using a family provider allows tracking different drivers.
+  /// Uses Supabase Realtime for instant updates.
   ///
   /// Usage in UI:
   /// ```dart
@@ -90,6 +93,7 @@ String _$driverLocationHash() => r'b1281596db94b618291c0610af9fdd158fa5412d';
 
 /// StreamProvider that listens to real-time driver location updates.
 /// Using a family provider allows tracking different drivers.
+/// Uses Supabase Realtime for instant updates.
 ///
 /// Usage in UI:
 /// ```dart
@@ -109,6 +113,7 @@ final class DriverLocationFamily extends $Family
 
   /// StreamProvider that listens to real-time driver location updates.
   /// Using a family provider allows tracking different drivers.
+  /// Uses Supabase Realtime for instant updates.
   ///
   /// Usage in UI:
   /// ```dart
@@ -122,53 +127,91 @@ final class DriverLocationFamily extends $Family
   String toString() => r'driverLocationProvider';
 }
 
-/// Controller for simulation and other tracking actions.
+/// Provider to fetch booking locations (home and school coordinates).
+/// This is a one-time fetch, not a stream.
 
-@ProviderFor(TrackingController)
-final trackingControllerProvider = TrackingControllerProvider._();
+@ProviderFor(bookingLocations)
+final bookingLocationsProvider = BookingLocationsFamily._();
 
-/// Controller for simulation and other tracking actions.
-final class TrackingControllerProvider
-    extends $AsyncNotifierProvider<TrackingController, void> {
-  /// Controller for simulation and other tracking actions.
-  TrackingControllerProvider._()
-    : super(
-        from: null,
-        argument: null,
-        retry: null,
-        name: r'trackingControllerProvider',
-        isAutoDispose: true,
-        dependencies: null,
-        $allTransitiveDependencies: null,
-      );
+/// Provider to fetch booking locations (home and school coordinates).
+/// This is a one-time fetch, not a stream.
+
+final class BookingLocationsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<BookingLocations>,
+          BookingLocations,
+          FutureOr<BookingLocations>
+        >
+    with $FutureModifier<BookingLocations>, $FutureProvider<BookingLocations> {
+  /// Provider to fetch booking locations (home and school coordinates).
+  /// This is a one-time fetch, not a stream.
+  BookingLocationsProvider._({
+    required BookingLocationsFamily super.from,
+    required String super.argument,
+  }) : super(
+         retry: null,
+         name: r'bookingLocationsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
 
   @override
-  String debugGetCreateSourceHash() => _$trackingControllerHash();
+  String debugGetCreateSourceHash() => _$bookingLocationsHash();
+
+  @override
+  String toString() {
+    return r'bookingLocationsProvider'
+        ''
+        '($argument)';
+  }
 
   @$internal
   @override
-  TrackingController create() => TrackingController();
+  $FutureProviderElement<BookingLocations> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<BookingLocations> create(Ref ref) {
+    final argument = this.argument as String;
+    return bookingLocations(ref, argument);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is BookingLocationsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
 }
 
-String _$trackingControllerHash() =>
-    r'071bc96a6e782ed8a76c8fe74d39a3c9cf86d4f0';
+String _$bookingLocationsHash() => r'2f5d9a064ac5111d51cefba0025f97a0f8f71765';
 
-/// Controller for simulation and other tracking actions.
+/// Provider to fetch booking locations (home and school coordinates).
+/// This is a one-time fetch, not a stream.
 
-abstract class _$TrackingController extends $AsyncNotifier<void> {
-  FutureOr<void> build();
-  @$mustCallSuper
+final class BookingLocationsFamily extends $Family
+    with $FunctionalFamilyOverride<FutureOr<BookingLocations>, String> {
+  BookingLocationsFamily._()
+    : super(
+        retry: null,
+        name: r'bookingLocationsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Provider to fetch booking locations (home and school coordinates).
+  /// This is a one-time fetch, not a stream.
+
+  BookingLocationsProvider call(String bookingId) =>
+      BookingLocationsProvider._(argument: bookingId, from: this);
+
   @override
-  void runBuild() {
-    final ref = this.ref as $Ref<AsyncValue<void>, void>;
-    final element =
-        ref.element
-            as $ClassProviderElement<
-              AnyNotifier<AsyncValue<void>, void>,
-              AsyncValue<void>,
-              Object?,
-              Object?
-            >;
-    element.handleCreate(ref, build);
-  }
+  String toString() => r'bookingLocationsProvider';
 }

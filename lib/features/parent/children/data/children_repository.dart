@@ -2,6 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'child_model.dart';
+import 'attendance_model.dart';
 
 part 'children_repository.g.dart';
 
@@ -94,5 +95,26 @@ class ChildrenRepository {
   // --- DELETE CHILD ---
   Future<void> deleteChild(String childId) async {
     await _supabase.from('children').delete().eq('id', childId);
+  }
+
+  // --- ATTENDANCE HISTORY ---
+  Future<List<AttendanceRecord>> getAttendanceHistory(String childId) async {
+    try {
+      final thirtyDaysAgo = DateTime.now().subtract(const Duration(days: 30));
+
+      final response = await _supabase
+          .from('ride_events')
+          .select()
+          .eq('child_id', childId)
+          .gte('created_at', thirtyDaysAgo.toIso8601String())
+          .order('created_at', ascending: false);
+
+      return (response as List)
+          .map((data) => AttendanceRecord.fromMap(data))
+          .toList();
+    } catch (e) {
+      print('Error fetching attendance: $e');
+      return [];
+    }
   }
 }
