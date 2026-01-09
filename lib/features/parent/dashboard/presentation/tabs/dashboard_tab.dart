@@ -55,17 +55,20 @@ class DashboardTab extends ConsumerWidget {
                       } else {
                         // Multiple active bookings -> Horizontal List
                         return SizedBox(
-                          height:
-                              190, // Slightly taller to accommodate padding/shadows if needed
-                          child: PageView.builder(
-                            padEnds: false,
-                            controller: PageController(viewportFraction: 0.92),
+                          height: 220, // Increased to accommodate shadows
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                            physics: const BouncingScrollPhysics(),
                             itemCount: acceptedBookings.length,
                             itemBuilder: (context, index) {
-                              return Padding(
-                                padding: const EdgeInsets.only(right: 12.0),
-                                child: DriverStatusMonitor(
-                                  booking: acceptedBookings[index],
+                              return SizedBox(
+                                width: MediaQuery.of(context).size.width * 0.9,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 16.0),
+                                  child: DriverStatusMonitor(
+                                    booking: acceptedBookings[index],
+                                  ),
                                 ),
                               );
                             },
@@ -99,40 +102,28 @@ class DashboardTab extends ConsumerWidget {
 
                 const SizedBox(height: 24),
 
-                // 5. SUGGESTED ADS (Only if no bookings)
-                bookingsAsync.when(
-                  data: (bookings) {
-                    if (bookings.isEmpty) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.near_me,
-                                size: 18,
-                                color: Colors.indigo,
-                              ),
-                              const SizedBox(width: 8),
-                              const Text(
-                                "Drivers Near You",
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
+                // 5. SUGGESTED ADS
+                // 5. SUGGESTED ADS
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.near_me, size: 18, color: Colors.indigo),
+                        SizedBox(width: 8),
+                        Text(
+                          "Drivers Near You",
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                          const SizedBox(height: 12),
-                          const FeaturedDrivers(),
-                          const SizedBox(height: 24),
-                        ],
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 12),
+                    FeaturedDrivers(),
+                    SizedBox(height: 24),
+                  ],
                 ),
 
                 const SizedBox(height: 40),

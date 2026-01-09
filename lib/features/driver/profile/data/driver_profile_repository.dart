@@ -1,0 +1,289 @@
+// lib/features/driver/profile/data/driver_profile_repository.dart
+import 'dart:io';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'driver_profile_model.dart';
+import 'driver_schedule_model.dart';
+
+part 'driver_profile_repository.g.dart';
+
+@riverpod
+DriverProfileRepository driverProfileRepository(Ref ref) {
+  return DriverProfileRepository(Supabase.instance.client);
+}
+
+/// Provider for the current driver's profile
+@riverpod
+Future<DriverProfileModel?> currentDriverProfile(Ref ref) async {
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  print('DEBUG: currentDriverProfile called, userId: $userId');
+
+  if (userId == null) {
+    print('DEBUG: userId is null, returning null');
+    return null;
+  }
+
+  final repository = ref.read(driverProfileRepositoryProvider);
+  final profile = await repository.getDriverProfile(userId);
+  print(
+    'DEBUG: getDriverProfile returned: ${profile != null ? 'profile found' : 'null'}',
+  );
+  return profile;
+}
+
+/// Provider for the current driver's schedules
+@riverpod
+Future<List<DriverScheduleModel>> driverSchedules(Ref ref) async {
+  final userId = Supabase.instance.client.auth.currentUser?.id;
+  if (userId == null) return [];
+
+  final repository = ref.read(driverProfileRepositoryProvider);
+  return repository.getDriverSchedules(userId);
+}
+
+class DriverProfileRepository {
+  final SupabaseClient _supabase;
+
+  DriverProfileRepository(this._supabase);
+
+  /// Fetches the driver profile for the given user ID
+  Future<DriverProfileModel?> getDriverProfile(String userId) async {
+    print('DEBUG: getDriverProfile called with userId: $userId');
+
+    try {
+      // First, try with the user join - select all columns from users
+      print('DEBUG: Attempting JOIN query on drivers table...');
+      final response = await _supabase
+          .from('drivers')
+          .select('''
+            *,
+            users!drivers_user_id_fkey(*)
+          ''')
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      print(
+        'DEBUG: JOIN query response: ${response != null ? 'data found' : 'null'}',
+      );
+
+      if (response != null) {
+        print('DEBUG: Response data: $response');
+        return DriverProfileModel.fromMap(response);
+      }
+    } catch (e) {
+      print('DEBUG: Error fetching driver profile with JOIN: $e');
+      // Fall through to try without the join
+    }
+
+    // Fallback: Try without the user join (in case foreign key is missing/misconfigured)
+    try {
+      print('DEBUG: Attempting fallback query (no JOIN)...');
+      final driverData = await _supabase
+          .from('drivers')
+          .select()
+          .eq('user_id', userId)
+          .maybeSingle();
+
+      print(
+        'DEBUG: Fallback driver query result: ${driverData != null ? 'found' : 'null'}',
+      );
+
+      if (driverData == null) {
+        print('DEBUG: No driver data found for userId: $userId');
+        return null;
+      }
+
+      print('DEBUG: Driver data found: $driverData');
+
+      // Fetch user data separately - use * to get all available columns
+      // since the schema may vary (email column doesn't exist)
+      Map<String, dynamic>? userData;
+      try {
+        userData = await _supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle();
+        print('DEBUG: User data: $userData');
+      } catch (userError) {
+        print('DEBUG: Error fetching user data: $userError');
+        // Continue without user data - driver data is still valid
+      }
+
+      // Combine the data
+      final combinedData = {...driverData, 'users': userData};
+
+      return DriverProfileModel.fromMap(combinedData);
+    } catch (e) {
+      print('DEBUG: Error fetching driver profile (fallback): $e');
+      return null;
+    }
+  }
+
+  /// Updates the driver profile
+  Future<bool> updateDriverProfile(
+    String driverId,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      // Primary key is user_id, not id
+      await _supabase.from('drivers').update(updates).eq('user_id', driverId);
+      return true;
+    } catch (e) {
+      print('Error updating driver profile: $e');
+      return false;
+    }
+  }
+
+  /// Uploads a document (license or mulkia) to Supabase Storage
+  /// Returns the public URL of the uploaded file
+  Future<String?> uploadDocument({
+    required String driverId,
+    required File file,
+    required String documentType, // 'license' or 'mulkia'
+  }) async {
+    try {
+      final extension = file.path.split('.').last;
+      final fileName =
+          '${driverId}_${documentType}_${DateTime.now().millisecondsSinceEpoch}.$extension';
+      final storagePath = 'driver_documents/$driverId/$fileName';
+
+      // Upload to Supabase Storage
+      await _supabase.storage.from('documents').upload(storagePath, file);
+
+      // Get public URL
+      final publicUrl = _supabase.storage
+          .from('documents')
+          .getPublicUrl(storagePath);
+
+      // Update driver record with the URL
+      final fieldName = documentType == 'license'
+          ? 'license_image_url'
+          : 'mulkia_image_url';
+      await updateDriverProfile(driverId, {fieldName: publicUrl});
+
+      return publicUrl;
+    } catch (e) {
+      print('Error uploading document: $e');
+      return null;
+    }
+  }
+
+  /// Creates a driver profile for a new driver
+  Future<String?> createDriverProfile({
+    required String userId,
+    required String vehicleType,
+  }) async {
+    try {
+      final response = await _supabase
+          .from('drivers')
+          .insert({
+            'user_id': userId,
+            'vehicle_type': vehicleType,
+            'is_verified': false,
+          })
+          .select('user_id')
+          .single();
+
+      // Primary key is user_id
+      return response['user_id'] as String?;
+    } catch (e) {
+      print('Error creating driver profile: $e');
+      return null;
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SCHEDULE METHODS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  /// Get all schedules for a driver
+  Future<List<DriverScheduleModel>> getDriverSchedules(String driverId) async {
+    try {
+      final response = await _supabase
+          .from('driver_schedules')
+          .select()
+          .eq('driver_id', driverId)
+          .eq('is_active', true)
+          .order('day_of_week');
+
+      return (response as List)
+          .map((e) => DriverScheduleModel.fromMap(e))
+          .toList();
+    } catch (e) {
+      print('Error fetching driver schedules: $e');
+      return [];
+    }
+  }
+
+  /// Check if driver has at least one schedule
+  Future<bool> hasSchedules(String driverId) async {
+    try {
+      final response = await _supabase
+          .from('driver_schedules')
+          .select('id')
+          .eq('driver_id', driverId)
+          .eq('is_active', true)
+          .limit(1);
+
+      return (response as List).isNotEmpty;
+    } catch (e) {
+      print('Error checking schedules: $e');
+      return false;
+    }
+  }
+
+  /// Create a new schedule
+  Future<String?> createSchedule(DriverScheduleModel schedule) async {
+    try {
+      final mapData = schedule.toMap();
+      print('DEBUG createSchedule: Inserting schedule with data: $mapData');
+
+      final response = await _supabase
+          .from('driver_schedules')
+          .insert(mapData)
+          .select('id')
+          .single();
+
+      print(
+        'DEBUG createSchedule: Success! Created schedule with id: ${response['id']}',
+      );
+      return response['id'] as String?;
+    } catch (e) {
+      print('DEBUG createSchedule ERROR: $e');
+      return null;
+    }
+  }
+
+  /// Update a schedule
+  Future<bool> updateSchedule(
+    String scheduleId,
+    Map<String, dynamic> updates,
+  ) async {
+    try {
+      await _supabase
+          .from('driver_schedules')
+          .update(updates)
+          .eq('id', scheduleId);
+      return true;
+    } catch (e) {
+      print('Error updating schedule: $e');
+      return false;
+    }
+  }
+
+  /// Delete a schedule (soft delete by setting is_active to false)
+  Future<bool> deleteSchedule(String scheduleId) async {
+    try {
+      await _supabase
+          .from('driver_schedules')
+          .update({'is_active': false})
+          .eq('id', scheduleId);
+      return true;
+    } catch (e) {
+      print('Error deleting schedule: $e');
+      return false;
+    }
+  }
+}

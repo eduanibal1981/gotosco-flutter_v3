@@ -98,8 +98,9 @@ class AuthRepository {
       return null;
     } else {
       // NATIVE: Use native Google Sign-In plugin (v6.x API)
+      // Web Client ID from Google Cloud Console - must match what's configured in Supabase
       const webClientId =
-          '426305775558-v3997naridrfaquv79d8t7ca9f0a05a8.apps.googleusercontent.com';
+          '7285013352-0klm5l36jbmuoi8a9asqbouv8oqhaocm.apps.googleusercontent.com';
 
       final googleSignIn = GoogleSignIn(
         serverClientId: webClientId,

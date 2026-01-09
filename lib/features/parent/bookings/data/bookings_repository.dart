@@ -52,12 +52,17 @@ class BookingsRepository {
           'driver_id': driverId,
           'status': 'pending',
           'booking_type': bookingType,
-          'home_location': homeLocation,
-          'school_location': schoolLocation,
-          'home_lat': homeLat,
-          'home_lng': homeLng,
-          'school_lat': schoolLat,
-          'school_lng': schoolLng,
+          'hometxt_location': homeLocation,
+          'schooltxt_location': schoolLocation,
+          // Use SRID 4326 for WGS 84
+          if (homeLat != null && homeLng != null)
+            'homegeo_location': 'SRID=4326;POINT($homeLng $homeLat)',
+          if (schoolLat != null && schoolLng != null)
+            'schoolgeo_location': 'SRID=4326;POINT($schoolLng $schoolLat)',
+          // 'home_lat': homeLat, // GENERATED COLUMN
+          // 'home_lng': homeLng, // GENERATED COLUMN
+          // 'school_lat': schoolLat, // GENERATED COLUMN
+          // 'school_lng': schoolLng, // GENERATED COLUMN
           'home_pickup_time': formatTime(homePickupTime),
           'school_pickup_time': formatTime(schoolPickupTime),
           'notes': notes,
@@ -113,6 +118,9 @@ class BookingsRepository {
               'driver_name': driver['full_name'],
               'driver_photo': driver['photo_url'],
               'kids_count': kidsCount,
+              // Map new columns to old keys for UI compatibility
+              'home_location': booking['hometxt_location'],
+              'school_location': booking['schooltxt_location'],
             });
           }
           return enriched;

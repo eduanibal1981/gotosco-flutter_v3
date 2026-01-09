@@ -1,41 +1,41 @@
-// lib/features/parent/dashboard/presentation/widgets/featured_drivers.dart
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gotosco_v3/features/parent/find_driver/data/drivers_repository.dart';
 
-class FeaturedDrivers extends StatelessWidget {
+class FeaturedDrivers extends ConsumerWidget {
   const FeaturedDrivers({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final driversAsync = ref.watch(nearbyDriversProvider);
+
     return SizedBox(
       height: 160,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        children: [
-          _buildDriverCard(
-            name: "Salim Al-Harthi",
-            rating: "4.9",
-            area: "Al Seeb",
-            isVerified: true,
-            color: Colors.blue.shade50,
-          ),
-          const SizedBox(width: 12),
-          _buildDriverCard(
-            name: "Noor Transport",
-            rating: "4.8",
-            area: "Bawshar",
-            isVerified: true,
-            color: Colors.orange.shade50,
-          ),
-          const SizedBox(width: 12),
-          _buildDriverCard(
-            name: "Safe Kids Bus",
-            rating: "5.0",
-            area: "Muscat",
-            isVerified: false,
-            color: Colors.purple.shade50,
-          ),
-        ],
+      child: driversAsync.when(
+        data: (drivers) {
+          if (drivers.isEmpty) {
+            return const Center(child: Text("No drivers found nearby."));
+          }
+          return ListView.separated(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            itemCount: drivers.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final driver = drivers[index];
+              return _buildDriverCard(
+                name: driver.name,
+                rating: "${driver.rating}",
+                area: "Muscat", // Default area for now
+                isVerified:
+                    true, // Assuming true for now, add field to model if needed
+                color: Colors.blue.shade50, // You can randomize or derive this
+              );
+            },
+          );
+        },
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (err, stack) => Center(child: Text('Error: $err')),
       ),
     );
   }

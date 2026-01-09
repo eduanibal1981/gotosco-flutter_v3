@@ -2,7 +2,7 @@
 // This Edge Function sends FCM push notifications to users
 // Triggered by database changes or direct invocation
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
 
 // Firebase Admin SDK for sending FCM messages
 const FIREBASE_PROJECT_ID = Deno.env.get("FIREBASE_PROJECT_ID") ?? "gotoscoai-ec5bd";
@@ -47,7 +47,7 @@ async function getAccessToken(): Promise<string> {
   }
 
   const serviceAccount = JSON.parse(serviceAccountKey);
-  
+
   // Create JWT for Google OAuth2
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -157,7 +157,7 @@ async function sendFCMNotification(payload: NotificationPayload): Promise<Respon
   return response;
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   try {
     // Handle CORS preflight
     if (req.method === "OPTIONS") {

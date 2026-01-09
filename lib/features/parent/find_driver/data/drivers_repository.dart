@@ -17,6 +17,12 @@ Future<List<DriverAdModel>> driverAds(Ref ref, Map<String, dynamic> filters) {
   return ref.watch(driversRepositoryProvider).searchDrivers(filters);
 }
 
+/// Provider for dashboard "Nearby/Featured" drivers
+@riverpod
+Future<List<DriverAdModel>> nearbyDrivers(Ref ref) {
+  return ref.watch(driversRepositoryProvider).getNearbyDrivers();
+}
+
 class DriversRepository {
   final SupabaseClient _supabase;
   DriversRepository(this._supabase);
@@ -41,6 +47,36 @@ class DriversRepository {
           .toList();
     } catch (e) {
       print('Error searching drivers: $e');
+      return [];
+    }
+  }
+
+  /// FEATURED DRIVERS (For Dashboard)
+  /// Fetches a list of recent driver ads.
+  /// Ideally, use actual geolocation here if available.
+  Future<List<DriverAdModel>> getNearbyDrivers({int limit = 5}) async {
+    try {
+      // For now, we reuse search_drivers with no filters to get all available
+      // You could optimize this with a specific RPC or direct table query
+      final response = await _supabase.rpc(
+        'search_drivers',
+        params: {
+          'filter_gender': null,
+          'max_price': 1000.0, // High limit to get everything
+          'filter_area_id': null,
+          'filter_school_id': null,
+        },
+      );
+
+      final allDrivers = (response as List)
+          .map((data) => DriverAdModel.fromMap(data))
+          .toList();
+
+      // Return only top N
+      // (If you had a 'created_at' in your view, you could sort by that)
+      return allDrivers.take(limit).toList();
+    } catch (e) {
+      print('Error fetching featured drivers: $e');
       return [];
     }
   }

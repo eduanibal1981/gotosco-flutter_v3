@@ -17,7 +17,7 @@ import 'package:gotosco_v3/features/auth/presentation/login_screen.dart';
 import 'package:gotosco_v3/features/auth/presentation/splash_screen.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/parent_dashboard_screen.dart';
 import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_screen.dart';
-// import '../../features/driver/dashboard/presentation/driver_dashboard.dart';
+import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 
 part 'router.g.dart';
 
@@ -44,11 +44,7 @@ GoRouter router(Ref ref) {
       // DRIVER ROUTES
       GoRoute(
         path: '/driver-home',
-        builder: (context, state) => Scaffold(
-          appBar: AppBar(title: const Text('Driver Dashboard')),
-          body: const Center(child: Text("Driver Dashboard Placeholder")),
-        ),
-        // Replace with DriverDashboardScreen()
+        builder: (context, state) => const DriverDashboardScreen(),
       ),
       GoRoute(
         path: '/add-student', // Matches the context.push('/add-student')
@@ -87,6 +83,17 @@ GoRouter router(Ref ref) {
             driverId: args['driverId'],
             driverName: args['driverName'],
           );
+        },
+      ),
+      GoRoute(
+        path: '/add-child',
+        builder: (context, state) => const AddChildScreen(),
+      ),
+      GoRoute(
+        path: '/edit-child/:childId',
+        builder: (context, state) {
+          final child = state.extra as ChildModel;
+          return EditChildScreen(child: child);
         },
       ),
       // LIVE TRACKING ROUTE

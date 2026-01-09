@@ -16,7 +16,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
 /// Check if the current platform supports FCM
 bool get _isFCMSupported {
-  if (kIsWeb) return false;
+  if (kIsWeb) return true; // Web is now supported with Service Worker
   // FCM is only supported on Android, iOS, and macOS
   return Platform.isAndroid || Platform.isIOS || Platform.isMacOS;
 }
@@ -53,11 +53,13 @@ class NotificationService {
     // Request permission
     await _requestPermission();
 
-    // Initialize local notifications for foreground display
-    await _initializeLocalNotifications();
+    // Initialize local notifications for foreground display (mobile only)
+    if (!kIsWeb) {
+      await _initializeLocalNotifications();
 
-    // Create the Android notification channel
-    await _createAndroidChannel();
+      // Create the Android notification channel
+      await _createAndroidChannel();
+    }
 
     // Get and save FCM token
     await _handleToken();
@@ -135,7 +137,14 @@ class NotificationService {
   /// Get the FCM token and save it to Supabase.
   Future<void> _handleToken() async {
     try {
-      final token = await _messaging.getToken();
+      // VAPID key for web push (from Firebase Console -> Project Settings -> Cloud Messaging)
+      const String vapidKey = kIsWeb
+          ? 'BM8cqa_6va6wLZlmGQHh1QoPXDelyMg0P90okz7mzaOhKCm5gOebaVFCaZlzPD9ldtyJWoleQUfXGWHIvNIpfs4'
+          : '';
+
+      final token = await _messaging.getToken(
+        vapidKey: kIsWeb ? vapidKey : null,
+      );
       if (token != null) {
         log('NotificationService: FCM Token: ${token.substring(0, 20)}...');
         await _saveTokenToSupabase(token);

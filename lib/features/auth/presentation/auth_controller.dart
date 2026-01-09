@@ -130,7 +130,16 @@ class AuthController extends _$AuthController {
         return result;
       }
 
-      final role = response.user!.userMetadata?['role'] as String?;
+      // For Google Sign-In, role is not in userMetadata
+      // So we need to read it from the database profile
+      String? role = response.user!.userMetadata?['role'] as String?;
+
+      if (role == null) {
+        // Fetch role from database profile
+        final profile = await authRepo.getUserProfile(response.user!.id);
+        role = profile?.role.toDbString() ?? 'parent';
+      }
+
       final result = AuthResult.success(role);
       state = AsyncData(result);
       return result;

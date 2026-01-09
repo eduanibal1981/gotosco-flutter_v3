@@ -77,6 +77,10 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
               onPositionChanged: (position, hasGesture) {
                 _currentCenter = position.center;
               },
+              // Enable scroll wheel zoom
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all,
+              ),
             ),
             children: [
               TileLayer(
@@ -88,6 +92,8 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 evictErrorTileStrategy: EvictErrorTileStrategy.dispose,
                 // Reduce tile requests on web
                 keepBuffer: kIsWeb ? 2 : 5,
+                // Fix blurry tiles on high-density screens (Android/iOS)
+                retinaMode: !kIsWeb, // Enable retina mode for mobile
               ),
               // OpenStreetMap Attribution (Required)
               SimpleAttributionWidget(

@@ -39,7 +39,7 @@ final class AuthControllerProvider
   AuthController create() => AuthController();
 }
 
-String _$authControllerHash() => r'e4f0baaa9ccaf1efe04b4179fe41ad2a1ba73180';
+String _$authControllerHash() => r'34226f3acd672e21b049338aa46178fa31572efb';
 
 /// Controller that encapsulates all authentication business logic.
 /// This keeps the UI widgets thin and focused only on presentation.

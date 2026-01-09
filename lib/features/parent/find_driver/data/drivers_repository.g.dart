@@ -150,3 +150,49 @@ final class DriverAdsFamily extends $Family
   @override
   String toString() => r'driverAdsProvider';
 }
+
+/// Provider for dashboard "Nearby/Featured" drivers
+
+@ProviderFor(nearbyDrivers)
+final nearbyDriversProvider = NearbyDriversProvider._();
+
+/// Provider for dashboard "Nearby/Featured" drivers
+
+final class NearbyDriversProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<DriverAdModel>>,
+          List<DriverAdModel>,
+          FutureOr<List<DriverAdModel>>
+        >
+    with
+        $FutureModifier<List<DriverAdModel>>,
+        $FutureProvider<List<DriverAdModel>> {
+  /// Provider for dashboard "Nearby/Featured" drivers
+  NearbyDriversProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'nearbyDriversProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$nearbyDriversHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<DriverAdModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<DriverAdModel>> create(Ref ref) {
+    return nearbyDrivers(ref);
+  }
+}
+
+String _$nearbyDriversHash() => r'874e87b915ecced436b5bea8db8cf49b28005787';

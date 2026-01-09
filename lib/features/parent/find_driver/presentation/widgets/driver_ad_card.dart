@@ -286,29 +286,21 @@ class DriverAdCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                const Spacer(),
-
-                // View Profile Button
-                ElevatedButton(
+                // View Profile (text link)
+                TextButton(
                   onPressed: () {
                     // TODO: Navigate to Driver Profile Page
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.grey.shade600,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
                   ),
                   child: const Text(
                     "View Profile",
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 13,
+                      decoration: TextDecoration.underline,
+                    ),
                   ),
                 ),
               ],

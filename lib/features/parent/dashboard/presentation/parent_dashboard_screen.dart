@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../find_driver/presentation/find_drivers_screen.dart'; // Ensure import
+import '../../children/presentation/children_tab.dart'; // NEW
+import '../../bookings/presentation/my_bookings_tab.dart'; // NEW
+import '../../profile/presentation/profile_tab.dart'; // NEW
 import 'tabs/dashboard_tab.dart';
 import 'dashboard_controller.dart'; // Import the new controller
 
@@ -9,11 +12,11 @@ class ParentDashboardScreen extends ConsumerWidget {
 
   // Pages corresponding to Navbar items
   final List<Widget> _pages = const [
-    FindDriversScreen(), // Index 0: The Driver Ads Screen
-    DashboardTab(), // Index 1: Home
-    Center(child: Text("Children List Page")),
-    Center(child: Text("Profile Page")),
-    Center(child: Text("My Bookings Page")),
+    ChildrenTab(), // Index 0: Children
+    FindDriversScreen(), // Index 1: Find Driver
+    DashboardTab(), // Index 2: Home
+    MyBookingsTab(), // Index 3: Bookings
+    ProfileTab(), // Index 4: Profile
   ];
 
   @override
@@ -36,6 +39,11 @@ class ParentDashboardScreen extends ConsumerWidget {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
+            icon: Icon(Icons.child_care_outlined),
+            selectedIcon: Icon(Icons.child_care, color: Colors.indigo),
+            label: 'Children',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.search_outlined),
             selectedIcon: Icon(Icons.search, color: Colors.indigo),
             label: 'Find',
@@ -46,19 +54,14 @@ class ParentDashboardScreen extends ConsumerWidget {
             label: 'Home',
           ),
           NavigationDestination(
-            icon: Icon(Icons.child_care_outlined),
-            selectedIcon: Icon(Icons.child_care, color: Colors.indigo),
-            label: 'Children',
+            icon: Icon(Icons.calendar_month_outlined),
+            selectedIcon: Icon(Icons.calendar_month, color: Colors.indigo),
+            label: 'Booking',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person, color: Colors.indigo),
             label: 'Profile',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.calendar_month_outlined),
-            selectedIcon: Icon(Icons.calendar_month, color: Colors.indigo),
-            label: 'Booking',
           ),
         ],
       ),

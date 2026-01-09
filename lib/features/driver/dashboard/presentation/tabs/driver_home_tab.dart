@@ -1,0 +1,1509 @@
+// lib/features/driver/dashboard/presentation/tabs/driver_home_tab.dart
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
+import '../../data/driver_dashboard_repository.dart';
+import '../driver_dashboard_screen.dart';
+import '../screens/active_trip_screen.dart';
+import '../../../profile/data/driver_profile_repository.dart';
+
+class DriverHomeTab extends ConsumerStatefulWidget {
+  const DriverHomeTab({super.key});
+
+  @override
+  ConsumerState<DriverHomeTab> createState() => _DriverHomeTabState();
+}
+
+class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
+  bool _isOnline = false;
+  bool _isLoading = false;
+
+  /// Refresh all dashboard data
+  Future<void> _refreshDashboard() async {
+    // Invalidate all dashboard-related providers to force refresh
+    ref.invalidate(driverDashboardStateProvider);
+    ref.invalidate(driverProfileProvider);
+    ref.invalidate(driverStatsProvider);
+    ref.invalidate(todaysTripsProvider);
+    ref.invalidate(activeTripProvider);
+
+    // Wait for the state to reload
+    await ref.read(driverDashboardStateProvider.future);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final stateAsync = ref.watch(driverDashboardStateProvider);
+    final userAsync = ref.watch(currentUserProfileProvider);
+
+    return Scaffold(
+      backgroundColor: Colors.grey.shade50,
+      body: RefreshIndicator(
+        onRefresh: _refreshDashboard,
+        color: Colors.teal,
+        child: stateAsync.when(
+          data: (dashboardState) =>
+              _buildStateContent(dashboardState, userAsync),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => _buildErrorState(e),
+        ),
+      ),
+    );
+  }
+
+  /// Build error state with refresh option
+  Widget _buildErrorState(Object error) {
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        SliverFillRemaining(
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
+                const SizedBox(height: 16),
+                Text(
+                  'Something went wrong',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    '$error',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  onPressed: _refreshDashboard,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Retry'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStateContent(
+    DriverDashboardState dashboardState,
+    AsyncValue userAsync,
+  ) {
+    switch (dashboardState) {
+      case DriverDashboardState.noProfile:
+        return _buildNoProfileState();
+      case DriverDashboardState.profileIncomplete:
+        return _buildProfileIncompleteState(userAsync);
+      case DriverDashboardState.profileOnly:
+        return _buildProfileOnlyState(userAsync);
+      case DriverDashboardState.hasRequests:
+        return _buildHasRequestsState(userAsync);
+      case DriverDashboardState.hasTrips:
+        return _buildHasTripsState(userAsync);
+      case DriverDashboardState.activeTrip:
+        return _buildActiveTripState();
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE 1: NO PROFILE
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildNoProfileState() {
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        _buildHeader(
+          title: 'School Transport Driver',
+          subtitle: 'Get started with your driver account',
+          showOnlineToggle: false,
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Welcome notification
+              _buildNotificationBanner(
+                icon: Icons.waving_hand,
+                message:
+                    'Welcome! Complete your profile to start accepting bookings.',
+                color: Colors.amber,
+              ),
+
+              const SizedBox(height: 24),
+
+              // Quick Actions
+              _buildSectionTitle('Quick Actions'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.person_add,
+                      label: 'Create Profile',
+                      color: Colors.teal,
+                      onTap: () => context.push('/driver-profile-setup'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.play_circle_outline,
+                      label: 'View Tutorial',
+                      color: Colors.blue,
+                      onTap: () {},
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Empty state cards
+              _buildEmptyCard(
+                icon: Icons.directions_bus,
+                title: "Today's Trips",
+                subtitle: 'No trips scheduled',
+              ),
+              const SizedBox(height: 12),
+              _buildEmptyCard(
+                icon: Icons.inbox,
+                title: 'Booking Requests',
+                subtitle: 'No pending requests',
+              ),
+              const SizedBox(height: 12),
+              _buildEmptyCard(
+                icon: Icons.attach_money,
+                title: 'Earnings',
+                subtitle: '0.00 OMR\nComplete profile to start earning',
+              ),
+
+              const SizedBox(height: 24),
+
+              // Setup Guide
+              _buildSetupGuide(),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE 2: PROFILE INCOMPLETE (Missing required fields)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildProfileIncompleteState(AsyncValue userAsync) {
+    final profileAsync = ref.watch(driverProfileProvider);
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        _buildHeader(
+          title: userAsync.when(
+            data: (u) =>
+                'Welcome, ${u?.fullName.split(' ').first ?? 'Driver'}!',
+            loading: () => 'Welcome!',
+            error: (_, __) => 'Welcome!',
+          ),
+          subtitle: 'Complete your profile to get started',
+          showOnlineToggle: false,
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Warning notification
+              _buildNotificationBanner(
+                icon: Icons.warning_amber_rounded,
+                message:
+                    'Your profile is incomplete. Please fill in all required fields to start receiving bookings.',
+                color: Colors.orange,
+              ),
+
+              const SizedBox(height: 24),
+
+              // Missing fields info card - dynamically show completion status
+              profileAsync.when(
+                data: (profile) => Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.checklist, color: Colors.teal.shade600),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Required Information',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      _buildChecklistItem(
+                        'Vehicle Type',
+                        profile?['vehicle_type'] != null &&
+                            (profile!['vehicle_type'] as String).isNotEmpty,
+                      ),
+                      _buildChecklistItem(
+                        'Vehicle Number',
+                        profile?['vehicle_number'] != null &&
+                            (profile!['vehicle_number'] as String).isNotEmpty,
+                      ),
+                      _buildChecklistItem(
+                        'Vehicle Capacity',
+                        profile?['vehicle_capacity'] != null &&
+                            (profile!['vehicle_capacity'] as int) > 0,
+                      ),
+                      _buildChecklistItem(
+                        'License Number',
+                        profile?['license_number'] != null &&
+                            (profile!['license_number'] as String).isNotEmpty,
+                      ),
+                      // Schedule check - use separate FutureBuilder
+                      FutureBuilder<List>(
+                        future: ref.read(driverSchedulesProvider.future),
+                        builder: (context, snapshot) {
+                          final hasSchedule =
+                              snapshot.hasData && snapshot.data!.isNotEmpty;
+                          return _buildChecklistItem(
+                            'Weekly Schedule',
+                            hasSchedule,
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Quick Actions
+              _buildSectionTitle('Quick Actions'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.edit,
+                      label: 'Complete Profile',
+                      color: Colors.teal,
+                      onTap: () => ref
+                          .read(driverDashboardIndexProvider.notifier)
+                          .setIndex(3), // Navigate to Profile tab
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.help_outline,
+                      label: 'Get Help',
+                      color: Colors.blue,
+                      onTap: () {},
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Empty state cards
+              _buildEmptyCard(
+                icon: Icons.directions_bus,
+                title: "Today's Trips",
+                subtitle: 'Complete profile to schedule trips',
+              ),
+              const SizedBox(height: 12),
+              _buildEmptyCard(
+                icon: Icons.inbox,
+                title: 'Booking Requests',
+                subtitle: 'Complete profile to receive requests',
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChecklistItem(String label, bool isComplete) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        children: [
+          Icon(
+            isComplete ? Icons.check_circle : Icons.radio_button_unchecked,
+            color: isComplete ? Colors.green : Colors.grey.shade400,
+            size: 20,
+          ),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              color: isComplete ? Colors.grey.shade700 : Colors.grey.shade600,
+              decoration: isComplete ? TextDecoration.lineThrough : null,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE 3: PROFILE ONLY (No Bookings)
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildProfileOnlyState(AsyncValue userAsync) {
+    final profileAsync = ref.watch(driverProfileProvider);
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        _buildHeader(
+          title: userAsync.when(
+            data: (u) =>
+                'Welcome, ${u?.fullName.split(' ').first ?? 'Driver'}!',
+            loading: () => 'Welcome!',
+            error: (_, __) => 'Welcome!',
+          ),
+          subtitle: DateFormat('EEEE, MMM d, yyyy').format(DateTime.now()),
+          showOnlineToggle: true,
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Profile status
+              profileAsync.when(
+                data: (profile) => _buildProfileStatusCard(profile),
+                loading: () => const CircularProgressIndicator(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Quick Actions
+              _buildSectionTitle('Quick Actions'),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _buildSmallAction(
+                    Icons.edit,
+                    'Edit Profile',
+                    () => context.push('/driver-profile-setup'),
+                  ),
+                  _buildSmallAction(Icons.schedule, 'Edit Schedule', () {}),
+                  _buildSmallAction(
+                    Icons.directions_bus,
+                    'View Vehicle',
+                    () {},
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Dashboard cards
+              _buildEmptyCard(
+                icon: Icons.directions_bus,
+                title: "Today's Trips",
+                subtitle: 'No trips scheduled',
+              ),
+              const SizedBox(height: 12),
+              _buildEmptyCard(
+                icon: Icons.inbox,
+                title: 'Booking Requests',
+                subtitle:
+                    'Waiting for requests...\nGo online to receive bookings',
+              ),
+
+              const SizedBox(height: 24),
+
+              // Weekly Schedule Preview
+              _buildWeeklyScheduleCard(),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE 3: HAS REQUESTS
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildHasRequestsState(AsyncValue userAsync) {
+    final statsAsync = ref.watch(driverStatsProvider);
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        _buildHeader(
+          title: userAsync.when(
+            data: (u) =>
+                'Welcome, ${u?.fullName.split(' ').first ?? 'Driver'}!',
+            loading: () => 'Welcome!',
+            error: (_, __) => 'Welcome!',
+          ),
+          subtitle: 'ONLINE ✓',
+          showOnlineToggle: true,
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Notification
+              statsAsync.when(
+                data: (stats) => _buildNotificationBanner(
+                  icon: Icons.notifications_active,
+                  message:
+                      '${stats['pending_requests']} new booking request${(stats['pending_requests'] as int) != 1 ? 's' : ''} received!',
+                  color: Colors.orange,
+                  onTap: () => ref
+                      .read(driverDashboardIndexProvider.notifier)
+                      .setIndex(1),
+                ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Quick Actions
+              _buildSectionTitle('Quick Actions'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.inbox,
+                      label: 'View Requests',
+                      color: Colors.orange,
+                      badge: statsAsync.when(
+                        data: (s) => s['pending_requests'] ?? 0,
+                        loading: () => 0,
+                        error: (_, __) => 0,
+                      ),
+                      onTap: () => ref
+                          .read(driverDashboardIndexProvider.notifier)
+                          .setIndex(1),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildActionButton(
+                      icon: Icons.people,
+                      label: 'Manage Children',
+                      color: Colors.blue,
+                      onTap: () => ref
+                          .read(driverDashboardIndexProvider.notifier)
+                          .setIndex(2),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Today's Schedule Card
+              _buildTodayScheduleCard(),
+
+              const SizedBox(height: 12),
+
+              // Capacity Card
+              statsAsync.when(
+                data: (stats) =>
+                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE 4: HAS TRIPS
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildHasTripsState(AsyncValue userAsync) {
+    final statsAsync = ref.watch(driverStatsProvider);
+
+    return CustomScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      slivers: [
+        _buildHeader(
+          title: DateFormat('EEEE, MMM d, yyyy').format(DateTime.now()),
+          subtitle: 'ONLINE ✓',
+          showOnlineToggle: true,
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.all(20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Next Trip - Show only the upcoming scheduled trip
+              _buildSectionTitle("🚨 Next Trip"),
+              const SizedBox(height: 12),
+
+              // Use nextScheduledTripProvider to show only the next trip
+              Consumer(
+                builder: (context, ref, child) {
+                  final nextTripAsync = ref.watch(nextScheduledTripProvider);
+                  return nextTripAsync.when(
+                    data: (trip) {
+                      if (trip == null) {
+                        return _buildNoNextTripCard();
+                      }
+                      return _buildTripCard(trip);
+                    },
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (e, _) => Text('Error: $e'),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              // Generate Trips Button
+              _buildGenerateTripsButton(),
+
+              const SizedBox(height: 20),
+
+              // Dashboard Cards
+              _buildSectionTitle('Dashboard'),
+              const SizedBox(height: 12),
+
+              // Students Card
+              statsAsync.when(
+                data: (stats) =>
+                    _buildStudentsCard(stats['active_students'] ?? 0),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Weekly Earnings
+              statsAsync.when(
+                data: (stats) =>
+                    _buildEarningsCard(stats['monthly_earnings'] ?? 0),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Capacity
+              statsAsync.when(
+                data: (stats) =>
+                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // STATE 5: ACTIVE TRIP
+  // ═══════════════════════════════════════════════════════════════════════════
+  Widget _buildActiveTripState() {
+    return const ActiveTripScreen();
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // SHARED COMPONENTS
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  SliverToBoxAdapter _buildHeader({
+    required String title,
+    required String subtitle,
+    required bool showOnlineToggle,
+  }) {
+    return SliverToBoxAdapter(
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(20, 60, 20, 24),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.teal.shade700, Colors.teal.shade500],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.8),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (showOnlineToggle) _buildOnlineToggle(),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOnlineToggle() {
+    return GestureDetector(
+      onTap: () async {
+        setState(() => _isOnline = !_isOnline);
+        await ref
+            .read(driverDashboardRepositoryProvider)
+            .setOnlineStatus(_isOnline);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: _isOnline ? Colors.green : Colors.grey.shade600,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              _isOnline ? Icons.circle : Icons.circle_outlined,
+              size: 10,
+              color: Colors.white,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              _isOnline ? 'Online' : 'Offline',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNotificationBanner({
+    required IconData icon,
+    required String message,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                message,
+                style: TextStyle(
+                  color: color.shade700,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+            if (onTap != null) Icon(Icons.chevron_right, color: color),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.bold,
+        color: Colors.black87,
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+    int badge = 0,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(icon, color: color, size: 32),
+                if (badge > 0)
+                  Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '$badge',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallAction(IconData icon, String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.teal.shade50,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 18, color: Colors.teal.shade700),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.teal.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Colors.grey.shade400, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 13,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSetupGuide() {
+    final steps = [
+      'Create your driver profile',
+      'Set your availability schedule',
+      'Go online to receive requests',
+      'Accept suitable bookings',
+    ];
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade50,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.teal.shade100),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.list_alt, color: Colors.teal.shade600),
+              const SizedBox(width: 8),
+              Text(
+                'Setup Guide',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: Colors.teal.shade700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          ...steps.asMap().entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                children: [
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.teal.shade100,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${entry.key + 1}',
+                        style: TextStyle(
+                          color: Colors.teal.shade700,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    entry.value,
+                    style: TextStyle(color: Colors.teal.shade700),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileStatusCard(Map<String, dynamic>? profile) {
+    if (profile == null) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.green.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.green.shade200),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green.shade600),
+              const SizedBox(width: 8),
+              const Text(
+                'Profile: Complete',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.check_circle, color: Colors.green.shade600),
+              const SizedBox(width: 8),
+              const Text(
+                'Schedule: Set',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyScheduleCard() {
+    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Weekly Schedule',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          ...days.map(
+            (day) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                children: [
+                  SizedBox(
+                    width: 40,
+                    child: Text(
+                      day,
+                      style: const TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Icon(
+                    Icons.check_circle,
+                    size: 16,
+                    color: Colors.green.shade600,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Both',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodayScheduleCard() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "Today's Schedule",
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildScheduleTime(
+                  'Morning',
+                  '06:00 - 08:30',
+                  Icons.wb_sunny,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildScheduleTime(
+                  'Afternoon',
+                  '13:00 - 16:00',
+                  Icons.nights_stay,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleTime(String label, String time, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.teal.shade50,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: Colors.teal.shade600),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.teal.shade700,
+            ),
+          ),
+          Text(
+            time,
+            style: TextStyle(fontSize: 12, color: Colors.teal.shade600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCapacityCard(int filled, int total) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.airline_seat_recline_normal,
+            color: Colors.purple.shade600,
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Capacity',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '$filled/$total slots filled',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            '$filled',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.purple.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentsCard(int count) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.people, color: Colors.blue.shade600),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'My Children',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                '$count enrolled',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            '$count',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEarningsCard(int amount) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.attach_money, color: Colors.green.shade600),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Weekly Earnings',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const Text(
+                'Estimated',
+                style: TextStyle(color: Colors.grey, fontSize: 13),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            '$amount OMR',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.green.shade600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Card shown when there's no next scheduled trip
+  Widget _buildNoNextTripCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.teal.shade50,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_circle_outline,
+              size: 48,
+              color: Colors.teal.shade400,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'All Caught Up!',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'No more scheduled trips for today.\nAll trips have been completed.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTripCard(Map<String, dynamic> trip) {
+    final tripType = trip['trip_type'] as String? ?? 'Go to School(s)';
+    final status = trip['status'] as String? ?? 'scheduled';
+    final stops = (trip['route_stops'] as List?)?.length ?? 0;
+
+    final isGoTrip = tripType.contains('Go');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isGoTrip ? Colors.blue.shade200 : Colors.green.shade200,
+        ),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                isGoTrip ? Icons.school : Icons.home,
+                color: isGoTrip ? Colors.blue : Colors.green,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  tripType,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: status == 'in_progress'
+                      ? Colors.orange.shade100
+                      : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  status.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: status == 'in_progress'
+                        ? Colors.orange
+                        : Colors.grey,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text('$stops stops', style: TextStyle(color: Colors.grey.shade600)),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                await ref
+                    .read(driverDashboardRepositoryProvider)
+                    .startTrip(trip['id']);
+                ref.invalidate(driverDashboardStateProvider);
+              },
+              icon: const Icon(Icons.play_arrow),
+              label: const Text('Start Trip'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenerateTripsButton() {
+    final tripsAsync = ref.watch(todaysTripsProvider);
+
+    return tripsAsync.when(
+      data: (trips) {
+        final hasTrips = trips.isNotEmpty;
+
+        if (hasTrips) {
+          // Trips already exist - show success state
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.green.shade200),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade600,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Today\'s Trips Generated ✓',
+                  style: TextStyle(
+                    color: Colors.green.shade700,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        // No trips - show generate button
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    setState(() => _isLoading = true);
+                    try {
+                      await ref
+                          .read(driverDashboardRepositoryProvider)
+                          .generateDailyTrips();
+                      ref.invalidate(todaysTripsProvider);
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Trips generated successfully!'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      }
+                    }
+                    setState(() => _isLoading = false);
+                  },
+            icon: _isLoading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Icon(Icons.auto_fix_high),
+            label: Text(_isLoading ? 'Generating...' : 'Generate Daily Trips'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+            ),
+          ),
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+extension on Color {
+  Color get shade700 => this;
+}
