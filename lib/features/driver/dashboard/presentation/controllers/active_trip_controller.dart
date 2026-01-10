@@ -55,6 +55,15 @@ class ActiveTripController extends _$ActiveTripController {
     ref.invalidate(activeTripProvider);
   }
 
+  /// Reorder stops
+  Future<void> reorderStops(List<Map<String, dynamic>> newStops) async {
+    await ref
+        .read(driverDashboardRepositoryProvider)
+        .updateStopSequences(newStops);
+
+    ref.invalidate(activeTripProvider);
+  }
+
   /// End the trip
   Future<void> endTrip(String tripId, {double? lat, double? lng}) async {
     state = const AsyncLoading();

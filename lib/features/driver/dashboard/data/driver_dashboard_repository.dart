@@ -241,7 +241,9 @@ class DriverDashboardRepository {
       // Now get today's trips
       final trips = await _supabase
           .from('trips')
-          .select('*, route_stops(*, children(name))')
+          .select(
+            '*, route_stops(*, children(name), bookings(hometxt_location, schooltxt_location))',
+          )
           .eq('driver_id', _driverId)
           .eq('trip_date', todayStr)
           .order('trip_type');
@@ -259,7 +261,9 @@ class DriverDashboardRepository {
     try {
       final trip = await _supabase
           .from('trips')
-          .select('*, route_stops(*, children(name))')
+          .select(
+            '*, route_stops(*, children(name), bookings(hometxt_location, schooltxt_location))',
+          )
           .eq('driver_id', _driverId)
           .eq('status', 'in_progress')
           .maybeSingle();
@@ -393,6 +397,30 @@ class DriverDashboardRepository {
         'driver_lng': lng,
       },
     );
+  }
+
+  /// Update sequence order for a list of stops
+  Future<void> updateStopSequences(
+    List<Map<String, dynamic>> updatedStops,
+  ) async {
+    // Extract only id and sequence_order to avoid overwriting other fields
+    final payload = updatedStops
+        .map(
+          (s) => {
+            'id': s['id'],
+            'sequence_order': s['sequence_order'],
+            // We also need other required fields?
+            // No, for update (upsert on id), partial is usually fine
+            // BUT to be safe given constraints, let's hope it's a PATCH.
+            // Actually standard upsert replaces.
+            // Better to use a specific RPC or just use .update() in a loop?
+            // No, let's use upsert with specific columns.
+          },
+        )
+        .toList();
+
+    // Use RPC to avoid RLS issues with upsert
+    await _supabase.rpc('update_route_order', params: {'updates': payload});
   }
 
   /// Process stop action (picked_up, dropped_off, skipped, reset)

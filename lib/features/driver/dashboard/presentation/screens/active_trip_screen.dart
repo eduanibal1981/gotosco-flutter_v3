@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../controllers/active_trip_controller.dart';
+import 'trip_stop_reorder_screen.dart';
 
 class ActiveTripScreen extends ConsumerWidget {
   const ActiveTripScreen({super.key});
@@ -41,6 +42,21 @@ class ActiveTripScreen extends ConsumerWidget {
                 icon: const Icon(Icons.map),
                 onPressed: () => _launchMaps(currentStop),
               ),
+              IconButton(
+                icon: const Icon(Icons.edit_road),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => TripStopReorderScreen(
+                        stops: List<Map<String, dynamic>>.from(
+                          trip['route_stops'] ?? [],
+                        ),
+                        tripType: trip['trip_type'],
+                      ),
+                    ),
+                  );
+                },
+              ),
               PopupMenuButton<String>(
                 onSelected: (val) {
                   if (val == 'end') {
@@ -60,38 +76,59 @@ class ActiveTripScreen extends ConsumerWidget {
             children: [
               // 1. Current Stop Card (Big)
               if (currentStop != null)
-                _buildCurrentStopCard(context, ref, currentStop)
+                _buildCurrentStopCard(
+                  context,
+                  ref,
+                  currentStop,
+                  trip['trip_type'],
+                )
               else
                 _buildTripCompletedCard(context, ref, trip['id']),
 
               const Divider(height: 1, thickness: 1),
 
-              // 2. Upcoming Stops Header
-              if (currentStop != null && upcomingStops.length > 1) ...[
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      "Next Stops",
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
+              // 2. Upcoming Stops (Grouped)
+              if (currentStop != null) ...[
+                Builder(
+                  builder: (context) {
+                    // Filter out current stop
+                    final nextStops = upcomingStops
+                        .where((s) => s['id'] != currentStop['id'])
+                        .toList();
+
+                    if (nextStops.isEmpty)
+                      return const Expanded(child: SizedBox());
+
+                    final pickups = nextStops
+                        .where((s) => s['stop_type'] == 'pickup')
+                        .toList()
+                        .cast<Map<String, dynamic>>();
+                    final dropoffs = nextStops
+                        .where((s) => s['stop_type'] == 'dropoff')
+                        .toList()
+                        .cast<Map<String, dynamic>>();
+
+                    return Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          children: [
+                            if (pickups.isNotEmpty)
+                              _buildStopGroup(
+                                "Pickups",
+                                pickups,
+                                trip['trip_type'],
+                              ),
+                            if (dropoffs.isNotEmpty)
+                              _buildStopGroup(
+                                "Dropoffs",
+                                dropoffs,
+                                trip['trip_type'],
+                              ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    itemCount: upcomingStops.length,
-                    itemBuilder: (context, index) {
-                      final stop = upcomingStops[index];
-                      if (stop['id'] == currentStop['id'])
-                        return const SizedBox.shrink(); // Skip current
-                      return _buildStopListTile(stop, index + 1);
-                    },
-                  ),
+                    );
+                  },
                 ),
               ] else if (currentStop == null) ...[
                 const Expanded(child: SizedBox()), // Spacer
@@ -110,28 +147,12 @@ class ActiveTripScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Map<String, dynamic> stop,
+    String tripType,
   ) {
     final status = stop['status'] as String;
-    // We need to fetch child info. Since the RPC return includes join?
-    // The query in repo was `select('*, route_stops(*)')`.
-    // It does NOT join children/bookings deep.
-    // We might need to fetch child details or rely on them being present if the view provides them
-    // OR we just use the child_id and generic text for now is safer if we didn't update query.
-    // Actually, `activeTrip` provider in repo:
-    // .select('*, route_stops(*)')
-    // It does NOT include child name. That's a problem for the UI.
-    // The previous implementation used separate fetches.
-    // I should update the repo to fetch embedded data OR fetch it here.
-    // For now, I'll assume we might need to fetch it or it's missing.
-    // Let's assume the user wants the flow first, visual polish later.
-    // I'll show "Student at Stop #${stop['sequence_order']}".
+    final locationLabel = _getLocationLabel(stop, tripType);
 
-    // WAIT: `generate_go_trips` puts data in `route_stops`. It doesn't put name.
-    // We heavily need child data.
-    // I will add a TODO or try to map it if possible.
-
-    // Ideally the repository `getActiveTrip` should use `.select('*, route_stops(*, children(*))')` if relations exist.
-    // `booking_id` and `child_id` are in route_stops.
+    // ... (rest of logic)
 
     return Container(
       width: double.infinity,
@@ -154,6 +175,18 @@ class ActiveTripScreen extends ConsumerWidget {
             _getChildName(stop),
             style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 8),
+
+          // Location Label
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Text(
+              locationLabel,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16, color: Colors.grey.shade700),
+            ),
+          ),
+
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -310,10 +343,36 @@ class ActiveTripScreen extends ConsumerWidget {
     return "Student";
   }
 
-  Widget _buildStopListTile(Map<String, dynamic> stop, int index) {
+  String _getLocationLabel(Map<String, dynamic> stop, String tripType) {
+    final stopType = stop['stop_type'] as String;
+    final booking = stop['bookings'];
+
+    if (booking == null) return stopType.toUpperCase();
+
+    final homeTxt = booking['hometxt_location'] as String? ?? '';
+    final schoolTxt = booking['schooltxt_location'] as String? ?? '';
+
+    if (tripType == 'Go to School(s)') {
+      if (stopType == 'pickup') return homeTxt.isNotEmpty ? homeTxt : "Home";
+      if (stopType == 'dropoff')
+        return schoolTxt.isNotEmpty ? schoolTxt : "School";
+    } else if (tripType == 'Return from School(s)') {
+      if (stopType == 'pickup')
+        return schoolTxt.isNotEmpty ? schoolTxt : "School";
+      if (stopType == 'dropoff') return homeTxt.isNotEmpty ? homeTxt : "Home";
+    }
+
+    return stopType.toUpperCase();
+  }
+
+  Widget _buildStopListTile(
+    Map<String, dynamic> stop,
+    int index,
+    String tripType,
+  ) {
     // Determine title
-    String title = "Stop #$index";
     final childName = _getChildName(stop);
+    final locationLabel = _getLocationLabel(stop, tripType);
 
     return ListTile(
       leading: CircleAvatar(
@@ -321,12 +380,38 @@ class ActiveTripScreen extends ConsumerWidget {
         child: Text(stop['sequence_order'].toString()),
       ),
       title: Text(childName),
-      subtitle: Text(stop['stop_type'].toString().toUpperCase()),
+      subtitle: Text(
+        locationLabel,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(color: Colors.grey),
+      ),
       trailing: stop['status'] == 'completed'
           ? const Icon(Icons.check_circle, color: Colors.green)
           : stop['status'] == 'skipped'
           ? const Icon(Icons.cancel, color: Colors.red)
           : null,
+    );
+  }
+
+  Widget _buildStopGroup(
+    String title,
+    List<Map<String, dynamic>> stops,
+    String tripType,
+  ) {
+    return ExpansionTile(
+      initiallyExpanded: true,
+      title: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+      ),
+      children: stops.map((stop) {
+        return _buildStopListTile(
+          stop,
+          stop['sequence_order'] as int,
+          tripType,
+        );
+      }).toList(),
     );
   }
 
@@ -336,10 +421,25 @@ class ActiveTripScreen extends ConsumerWidget {
     final lng = stop['location_lng'];
     if (lat == null || lng == null) return;
 
-    final googleMapsUrl =
-        'https://www.google.com/maps/search/?api=1&query=$lat,$lng';
-    if (await canLaunchUrl(Uri.parse(googleMapsUrl))) {
-      await launchUrl(Uri.parse(googleMapsUrl));
+    // 1. Try Native Google Maps Navigation Intent (Android)
+    // 'q' sets the destination, 'mode=d' sets driving mode
+    final Uri nativeUri = Uri.parse("google.navigation:q=$lat,$lng&mode=d");
+
+    // 2. Fallback Web URL (iOS / Browser)
+    // This works on any device with a browser if the app isn't installed
+    final Uri webUri = Uri.parse(
+      "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving",
+    );
+
+    try {
+      if (await canLaunchUrl(nativeUri)) {
+        await launchUrl(nativeUri);
+      } else {
+        // Fallback if the native intent isn't handled
+        await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      debugPrint("Error launching maps: $e");
     }
   }
 
