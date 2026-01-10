@@ -48,6 +48,7 @@ class ActiveTripScreen extends ConsumerWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => TripStopReorderScreen(
+                        tripId: trip['id'],
                         stops: List<Map<String, dynamic>>.from(
                           trip['route_stops'] ?? [],
                         ),

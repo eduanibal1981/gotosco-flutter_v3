@@ -6,11 +6,13 @@ import '../controllers/active_trip_controller.dart';
 class TripStopReorderScreen extends ConsumerStatefulWidget {
   final List<Map<String, dynamic>> stops;
   final String tripType;
+  final String tripId;
 
   const TripStopReorderScreen({
     super.key,
     required this.stops,
     required this.tripType,
+    required this.tripId,
   });
 
   @override
@@ -22,6 +24,7 @@ class _TripStopReorderScreenState extends ConsumerState<TripStopReorderScreen> {
   late List<Map<String, dynamic>> _pickupStops;
   late List<Map<String, dynamic>> _dropoffStops;
   bool _isSaving = false;
+  bool _saveAsDefault = false;
 
   @override
   void initState() {
@@ -118,6 +121,12 @@ class _TripStopReorderScreenState extends ConsumerState<TripStopReorderScreen> {
           .read(activeTripControllerProvider.notifier)
           .reorderStops(updates);
 
+      // 2. Save as default if checkbox is checked
+      if (_saveAsDefault) {
+        await ref
+            .read(activeTripControllerProvider.notifier)
+            .saveTripOrderAsDefault(widget.tripId);
+      }
       if (mounted) {
         context.pop(); // Go back
         ScaffoldMessenger.of(context).showSnackBar(
@@ -213,6 +222,32 @@ class _TripStopReorderScreenState extends ConsumerState<TripStopReorderScreen> {
           ],
         ),
       ),
+      bottomNavigationBar: (_pickupStops.isNotEmpty || _dropoffStops.isNotEmpty)
+          ? SafeArea(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).scaffoldBackgroundColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.05),
+                      blurRadius: 4,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: CheckboxListTile(
+                  title: const Text("Save as default for future trips"),
+                  subtitle: const Text(
+                    "Updates your preferred order for this route.",
+                  ),
+                  value: _saveAsDefault,
+                  onChanged: (val) {
+                    setState(() => _saveAsDefault = val ?? false);
+                  },
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

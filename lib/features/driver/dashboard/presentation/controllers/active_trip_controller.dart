@@ -64,6 +64,13 @@ class ActiveTripController extends _$ActiveTripController {
     ref.invalidate(activeTripProvider);
   }
 
+  /// Save current trip order as default for future trips
+  Future<void> saveTripOrderAsDefault(String tripId) async {
+    await ref
+        .read(driverDashboardRepositoryProvider)
+        .saveTripOrderAsDefault(tripId);
+  }
+
   /// End the trip
   Future<void> endTrip(String tripId, {double? lat, double? lng}) async {
     state = const AsyncLoading();

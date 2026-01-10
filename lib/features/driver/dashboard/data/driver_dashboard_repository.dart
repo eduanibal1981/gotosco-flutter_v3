@@ -423,6 +423,14 @@ class DriverDashboardRepository {
     await _supabase.rpc('update_route_order', params: {'updates': payload});
   }
 
+  /// Save current trip order as default for future trips
+  Future<void> saveTripOrderAsDefault(String tripId) async {
+    await _supabase.rpc(
+      'save_trip_order_as_default',
+      params: {'trip_id_input': tripId},
+    );
+  }
+
   /// Process stop action (picked_up, dropped_off, skipped, reset)
   Future<void> processStop(
     String stopId,
