@@ -46,7 +46,7 @@ final class UserSessionNotifierProvider
 }
 
 String _$userSessionNotifierHash() =>
-    r'1949bbf7c29b06f9fb6b5f4fcf20fea6a5e1b3dc';
+    r'e2fbd0c3d6547ed1b93245876fba86ad93742cc1';
 
 /// Provider for the current user session.
 ///
@@ -108,4 +108,4 @@ final class _AuthStateProvider
   }
 }
 
-String _$_authStateHash() => r'844420aaee814735accd884d9c03c3edd99d01f9';
+String _$_authStateHash() => r'6dddf818e9e4df0690fa554c2ecdf7f73b2bfab2';

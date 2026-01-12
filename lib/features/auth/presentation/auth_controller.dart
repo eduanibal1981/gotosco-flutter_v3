@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:gotosco_v3/core/constants/enums.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/auth_repository.dart';
 
 part 'auth_controller.g.dart';
@@ -129,14 +130,33 @@ class AuthController extends _$AuthController {
         return result;
       }
 
-      // For Google Sign-In, role is not in userMetadata
+      // For Google Sign-In, role might not be in userMetadata
       // So we need to read it from the database profile
       String? role = response.user!.userMetadata?['role'] as String?;
 
-      if (role == null) {
+      if (role == null || role.isEmpty) {
         // Fetch role from database profile
-        final profile = await authRepo.getUserProfile(response.user!.id);
-        role = profile?.role.toDbString() ?? 'parent';
+        // The database stores role as an array of strings
+        try {
+          final dbData = await Supabase.instance.client
+              .from('users')
+              .select('role')
+              .eq('id', response.user!.id)
+              .single();
+
+          final roles = List<String>.from(dbData['role'] ?? []);
+
+          if (roles.isNotEmpty) {
+            // User has roles, return the first one
+            role = roles.first;
+          } else {
+            // User exists in DB but has no role - needs role selection
+            role = '';
+          }
+        } catch (e) {
+          // Error fetching profile - assume no role
+          role = '';
+        }
       }
 
       final result = AuthResult.success(role);

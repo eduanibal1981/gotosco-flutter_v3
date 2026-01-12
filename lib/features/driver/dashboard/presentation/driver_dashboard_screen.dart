@@ -6,6 +6,7 @@ import '../data/driver_dashboard_repository.dart';
 import '../../earnings/presentation/earnings_tab.dart';
 import '../../profile/presentation/driver_profile_tab.dart';
 import '../../availability/presentation/driver_availability_controller.dart';
+import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
 
@@ -16,7 +17,8 @@ final driverDashboardIndexProvider =
     });
 
 class DashboardIndexNotifier extends StateNotifier<int> {
-  DashboardIndexNotifier() : super(0); // Default to Home tab
+  DashboardIndexNotifier()
+    : super(2); // Default to Home tab (Index 2 in the new order)
 
   void setIndex(int index) => state = index;
 }
@@ -32,12 +34,13 @@ class DriverDashboardScreen extends ConsumerStatefulWidget {
 class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
   int? _previousIndex;
 
-  // Pages corresponding to Navbar items (4 tabs as per user request)
-  final List<Widget> _pages = const [
-    DriverHomeTab(), // Index 0: Home
-    TripsTab(), // Index 1: Trips
-    EarningsTab(), // Index 2: Earnings
-    DriverProfileTab(), // Index 3: Profile
+  // Pages corresponding to Navbar items (Earnings - Booking - Home - Trips - Profile)
+  final List<Widget> _pages = [
+    const EarningsTab(), // Index 0: Earnings
+    const DriverBookingsScreen(), // Index 1: Booking
+    const DriverHomeTab(), // Index 2: Home
+    const TripsTab(), // Index 3: Trips
+    const DriverProfileTab(), // Index 4: Profile
   ];
 
   @override
@@ -54,23 +57,26 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
     if (_previousIndex != null && _previousIndex != newIndex) {
       // Invalidate providers based on which tab we're navigating TO
       switch (newIndex) {
-        case 0: // Home Tab
+        case 0: // Earnings Tab
+          ref.invalidate(driverStatsProvider);
+          break;
+        case 1: // Booking Tab
+          ref.invalidate(driverBookingRequestsProvider);
+          break;
+        case 2: // Home Tab
           ref.invalidate(driverDashboardStateProvider);
           ref.invalidate(driverStatsProvider);
           ref.invalidate(todaysTripsProvider);
           ref.invalidate(nextScheduledTripProvider);
           ref.invalidate(activeTripProvider);
           break;
-        case 1: // Trips Tab
+        case 3: // Trips Tab
           ref.invalidate(todaysTripsProvider);
           ref.invalidate(driverStatsProvider);
           ref.invalidate(driverBookingRequestsProvider);
           ref.invalidate(driverStudentsProvider);
           break;
-        case 2: // Earnings Tab
-          ref.invalidate(driverStatsProvider);
-          break;
-        case 3: // Profile Tab
+        case 4: // Profile Tab
           ref.invalidate(driverProfileProvider);
           break;
       }
@@ -101,6 +107,19 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
+            icon: Icon(Icons.account_balance_wallet_outlined),
+            selectedIcon: Icon(
+              Icons.account_balance_wallet,
+              color: Colors.teal,
+            ),
+            label: 'Earnings',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.book_online_outlined),
+            selectedIcon: Icon(Icons.book_online, color: Colors.teal),
+            label: 'Booking',
+          ),
+          NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home, color: Colors.teal),
             label: 'Home',
@@ -109,14 +128,6 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
             icon: Icon(Icons.directions_bus_outlined),
             selectedIcon: Icon(Icons.directions_bus, color: Colors.teal),
             label: 'Trips',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(
-              Icons.account_balance_wallet,
-              color: Colors.teal,
-            ),
-            label: 'Earnings',
           ),
           NavigationDestination(
             icon: Icon(Icons.person_outline),

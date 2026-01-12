@@ -18,6 +18,7 @@ import 'package:gotosco_v3/features/auth/presentation/role_selection_screen.dart
 import 'package:gotosco_v3/features/parent/dashboard/presentation/parent_dashboard_screen.dart';
 import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_screen.dart';
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
+import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 
 part 'router.g.dart';
 
@@ -49,6 +50,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/add-student', // Matches the context.push('/add-student')
         builder: (context, state) => const AddChildScreen(),
+      ),
+      GoRoute(
+        path: '/driver-bookings',
+        builder: (context, state) => const DriverBookingsScreen(),
       ),
 
       // ... inside routes list

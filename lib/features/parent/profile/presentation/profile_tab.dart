@@ -6,6 +6,8 @@ import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
 import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
 import 'package:gotosco_v3/features/parent/bookings/data/bookings_repository.dart';
+import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
@@ -214,6 +216,65 @@ class ProfileTab extends ConsumerWidget {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           // TODO: Navigate to Edit Profile
+                        },
+                      ),
+                    ]),
+
+                    const SizedBox(height: 20),
+
+                    // Account Settings
+                    _buildSectionTitle('Account'),
+                    _buildSettingsCard([
+                      // Role Switcher for dual-role users
+                      Consumer(
+                        builder: (context, ref, child) {
+                          final sessionAsync = ref.watch(userSessionProvider);
+                          return sessionAsync.when(
+                            data: (session) {
+                              if (session == null || !session.isDualRole) {
+                                return const SizedBox.shrink();
+                              }
+
+                              final otherRole = session.activeRole == 'driver'
+                                  ? 'parent'
+                                  : 'driver';
+                              final otherRoleName = otherRole == 'driver'
+                                  ? 'Driver'
+                                  : 'Parent';
+
+                              return _buildListTile(
+                                icon: otherRole == 'driver'
+                                    ? Icons.directions_bus
+                                    : Icons.people,
+                                title: 'Switch to $otherRoleName Mode',
+                                subtitle:
+                                    'You have both parent and driver roles',
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () async {
+                                  await ref
+                                      .read(userSessionProvider.notifier)
+                                      .switchRole(otherRole);
+                                  if (context.mounted) {
+                                    context.go(
+                                      otherRole == 'driver'
+                                          ? '/driver-home'
+                                          : '/parent-home',
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Switched to $otherRoleName mode',
+                                        ),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                              );
+                            },
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          );
                         },
                       ),
                     ]),

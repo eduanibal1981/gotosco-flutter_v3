@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gotosco_v3/core/providers/user_session_provider.dart';
 import '../data/driver_profile_repository.dart';
 import '../data/driver_profile_model.dart';
 import '../data/driver_schedule_model.dart';
@@ -254,6 +255,120 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                     ],
                   ],
                 ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Account Section (Role Switcher)
+              Consumer(
+                builder: (context, ref, child) {
+                  final sessionAsync = ref.watch(userSessionProvider);
+                  return sessionAsync.when(
+                    data: (session) {
+                      if (session == null || !session.isDualRole) {
+                        return const SizedBox.shrink();
+                      }
+
+                      final otherRole = session.activeRole == 'driver'
+                          ? 'parent'
+                          : 'driver';
+                      final otherRoleName = otherRole == 'driver'
+                          ? 'Driver'
+                          : 'Parent';
+
+                      return Column(
+                        children: [
+                          _buildSection(
+                            icon: Icons.swap_horiz,
+                            title: 'Account',
+                            children: [
+                              GestureDetector(
+                                onTap: () async {
+                                  await ref
+                                      .read(userSessionProvider.notifier)
+                                      .switchRole(otherRole);
+                                  if (context.mounted) {
+                                    context.go(
+                                      otherRole == 'driver'
+                                          ? '/driver-home'
+                                          : '/parent-home',
+                                    );
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Switched to $otherRoleName mode',
+                                        ),
+                                        duration: const Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.indigo.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.indigo.shade200,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(8),
+                                        decoration: BoxDecoration(
+                                          color: Colors.indigo.shade100,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Icon(
+                                          otherRole == 'driver'
+                                              ? Icons.directions_bus
+                                              : Icons.people,
+                                          color: Colors.indigo.shade700,
+                                          size: 20,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Switch to $otherRoleName Mode',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.indigo.shade800,
+                                              ),
+                                            ),
+                                            Text(
+                                              'You have both parent and driver roles',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.indigo.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Icon(
+                                        Icons.chevron_right,
+                                        color: Colors.indigo.shade400,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
               ),
 
               const SizedBox(height: 24),

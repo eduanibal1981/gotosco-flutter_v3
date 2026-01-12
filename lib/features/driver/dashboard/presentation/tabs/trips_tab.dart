@@ -137,9 +137,6 @@ class TripsTab extends ConsumerWidget {
                     ],
                     const SizedBox(height: 24),
 
-                    // Booking Requests Section
-                    _buildRequestsSection(ref),
-
                     const SizedBox(height: 24),
 
                     // Students Section
@@ -182,6 +179,8 @@ class TripsTab extends ConsumerWidget {
 
   Widget _buildGenerateButton(BuildContext context, WidgetRef ref) {
     final tripsAsync = ref.watch(todaysTripsProvider);
+    final dashboardStateAsync = ref.watch(driverDashboardStateProvider);
+    final statsAsync = ref.watch(driverStatsProvider);
 
     return tripsAsync.when(
       data: (trips) {
@@ -230,48 +229,136 @@ class TripsTab extends ConsumerWidget {
           );
         }
 
-        // No trips - show generate button
-        return ElevatedButton.icon(
-          onPressed: () async {
-            try {
-              await ref
-                  .read(driverDashboardRepositoryProvider)
-                  .generateDailyTrips();
-              ref.invalidate(todaysTripsProvider);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Trips generated successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              }
-            } catch (e) {
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            }
-          },
-          icon: const Icon(Icons.auto_fix_high),
-          label: const Text('Generate Daily Trips'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.teal,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        // Check requirements for generating trips
+        final dashboardState = dashboardStateAsync.asData?.value;
+        final stats = statsAsync.asData?.value;
+
+        final bool isProfileComplete =
+            dashboardState != null &&
+            dashboardState != DriverDashboardState.noProfile &&
+            dashboardState != DriverDashboardState.profileIncomplete;
+
+        final int activeBookings = stats?['active_bookings'] ?? 0;
+        final bool hasActiveBookings = activeBookings > 0;
+
+        final bool canGenerate = isProfileComplete && hasActiveBookings;
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (!canGenerate)
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: Colors.orange.shade800,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Requirements to Generate Trips:',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.orange.shade900,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _buildRequirementCheck(
+                      'Complete Profile & Schedule',
+                      isProfileComplete,
+                    ),
+                    _buildRequirementCheck(
+                      'Have Active Bookings (Accepted)',
+                      hasActiveBookings,
+                    ),
+                  ],
+                ),
+              ),
+            ElevatedButton.icon(
+              onPressed: canGenerate
+                  ? () async {
+                      try {
+                        await ref
+                            .read(driverDashboardRepositoryProvider)
+                            .generateDailyTrips();
+                        ref.invalidate(todaysTripsProvider);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Trips generated successfully!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Error: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    }
+                  : null,
+              icon: const Icon(Icons.auto_fix_high),
+              label: const Text('Generate Daily Trips'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade500,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
             ),
-          ),
+          ],
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildRequirementCheck(String label, bool isMet) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 4, bottom: 4),
+      child: Row(
+        children: [
+          Icon(
+            isMet ? Icons.check_circle : Icons.cancel,
+            size: 16,
+            color: isMet ? Colors.green : Colors.red.shade300,
+          ),
+          const SizedBox(width: 8),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: isMet ? Colors.grey.shade700 : Colors.red.shade400,
+              decoration: isMet ? TextDecoration.lineThrough : null,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -453,124 +540,6 @@ class TripsTab extends ConsumerWidget {
               ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildRequestsSection(WidgetRef ref) {
-    final requestsAsync = ref.watch(driverBookingRequestsProvider);
-
-    return requestsAsync.when(
-      data: (requests) {
-        final pending = requests
-            .where((r) => r['status'] == 'pending')
-            .toList();
-
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.inbox, color: Colors.orange.shade600),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Booking Requests',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-                  ),
-                  const Spacer(),
-                  if (pending.isNotEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '${pending.length}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (pending.isEmpty)
-                Text(
-                  'No pending requests',
-                  style: TextStyle(color: Colors.grey.shade500),
-                )
-              else
-                ...pending.take(3).map((req) => _buildRequestRow(ref, req)),
-            ],
-          ),
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Text('Error: $e'),
-    );
-  }
-
-  Widget _buildRequestRow(WidgetRef ref, Map<String, dynamic> request) {
-    final parentName = request['parent_name'] as String? ?? 'Parent';
-    final children = request['children'] as List? ?? [];
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange.shade50,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  parentName,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  '${children.length} child${children.length != 1 ? 'ren' : ''}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () async {
-              await ref
-                  .read(driverDashboardRepositoryProvider)
-                  .acceptBooking(request['id']);
-              ref.invalidate(driverBookingRequestsProvider);
-            },
-            child: const Text('Accept', style: TextStyle(color: Colors.green)),
-          ),
-          TextButton(
-            onPressed: () async {
-              await ref
-                  .read(driverDashboardRepositoryProvider)
-                  .rejectBooking(request['id']);
-              ref.invalidate(driverBookingRequestsProvider);
-            },
-            child: const Text('Reject', style: TextStyle(color: Colors.red)),
-          ),
-        ],
       ),
     );
   }

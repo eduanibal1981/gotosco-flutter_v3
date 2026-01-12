@@ -2,6 +2,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_session.dart';
 
 part 'user_session_provider.g.dart';
@@ -80,14 +81,31 @@ class UserSessionNotifier extends _$UserSessionNotifier {
 
   /// Get the last active role from local storage
   Future<String> _getLastActiveRole(List<String> roles) async {
-    // TODO: Implement shared_preferences to persist last active role
-    // For now, default to first role
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastRole = prefs.getString('last_active_role');
+
+      // If we have a saved role and it's still valid, use it
+      if (lastRole != null && roles.contains(lastRole)) {
+        return lastRole;
+      }
+    } catch (e) {
+      // If there's an error reading preferences, just continue
+      print('Error reading last active role: $e');
+    }
+
+    // Default to first role if no saved preference or error
     return roles.first;
   }
 
   /// Save the active role to local storage
   Future<void> _saveLastActiveRole(String role) async {
-    // TODO: Implement shared_preferences to persist last active role
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_active_role', role);
+    } catch (e) {
+      print('Error saving last active role: $e');
+    }
   }
 }
 

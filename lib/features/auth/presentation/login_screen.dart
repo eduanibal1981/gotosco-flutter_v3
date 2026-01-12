@@ -41,13 +41,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!mounted) return;
 
     // Web OAuth redirects, so result is null
+    // The router will handle navigation after redirect
     if (result == null) return;
 
-    if (result.success && result.role != null) {
-      if (result.role == 'driver') {
-        context.go('/driver-home');
+    // Native flow: handle navigation
+    if (result.success) {
+      // Check if user has a role assigned
+      if (result.role == null || result.role!.isEmpty) {
+        // New user without role - go to role selection
+        context.go('/role-selection');
       } else {
-        context.go('/parent-home');
+        // Existing user with role - go to appropriate dashboard
+        if (result.role == 'driver') {
+          context.go('/driver-home');
+        } else {
+          context.go('/parent-home');
+        }
       }
     } else if (result.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(

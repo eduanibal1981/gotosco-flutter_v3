@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
+import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
 
 class DashboardHeader extends ConsumerWidget {
   const DashboardHeader({super.key});
@@ -16,6 +17,8 @@ class DashboardHeader extends ConsumerWidget {
       elevation: 0,
       backgroundColor: Colors.indigo.shade800,
       actions: [
+        // Role Switcher (for dual-role users)
+        const RoleSwitcherButton(),
         // Logout button for testing
         IconButton(
           icon: const Icon(Icons.logout, color: Colors.white),

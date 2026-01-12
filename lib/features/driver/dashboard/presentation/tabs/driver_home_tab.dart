@@ -5,12 +5,14 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
+import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
 import '../../data/driver_dashboard_repository.dart';
 import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
 import '../../../profile/data/driver_profile_repository.dart';
 import '../../../availability/presentation/availability_control_sheet.dart';
 import '../../../availability/presentation/driver_availability_controller.dart';
+import '../widgets/booking_requests_card.dart';
 
 class DriverHomeTab extends ConsumerStatefulWidget {
   const DriverHomeTab({super.key});
@@ -485,20 +487,10 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
           padding: const EdgeInsets.all(20),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
-              // Notification
-              statsAsync.when(
-                data: (stats) => _buildNotificationBanner(
-                  icon: Icons.notifications_active,
-                  message:
-                      '${stats['pending_requests']} new booking request${(stats['pending_requests'] as int) != 1 ? 's' : ''} received!',
-                  color: Colors.orange,
-                  onTap: () => ref
-                      .read(driverDashboardIndexProvider.notifier)
-                      .setIndex(1),
-                ),
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
+              // Booking Requests Card (Standalone)
+              const BookingRequestsCard(),
+
+              const SizedBox(height: 12),
 
               const SizedBox(height: 20),
 
@@ -575,6 +567,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
           padding: const EdgeInsets.all(20),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              // Booking Requests Card (Standalone)
+              const BookingRequestsCard(),
+
               // Next Trip - Show only the upcoming scheduled trip
               _buildSectionTitle("🚨 Next Trip"),
               const SizedBox(height: 12),
@@ -699,6 +694,8 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 ),
                 Row(
                   children: [
+                    // Role Switcher (for dual-role users)
+                    const RoleSwitcherButton(),
                     // Logout button for testing
                     IconButton(
                       onPressed: () => _showLogoutDialog(context),
