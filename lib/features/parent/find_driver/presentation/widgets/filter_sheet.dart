@@ -16,6 +16,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
   late String _selectedGender;
   late double _maxPrice;
   late String _vehicleType;
+  late bool _onlineOnly; // New filter
 
   // New Location filters
   String? _selectedCityId;
@@ -28,6 +29,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
     _selectedGender = widget.currentFilters['gender'] ?? 'All';
     _maxPrice = (widget.currentFilters['maxPrice'] ?? 200.0).toDouble();
     _vehicleType = widget.currentFilters['vehicleType'] ?? 'All';
+    _onlineOnly = widget.currentFilters['onlineOnly'] ?? false;
 
     // Restore location state if previously selected
     _selectedCityId = widget.currentFilters['cityId'];
@@ -81,6 +83,17 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                   "Location & School",
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
+                const SizedBox(height: 12),
+
+                // Online Only Switch
+                SwitchListTile(
+                  title: const Text("Show Online Drivers Only"),
+                  value: _onlineOnly,
+                  activeColor: Colors.indigo,
+                  contentPadding: EdgeInsets.zero,
+                  onChanged: (val) => setState(() => _onlineOnly = val),
+                ),
+                const Divider(),
                 const SizedBox(height: 12),
 
                 // City Dropdown
@@ -183,6 +196,7 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
                   'cityId': _selectedCityId, // Pass new filters
                   'areaId': _selectedAreaId,
                   'schoolId': _selectedSchoolId,
+                  'onlineOnly': _onlineOnly,
                 });
               },
               style: ElevatedButton.styleFrom(

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/core/constants/dev_config.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -54,30 +53,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Google Sign-In failed: ${result.error}'),
-          backgroundColor: Colors.red.shade700,
-        ),
-      );
-    }
-  }
-
-  // ============== DEV MODE SIGN-IN HANDLER ==============
-  Future<void> _handleDevSignIn(String role) async {
-    final result = await ref
-        .read(authControllerProvider.notifier)
-        .devSignIn(role);
-
-    if (!mounted) return;
-
-    if (result.success) {
-      if (role == 'driver') {
-        context.go('/driver-home');
-      } else {
-        context.go('/parent-home');
-      }
-    } else if (result.error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('DEV Sign-In failed: ${result.error}'),
           backgroundColor: Colors.red.shade700,
         ),
       );
@@ -267,71 +242,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ],
                     ),
-
-                    // ⚠️ DEV BYPASS BUTTONS - Only show in dev mode
-                    if (DevConfig.bypassAuth) ...[
-                      const SizedBox(height: 20),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.orange.shade300),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: Colors.orange.shade700,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'DEV MODE - Auth Bypassed',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.orange.shade800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: isLoading
-                                        ? null
-                                        : () => _handleDevSignIn('parent'),
-                                    icon: const Icon(Icons.family_restroom),
-                                    label: const Text('Parent'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.blue.shade600,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: ElevatedButton.icon(
-                                    onPressed: isLoading
-                                        ? null
-                                        : () => _handleDevSignIn('driver'),
-                                    icon: const Icon(Icons.directions_bus),
-                                    label: const Text('Driver'),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.green.shade600,
-                                      foregroundColor: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
 
                     const SizedBox(height: 20),
                   ],

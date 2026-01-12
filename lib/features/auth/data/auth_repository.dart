@@ -5,7 +5,7 @@ import 'package:gotosco_v3/core/constants/enums.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
+import 'package:flutter/foundation.dart';
 part 'auth_repository.g.dart';
 
 /// Provides the AuthRepository instance via dependency injection.
@@ -74,7 +74,7 @@ class AuthRepository {
         email: email,
         fullName: fullName,
         phone: phone,
-        role: role,
+        authProvider: 'phone', // Email/password signup uses phone auth flow
       );
     }
 
@@ -86,15 +86,18 @@ class AuthRepository {
   /// On NATIVE (Android/iOS): Uses native Google Sign-In + ID token.
   Future<AuthResponse?> signInWithGoogle() async {
     if (kIsWeb) {
-      // WEB: Use Supabase OAuth - this will redirect to Google
-      await _supabase.auth.signInWithOAuth(
+      // WEB: Use Supabase OAuth
+      // Uses the current origin (e.g. http://localhost:1234 or https://mydomain.com)
+      final result = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo:
-            'http://localhost:${Uri.base.port}', // Adjust for production
+        redirectTo: kIsWeb ? Uri.base.origin : null,
       );
-      // Note: On web, this returns immediately and the page redirects.
-      // Auth state will be handled when user returns via onAuthStateChange.
-      // Return null since auth is pending redirect
+
+      if (!result) {
+        throw Exception('Failed to initiate Google Sign-In');
+      }
+
+      // Return null since auth completes after redirect
       return null;
     } else {
       // NATIVE: Use native Google Sign-In plugin (v6.x API)
@@ -135,8 +138,8 @@ class AuthRepository {
             userId: response.user!.id,
             email: googleUser.email,
             fullName: googleUser.displayName ?? 'User',
-            phone: '',
-            role: UserRole.parent,
+            phone: null, // Google users may not have phone
+            authProvider: 'google',
           );
         }
       }
@@ -151,20 +154,22 @@ class AuthRepository {
   }
 
   /// Helper to insert a row into the 'public.users' table.
+  /// Creates user with empty role array - they must select role(s) after signup.
   Future<void> _createPublicProfile({
     required String userId,
     required String email,
     required String fullName,
-    required String phone,
-    required UserRole role,
+    String? phone,
+    String authProvider = 'phone',
   }) async {
     // Map<String, dynamic> is like Dictionary<string, object> or a JObject in C#
     final userData = {
       'id': userId,
       'email': email,
       'full_name': fullName,
-      'phone': phone,
-      'role': role.toDbString(),
+      'phone': phone, // Can be null for Google sign-in
+      'role': <String>[], // Empty array - user must select role(s)
+      'auth_provider': authProvider,
       'created_at': DateTime.now().toIso8601String(),
     };
 
@@ -182,7 +187,7 @@ class AuthRepository {
           .eq('id', userId)
           .single();
 
-      return UserModel.fromMap(response);
+      return UserModel.fromJson(response);
     } catch (e) {
       // In C#, you might catch SqlException. Here we catch Supabase errors.
       print('Error fetching profile: $e');

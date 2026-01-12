@@ -4,10 +4,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
+import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import '../../data/driver_dashboard_repository.dart';
 import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
 import '../../../profile/data/driver_profile_repository.dart';
+import '../../../availability/presentation/availability_control_sheet.dart';
+import '../../../availability/presentation/driver_availability_controller.dart';
 
 class DriverHomeTab extends ConsumerStatefulWidget {
   const DriverHomeTab({super.key});
@@ -17,7 +20,6 @@ class DriverHomeTab extends ConsumerStatefulWidget {
 }
 
 class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
-  bool _isOnline = false;
   bool _isLoading = false;
 
   /// Refresh all dashboard data
@@ -695,7 +697,20 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                     ],
                   ),
                 ),
-                if (showOnlineToggle) _buildOnlineToggle(),
+                Row(
+                  children: [
+                    // Logout button for testing
+                    IconButton(
+                      onPressed: () => _showLogoutDialog(context),
+                      icon: const Icon(Icons.logout, color: Colors.white),
+                      tooltip: 'Logout',
+                    ),
+                    if (showOnlineToggle) ...[
+                      const SizedBox(width: 8),
+                      _buildOnlineToggle(),
+                    ],
+                  ],
+                ),
               ],
             ),
           ],
@@ -705,36 +720,71 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
   }
 
   Widget _buildOnlineToggle() {
-    return GestureDetector(
-      onTap: () async {
-        setState(() => _isOnline = !_isOnline);
-        await ref
-            .read(driverDashboardRepositoryProvider)
-            .setOnlineStatus(_isOnline);
-      },
-      child: Container(
+    final availabilityAsync = ref.watch(driverAvailabilityControllerProvider);
+
+    return availabilityAsync.when(
+      data: (settings) => GestureDetector(
+        onTap: () => ref
+            .read(driverAvailabilityControllerProvider.notifier)
+            .toggleOnline(),
+        onLongPress: () => AvailabilityControlSheet.show(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: settings.isOnline ? Colors.green : Colors.grey.shade600,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                settings.isOnline ? Icons.circle : Icons.circle_outlined,
+                size: 10,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                settings.isOnline ? 'Online' : 'Offline',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                settings.isSmartMode ? Icons.auto_awesome : Icons.touch_app,
+                size: 12,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ],
+          ),
+        ),
+      ),
+      loading: () => Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: _isOnline ? Colors.green : Colors.grey.shade600,
+          color: Colors.grey.shade400,
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Row(
-          children: [
-            Icon(
-              _isOnline ? Icons.circle : Icons.circle_outlined,
-              size: 10,
-              color: Colors.white,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              _isOnline ? 'Online' : 'Offline',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 13,
-              ),
-            ),
-          ],
+        child: const SizedBox(
+          width: 60,
+          height: 16,
+          child: LinearProgressIndicator(
+            color: Colors.white,
+            backgroundColor: Colors.transparent,
+          ),
+        ),
+      ),
+      error: (_, __) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade600,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Text(
+          'Offline',
+          style: TextStyle(color: Colors.white, fontSize: 13),
         ),
       ),
     );
@@ -1500,6 +1550,38 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  /// Show logout confirmation dialog
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await ref.read(authRepositoryProvider).signOut();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Logout'),
+          ),
+        ],
+      ),
     );
   }
 }

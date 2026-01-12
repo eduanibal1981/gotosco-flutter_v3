@@ -12,6 +12,7 @@ class DriverAdModel {
   final bool isVerified;
   final String bio;
   final String phone; // New field
+  final bool isOnline; // New field
   DriverAdModel({
     required this.driverId,
     required this.name,
@@ -25,6 +26,7 @@ class DriverAdModel {
     required this.isVerified,
     required this.bio,
     required this.phone,
+    required this.isOnline,
   });
 
   // The View returns 'driver_id', 'name', etc. directly.
@@ -43,6 +45,7 @@ class DriverAdModel {
       isVerified: true, // The view filters only verified ones
       bio: map['bio'] ?? '',
       phone: map['phone'] ?? '',
+      isOnline: map['is_online'] ?? false,
     );
   }
 }

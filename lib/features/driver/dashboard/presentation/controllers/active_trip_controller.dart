@@ -1,5 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../data/driver_dashboard_repository.dart';
+import '../../../availability/data/driver_availability_repository.dart';
+import '../../../availability/presentation/driver_availability_controller.dart';
 
 part 'active_trip_controller.g.dart';
 
@@ -71,19 +73,24 @@ class ActiveTripController extends _$ActiveTripController {
         .saveTripOrderAsDefault(tripId);
   }
 
-  /// End the trip
+  /// End the trip (with smart auto-offline support)
   Future<void> endTrip(String tripId, {double? lat, double? lng}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      // Use availability repository for smart auto-offline
       await ref
-          .read(driverDashboardRepositoryProvider)
-          .endTrip(tripId, lat: lat, lng: lng);
+          .read(driverAvailabilityRepositoryProvider)
+          .completeTripWithAutoOffline(tripId, lat: lat, lng: lng);
 
+      // Invalidate relevant providers
       ref.invalidate(todaysTripsProvider);
       ref.invalidate(activeTripProvider); // Should become null
       ref.invalidate(
         driverDashboardStateProvider,
       ); // Force dashboard state update
+      ref.invalidate(
+        driverAvailabilityControllerProvider,
+      ); // Refresh online status
       return null;
     });
   }

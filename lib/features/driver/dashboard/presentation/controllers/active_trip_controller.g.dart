@@ -35,7 +35,7 @@ final class ActiveTripControllerProvider
 }
 
 String _$activeTripControllerHash() =>
-    r'4e2176992e941b53793bd9d40be2b9f85486445a';
+    r'd5ef195e0a597dd114ad0478fe10b90defcdba39';
 
 abstract class _$ActiveTripController
     extends $AsyncNotifier<Map<String, dynamic>?> {

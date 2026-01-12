@@ -37,6 +37,7 @@ class DriversRepository {
         'max_price': filters['maxPrice'],
         'filter_area_id': filters['areaId'], // New: UUID string or null
         'filter_school_id': filters['schoolId'], // New: UUID string or null
+        'filter_online_only': filters['onlineOnly'] ?? false, // New: boolean
       };
 
       // Call the RPC

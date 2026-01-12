@@ -2,7 +2,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/core/constants/dev_config.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/booking_screen.dart';
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/add_child_screen.dart';
@@ -15,6 +14,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 // Screen Imports
 import 'package:gotosco_v3/features/auth/presentation/login_screen.dart';
 import 'package:gotosco_v3/features/auth/presentation/splash_screen.dart';
+import 'package:gotosco_v3/features/auth/presentation/role_selection_screen.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/parent_dashboard_screen.dart';
 import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_screen.dart';
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
@@ -118,29 +118,54 @@ GoRouter router(Ref ref) {
           );
         },
       ),
+      // ROLE SELECTION ROUTE
+      GoRoute(
+        path: '/role-selection',
+        builder: (context, state) {
+          // Lazy import to avoid circular dependencies
+          return const RoleSelectionScreen();
+        },
+      ),
     ],
 
     // REDIRECT LOGIC
-    redirect: (context, state) {
-      // ⚠️ DEV BYPASS - Skip all auth checks
-      if (DevConfig.bypassAuth) {
-        return null; // No redirects in dev mode
-      }
-
+    redirect: (context, state) async {
       final session = Supabase.instance.client.auth.currentSession;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/';
+      final isRoleSelection = state.uri.toString() == '/role-selection';
 
       // 1. No Session? Go to Login
       if (session == null) {
         return isLoggingIn || isSplash ? null : '/login';
       }
 
-      // 2. Has Session but on Login/Splash? Go to correct Home
+      // 2. Has Session but on Login/Splash? Check roles in database
       if (isLoggingIn || isSplash) {
-        final userRoleStr = session.user.userMetadata?['role'];
-        if (userRoleStr == 'driver') return '/driver-home';
-        return '/parent-home';
+        try {
+          final userData = await Supabase.instance.client
+              .from('users')
+              .select('role')
+              .eq('id', session.user.id)
+              .single();
+
+          final roles = List<String>.from(userData['role'] ?? []);
+
+          // No roles? Go to role selection
+          if (roles.isEmpty) {
+            return '/role-selection';
+          }
+
+          // Has roles? Go to first role's dashboard
+          if (roles.contains('driver')) {
+            return '/driver-home';
+          } else {
+            return '/parent-home';
+          }
+        } catch (e) {
+          // If user not in DB, go to role selection
+          return '/role-selection';
+        }
       }
 
       return null;

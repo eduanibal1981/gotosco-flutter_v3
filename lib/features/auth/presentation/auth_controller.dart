@@ -1,5 +1,4 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import 'package:gotosco_v3/core/constants/dev_config.dart';
 import 'package:gotosco_v3/core/constants/enums.dart';
 import '../data/auth_repository.dart';
 
@@ -138,37 +137,6 @@ class AuthController extends _$AuthController {
         // Fetch role from database profile
         final profile = await authRepo.getUserProfile(response.user!.id);
         role = profile?.role.toDbString() ?? 'parent';
-      }
-
-      final result = AuthResult.success(role);
-      state = AsyncData(result);
-      return result;
-    } catch (e) {
-      final result = AuthResult.failure(e.toString());
-      state = AsyncData(result);
-      return result;
-    }
-  }
-
-  /// DEV MODE: Signs in with test credentials for quick testing.
-  Future<AuthResult> devSignIn(String role) async {
-    state = const AsyncLoading();
-
-    try {
-      final testUser = role == 'driver'
-          ? DevConfig.testDriver
-          : DevConfig.testParent;
-
-      final authRepo = ref.read(authRepositoryProvider);
-      final response = await authRepo.signIn(
-        email: testUser['email'] as String,
-        password: DevConfig.testPassword,
-      );
-
-      if (response.user == null) {
-        final result = AuthResult.failure('DEV sign-in failed');
-        state = AsyncData(result);
-        return result;
       }
 
       final result = AuthResult.success(role);

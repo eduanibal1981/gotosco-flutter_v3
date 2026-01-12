@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../data/driver_dashboard_repository.dart';
 import '../../earnings/presentation/earnings_tab.dart';
 import '../../profile/presentation/driver_profile_tab.dart';
+import '../../availability/presentation/driver_availability_controller.dart';
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
 
@@ -38,6 +39,15 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
     EarningsTab(), // Index 2: Earnings
     DriverProfileTab(), // Index 3: Profile
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Check if driver should auto-go-online based on schedule
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(driverAvailabilityControllerProvider.notifier).checkAutoOnline();
+    });
+  }
 
   /// Invalidate providers when switching tabs to ensure fresh data
   void _onTabChanged(int newIndex) {
