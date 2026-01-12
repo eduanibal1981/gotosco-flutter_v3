@@ -10,7 +10,7 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
   id: json['id'] as String,
   email: json['email'] as String,
   fullName: json['full_name'] as String,
-  phone: json['phone'] as String,
+  phone: json['phone'] as String?,
   roles:
       (json['role'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],

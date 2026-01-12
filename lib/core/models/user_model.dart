@@ -16,7 +16,7 @@ sealed class UserModel with _$UserModel {
     required String email,
     // @JsonKey helps match incoming snake_case fields from Supabase
     @JsonKey(name: 'full_name') required String fullName,
-    required String phone,
+    String? phone,
     // The DB stores 'role' as a jsonb/array (e.g. ["driver", "parent"])
     // We map it to a List<String> here.
     @JsonKey(name: 'role') @Default([]) List<String> roles,

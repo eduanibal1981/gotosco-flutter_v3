@@ -203,7 +203,9 @@ class ProfileTab extends ConsumerWidget {
                       _buildListTile(
                         icon: Icons.phone_outlined,
                         title: 'Phone',
-                        subtitle: user.phone.isEmpty ? 'Not set' : user.phone,
+                        subtitle: (user.phone == null || user.phone!.isEmpty)
+                            ? 'Not set'
+                            : user.phone!,
                       ),
                       _buildListTile(
                         icon: Icons.email_outlined,
