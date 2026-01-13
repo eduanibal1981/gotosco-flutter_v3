@@ -28,11 +28,40 @@ class DriverStatusMonitor extends ConsumerWidget {
     return driverLocationAsync.when(
       data: (location) {
         // Driver is active and stream is working
-        // RLS ensures we only get data if conditions are met
+        final bool isActive = location.isOnTrip;
+
+        String title = ''; // Empty to avoid redundancy with badge
+        String subtitle = location.isOnline
+            ? 'Waiting for trip to start'
+            : 'Driver is currently offline';
+        String badgeText = location.isOnline
+            ? 'DRIVER ONLINE'
+            : 'DRIVER OFFLINE';
+        Color badgeColor = location.isOnline ? Colors.orange : Colors.grey;
+
+        if (isActive) {
+          badgeColor = Colors.green;
+          badgeText = 'LIVE TRIP';
+
+          if (location.tripType == 'pickup') {
+            title = 'Arriving for Pickup';
+          } else if (location.tripType == 'dropoff') {
+            title = 'Heading to Destination';
+          } else {
+            title = 'Trip in Progress';
+          }
+          // For now, simpler subtitle until we calc full ETA
+          subtitle = 'View on map';
+        }
+
         return ActiveBookingCard(
           driverName: driverName,
           driverPhoto: driverPhoto,
-          status: 'active',
+          title: title,
+          subtitle: subtitle,
+          badgeText: badgeText,
+          badgeColor: badgeColor,
+          isActive: isActive,
           onViewAll: () {
             // TODO: Navigate to All Bookings or handle accordingly
           },
@@ -74,7 +103,11 @@ class DriverStatusMonitor extends ConsumerWidget {
     return ActiveBookingCard(
       driverName: driverName,
       driverPhoto: driverPhoto,
-      status: 'accepted', // This triggers the Blue UI
+      title: 'Scheduled Trip',
+      subtitle: isLoading ? 'Checking status...' : 'Driver Offline',
+      badgeText: 'SCHEDULED',
+      badgeColor: Colors.blue,
+      isActive: false,
       onViewAll: () {
         // TODO: Navigate to All Bookings
       },

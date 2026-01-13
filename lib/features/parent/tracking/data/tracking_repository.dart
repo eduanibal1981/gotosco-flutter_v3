@@ -41,9 +41,8 @@ class TrackingRepository {
             throw Exception('No location data found for driver: $driverId');
           }
           final location = DriverLocation.fromMap(data.first);
-          if (!location.isOnline) {
-            throw Exception('Driver is currently offline');
-          }
+          // Allow offline status to pass through so UI can update immediately
+          // without entering error state.
           return location;
         });
   }

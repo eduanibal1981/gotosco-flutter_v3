@@ -14,7 +14,7 @@ class FeaturedDrivers extends ConsumerWidget {
       child: driversAsync.when(
         data: (drivers) {
           if (drivers.isEmpty) {
-            return const Center(child: Text("No drivers found nearby."));
+            return _buildEmptyState();
           }
           return ListView.separated(
             scrollDirection: Axis.horizontal,
@@ -26,10 +26,9 @@ class FeaturedDrivers extends ConsumerWidget {
               return _buildDriverCard(
                 name: driver.name,
                 rating: "${driver.rating}",
-                area: "Muscat", // Default area for now
-                isVerified:
-                    true, // Assuming true for now, add field to model if needed
-                color: Colors.blue.shade50, // You can randomize or derive this
+                subtitle: driver.vehicleType, // Using vehicle type as subtitle
+                isVerified: driver.isVerified,
+                photoUrl: driver.photoUrl,
               );
             },
           );
@@ -40,12 +39,56 @@ class FeaturedDrivers extends ConsumerWidget {
     );
   }
 
+  Widget _buildEmptyState() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.person_off_outlined, color: Colors.grey.shade500),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "No drivers nearby",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+                Text(
+                  "Check back later or expand your search.",
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDriverCard({
     required String name,
     required String rating,
-    required String area,
+    required String subtitle,
     required bool isVerified,
-    required Color color,
+    String? photoUrl,
   }) {
     return Container(
       width: 140,
@@ -61,9 +104,17 @@ class FeaturedDrivers extends ConsumerWidget {
           Row(
             children: [
               CircleAvatar(
-                backgroundColor: color,
+                backgroundColor: Colors.indigo.shade50,
                 radius: 16,
-                child: Text(name[0]),
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: photoUrl == null
+                    ? Text(
+                        name.isNotEmpty ? name[0] : 'D',
+                        style: TextStyle(color: Colors.indigo.shade700),
+                      )
+                    : null,
               ),
               const Spacer(),
               const Icon(Icons.star, size: 14, color: Colors.amber),
@@ -101,8 +152,10 @@ class FeaturedDrivers extends ConsumerWidget {
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
           Text(
-            area,
+            subtitle,
             style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

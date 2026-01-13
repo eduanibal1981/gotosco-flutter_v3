@@ -20,6 +20,7 @@ import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_s
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 import 'package:gotosco_v3/features/driver/messages/presentation/driver_messages_screen.dart';
+import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
 
 part 'router.g.dart';
 
@@ -41,6 +42,10 @@ GoRouter router(Ref ref) {
         builder: (context, state) => const Scaffold(
           body: Center(child: Text("Search Filter Placeholder")),
         ),
+      ),
+      GoRoute(
+        path: '/parent-chats',
+        builder: (context, state) => const ParentMessagesScreen(),
       ),
 
       // DRIVER ROUTES

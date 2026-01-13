@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../data/children_repository.dart';
 import '../data/child_model.dart';
 import 'children_controller.dart';
+import 'set_absence_screen.dart';
 
 class ChildrenTab extends ConsumerWidget {
   const ChildrenTab({super.key});
@@ -114,6 +115,14 @@ class ChildrenTab extends ConsumerWidget {
                         ),
                         onViewHistory: () =>
                             context.push('/attendance/${children[index].id}'),
+                        onReportAbsence: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => SetAbsenceScreen(
+                              childId: children[index].id,
+                              childName: children[index].name,
+                            ),
+                          ),
+                        ),
                         onDelete: () =>
                             _showDeleteDialog(context, ref, children[index]),
                       ),
@@ -244,12 +253,14 @@ class _ChildCard extends StatelessWidget {
   final ChildModel child;
   final VoidCallback onEdit;
   final VoidCallback onViewHistory;
+  final VoidCallback onReportAbsence;
   final VoidCallback onDelete;
 
   const _ChildCard({
     required this.child,
     required this.onEdit,
     required this.onViewHistory,
+    required this.onReportAbsence,
     required this.onDelete,
   });
 
@@ -393,6 +404,9 @@ class _ChildCard extends StatelessWidget {
                       case 'history':
                         onViewHistory();
                         break;
+                      case 'report_absence':
+                        onReportAbsence();
+                        break;
                       case 'edit':
                         onEdit();
                         break;
@@ -409,6 +423,20 @@ class _ChildCard extends StatelessWidget {
                           Icon(Icons.history, size: 20),
                           SizedBox(width: 12),
                           Text('View History'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'report_absence',
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            size: 20,
+                            color: Colors.indigo,
+                          ),
+                          SizedBox(width: 12),
+                          Text('Report Absence'),
                         ],
                       ),
                     ),

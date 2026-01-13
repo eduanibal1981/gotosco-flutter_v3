@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 class ActiveBookingCard extends StatelessWidget {
   final String driverName;
   final String? driverPhoto;
-  final String status; // 'active' or 'accepted'
+  final String title;
+  final String subtitle;
+  final String badgeText;
+  final Color badgeColor;
+  final bool isActive;
   final VoidCallback onViewAll;
   final VoidCallback onTrack;
 
@@ -12,12 +16,14 @@ class ActiveBookingCard extends StatelessWidget {
     super.key,
     required this.driverName,
     this.driverPhoto,
-    required this.status,
+    required this.title,
+    required this.subtitle,
+    required this.badgeText,
+    required this.badgeColor,
+    required this.isActive,
     required this.onViewAll,
     required this.onTrack,
   });
-
-  bool get isActive => status == 'active';
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +60,7 @@ class ActiveBookingCard extends StatelessWidget {
                   ),
                 )
               else
-                // Blue Gradient for Scheduled
+                // Blue Gradient for Scheduled/Inactive
                 Positioned.fill(
                   child: Container(
                     decoration: BoxDecoration(
@@ -86,7 +92,7 @@ class ActiveBookingCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      isActive ? 'Arriving at Home' : 'Scheduled Trip',
+                      title,
                       style: const TextStyle(
                         color: Colors.grey,
                         fontSize: 13,
@@ -95,7 +101,7 @@ class ActiveBookingCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      isActive ? '5 min away' : 'Driver Offline',
+                      subtitle,
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w800,
@@ -136,15 +142,12 @@ class ActiveBookingCard extends StatelessWidget {
   }
 
   Widget _buildStatusBadge() {
-    final color = isActive ? Colors.green : Colors.blue;
-    final text = isActive ? 'LIVE TRIP' : 'SCHEDULED';
-
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: badgeColor.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: badgeColor.withOpacity(0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -152,13 +155,16 @@ class ActiveBookingCard extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: badgeColor,
+              shape: BoxShape.circle,
+            ),
           ),
           const SizedBox(width: 8),
           Text(
-            text,
+            badgeText,
             style: TextStyle(
-              color: color,
+              color: badgeColor,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             ),

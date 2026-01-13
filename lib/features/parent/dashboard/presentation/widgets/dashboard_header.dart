@@ -1,8 +1,10 @@
-// lib/features/parent/dashboard/presentation/widgets/dashboard_header.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
+import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
 import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
 
 class DashboardHeader extends ConsumerWidget {
@@ -10,72 +12,137 @@ class DashboardHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Get current User for name
+    final userAsync = ref.watch(currentUserProfileProvider);
+    final userName = userAsync.maybeWhen(
+      data: (user) {
+        if (user == null) return 'Back';
+        final names = user.fullName.split(' ');
+        return names.isNotEmpty ? names.first : 'Back';
+      },
+      orElse: () => 'Back', // "Welcome Back" fallback
+    );
+
+    // Format Date: e.g., "Monday, 13 January"
+    final dateStr = DateFormat('EEEE, d MMMM').format(DateTime.now());
+
     return SliverAppBar(
-      expandedHeight: 120.0,
+      expandedHeight: 140.0, // Increased slightly for better spacing
       floating: true,
       pinned: true,
       elevation: 0,
       backgroundColor: Colors.indigo.shade800,
+      // Status bar brightness
+      systemOverlayStyle: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+      ),
+      // Logout on the left ("other side")
+      leading: IconButton(
+        icon: const Icon(Icons.logout_outlined, color: Colors.white, size: 22),
+        tooltip: 'Logout',
+        onPressed: () => _showLogoutDialog(context, ref),
+      ),
       actions: [
-        // Role Switcher (for dual-role users)
+        // Role Switcher
         const RoleSwitcherButton(),
-        // Logout button for testing
-        IconButton(
-          icon: const Icon(Icons.logout, color: Colors.white),
-          tooltip: 'Logout',
-          onPressed: () => _showLogoutDialog(context, ref),
-        ),
-        // 1. Call Icon (Contact Us)
-        IconButton(
-          icon: const Icon(Icons.call, color: Colors.white),
-          tooltip: 'Contact Us',
-          onPressed: () {}, // TODO: Launch Dialler
-        ),
-        // 2. Favorites (Driver Ads)
-        IconButton(
-          icon: const Icon(Icons.favorite_border, color: Colors.white),
-          tooltip: 'Saved Ads',
-          onPressed: () {},
-        ),
-        // 3. Notifications (Messages)
-        Stack(
-          children: [
-            IconButton(
-              icon: const Icon(
-                Icons.notifications_outlined,
-                color: Colors.white,
-              ),
-              onPressed: () {},
-            ),
-            Positioned(
-              right: 12,
-              top: 12,
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
+        // Actions wrapper
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              // Chat Icon
+              IconButton(
+                icon: const Icon(
+                  Icons.chat_bubble_outline,
+                  color: Colors.white,
+                  size: 22,
                 ),
+                tooltip: 'Chats',
+                onPressed: () {
+                  context.push('/parent-chats');
+                },
+              ),
+              // Notifications Icon
+              IconButton(
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Colors.white,
+                  size: 22,
+                ),
+                onPressed: () {},
+                tooltip: 'Notifications',
+              ),
+            ],
+          ),
+        ),
+      ],
+      flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsets.only(left: 20, bottom: 20),
+        centerTitle: false,
+        title: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              dateStr.toUpperCase(),
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.7),
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              "Welcome, $userName",
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
         ),
-        const SizedBox(width: 8),
-      ],
-      flexibleSpace: FlexibleSpaceBar(
-        titlePadding: const EdgeInsets.only(left: 16, bottom: 16),
-        title: const Text(
-          "Welcome Back",
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.indigo.shade900, Colors.indigo.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+        background: Stack(
+          children: [
+            // 1. Gradient Background
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.indigo.shade900, Colors.indigo.shade600],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
             ),
-          ),
+            // 2. Deco Circles (Professional Texture)
+            Positioned(
+              top: -50,
+              right: -50,
+              child: Container(
+                width: 200,
+                height: 200,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.05),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 40,
+              right: 20,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.03),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

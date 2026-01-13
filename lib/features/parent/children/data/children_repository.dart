@@ -117,4 +117,21 @@ class ChildrenRepository {
       return [];
     }
   }
+
+  // --- REPORT ABSENCE ---
+  Future<void> reportAbsence({
+    required String childId,
+    required DateTime date,
+    String? reason,
+  }) async {
+    // Format date as YYYY-MM-DD to store purely the date part
+    final dateStr = date.toIso8601String().split('T').first;
+
+    await _supabase.from('child_absences').upsert({
+      'child_id': childId,
+      'date': dateStr,
+      'reason': reason,
+      'created_at': DateTime.now().toIso8601String(),
+    }, onConflict: 'child_id, date'); // Ensure uniqueness per child per day
+  }
 }

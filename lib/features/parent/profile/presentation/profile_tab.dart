@@ -218,6 +218,11 @@ class ProfileTab extends ConsumerWidget {
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
                           // TODO: Navigate to Edit Profile
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Edit Profile coming soon"),
+                            ),
+                          );
                         },
                       ),
                     ]),
@@ -300,14 +305,26 @@ class ProfileTab extends ConsumerWidget {
                         title: 'Language',
                         subtitle: 'English',
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Language settings coming soon"),
+                            ),
+                          );
+                        },
                       ),
                       _buildListTile(
                         icon: Icons.dark_mode_outlined,
                         title: 'Dark Mode',
                         trailing: Switch(
                           value: false,
-                          onChanged: (val) {},
+                          onChanged: (val) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Dark mode coming soon"),
+                              ),
+                            );
+                          },
                           activeColor: Colors.indigo,
                         ),
                       ),
@@ -322,19 +339,37 @@ class ProfileTab extends ConsumerWidget {
                         icon: Icons.help_outline,
                         title: 'Help & Support',
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Help & Support coming soon"),
+                            ),
+                          );
+                        },
                       ),
                       _buildListTile(
                         icon: Icons.description_outlined,
                         title: 'Terms & Conditions',
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Terms & Conditions coming soon"),
+                            ),
+                          );
+                        },
                       ),
                       _buildListTile(
                         icon: Icons.privacy_tip_outlined,
                         title: 'Privacy Policy',
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text("Privacy Policy coming soon"),
+                            ),
+                          );
+                        },
                       ),
                     ]),
 

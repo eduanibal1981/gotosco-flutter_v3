@@ -2,30 +2,46 @@
 import 'package:flutter/material.dart';
 
 class TodayTripList extends StatelessWidget {
-  const TodayTripList({super.key});
+  final List<Map<String, dynamic>> trips;
+
+  const TodayTripList({super.key, this.trips = const []});
 
   @override
   Widget build(BuildContext context) {
-    final trips = [
-      {
-        'tripName': 'Morning School Run',
-        'time': '07:30 AM',
-        'type': 'Pickup',
-        'children': ['Ali', 'Sara'],
-        'driver': 'Ahmed',
-        'status': 'Done',
-      },
-      {
-        'tripName': 'Football Training',
-        'time': '04:00 PM',
-        'type': 'Drop-off',
-        'children': ['Ali'],
-        'driver': 'Khalid',
-        'status': 'Scheduled',
-      },
-    ];
-
+    if (trips.isEmpty) {
+      return _buildEmptyState();
+    }
     return Column(children: trips.map((trip) => _buildTripTile(trip)).toList());
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.event_busy, size: 40, color: Colors.grey.shade300),
+          const SizedBox(height: 12),
+          Text(
+            "No trips scheduled for today",
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            "Your upcoming trips will appear here",
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTripTile(Map<String, dynamic> trip) {

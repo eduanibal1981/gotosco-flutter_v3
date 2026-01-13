@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
+import 'package:gotosco_v3/features/parent/children/presentation/set_absence_screen.dart';
 
 class ChildrenSection extends ConsumerWidget {
   const ChildrenSection({super.key});
@@ -132,14 +133,20 @@ class ChildrenSection extends ConsumerWidget {
   Widget _buildChildrenList(List<ChildModel> children) {
     return SizedBox(
       height: 110,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: children.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          final child = children[index];
-          return _buildChildCard(context, child);
-        },
+      width: double.infinity,
+      child: Center(
+        child: ListView.separated(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          itemCount: children.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (context, index) {
+            final child = children[index];
+            return _buildChildCard(context, child);
+          },
+        ),
       ),
     );
   }
@@ -234,21 +241,34 @@ class ChildrenSection extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(height: 16),
             ListTile(
-              leading: const Icon(Icons.history, color: Colors.blue),
-              title: const Text('View Attendance History'),
-              subtitle: const Text(
-                'See when your child was picked up/dropped off',
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.calendar_today_rounded,
+                  color: Colors.red.shade400,
+                ),
               ),
+              title: const Text('Report Absence'),
+              subtitle: const Text('Mark a day your child won\'t ride'),
               onTap: () {
                 Navigator.pop(context);
-                context.push(
-                  '/child-attendance',
-                  extra: {'childId': child.id, 'childName': child.name},
+                // Open the SetAbsenceScreen
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => SetAbsenceScreen(
+                      childId: child.id,
+                      childName: child.name,
+                    ),
+                  ),
                 );
               },
             ),
+            const Divider(),
             ListTile(
               leading: const Icon(Icons.edit, color: Colors.orange),
               title: const Text('Edit Profile'),
