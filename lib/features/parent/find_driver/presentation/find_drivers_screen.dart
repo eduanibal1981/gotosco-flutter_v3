@@ -1,9 +1,9 @@
-// lib/features/parent/find_driver/presentation/find_drivers_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:gotosco_v3/features/parent/find_driver/presentation/filter_drivers_screen.dart';
 import '../data/drivers_repository.dart';
 import 'widgets/driver_ad_card.dart';
-import 'widgets/filter_sheet.dart';
 import 'drivers_controller.dart';
 
 class FindDriversScreen extends ConsumerStatefulWidget {
@@ -14,13 +14,44 @@ class FindDriversScreen extends ConsumerStatefulWidget {
 }
 
 class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
+  Position? _currentPosition;
+
+  @override
+  void initState() {
+    super.initState();
+    _determinePosition();
+  }
+
+  Future<void> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) return;
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) return;
+    }
+
+    if (permission == LocationPermission.deniedForever) return;
+
+    final position = await Geolocator.getCurrentPosition();
+    if (mounted) {
+      setState(() => _currentPosition = position);
+    }
+  }
+
   void _openFilters() async {
     final currentFilters = ref.read(driversFilterControllerProvider);
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterSheet(currentFilters: currentFilters),
+    // Use the new full screen filter or large modal
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            FilterDriversScreen(initialFilters: currentFilters),
+      ),
     );
 
     if (result != null) {
@@ -34,11 +65,17 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final filters = ref.watch(driversFilterControllerProvider);
     final filterController = ref.watch(
       driversFilterControllerProvider.notifier,
     );
-    final driversAsync = ref.watch(driverAdsProvider(filters));
+
+    // We pass lat/lng as named arguments. Filters are watched internally by the provider.
+    final driversAsync = ref.watch(
+      driverAdsProvider(
+        lat: _currentPosition?.latitude,
+        lng: _currentPosition?.longitude,
+      ),
+    );
     final filterSummary = filterController.filterSummary;
 
     return Scaffold(

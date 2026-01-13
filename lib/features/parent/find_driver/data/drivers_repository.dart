@@ -1,5 +1,6 @@
 // lib/features/parent/find_driver/data/drivers_repository.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'driver_ad_model.dart';
 
@@ -8,13 +9,6 @@ part 'drivers_repository.g.dart';
 @riverpod
 DriversRepository driversRepository(Ref ref) {
   return DriversRepository(Supabase.instance.client);
-}
-
-/// Provider for searching driver ads with filters.
-/// The UI watches this to display filtered results.
-@riverpod
-Future<List<DriverAdModel>> driverAds(Ref ref, Map<String, dynamic> filters) {
-  return ref.watch(driversRepositoryProvider).searchDrivers(filters);
 }
 
 /// Provider for dashboard "Nearby/Featured" drivers
@@ -28,25 +22,56 @@ class DriversRepository {
   DriversRepository(this._supabase);
 
   Future<List<DriverAdModel>> searchDrivers(
-    Map<String, dynamic> filters,
-  ) async {
+    Map<String, dynamic> filters, {
+    int limit = 20,
+    int offset = 0,
+    double? parentLat,
+    double? parentLng,
+  }) async {
     try {
-      // Map Dart filters to SQL RPC parameters
+      // Map Dart filters to SQL RPC parameters (v2)
       final params = {
+        // Basic
         'filter_gender': filters['gender'] == 'All' ? null : filters['gender'],
-        'max_price': filters['maxPrice'],
-        'filter_area_id': filters['areaId'], // New: UUID string or null
-        'filter_school_id': filters['schoolId'], // New: UUID string or null
-        'filter_online_only': filters['onlineOnly'] ?? false, // New: boolean
+        'filter_vehicle_type': filters['vehicleType'] == 'All'
+            ? null
+            : filters['vehicleType'],
+        'filter_min_rating': filters['minRating'],
+
+        // Pricing
+        'max_price_monthly_two_way': filters['maxPrice'],
+
+        // Location
+        'filter_area_id': filters['areaId'],
+        'filter_school_id': filters['schoolId'],
+        'parent_location_lat': parentLat,
+        'parent_location_lng': parentLng,
+        'max_distance_km': filters['maxDistance'],
+
+        // Availability
+        'filter_online_only': filters['onlineOnly'] ?? false,
+        'require_verified': filters['verifiedOnly'] ?? false,
+
+        // Pagination
+        'page_limit': limit,
+        'page_offset': offset,
       };
 
-      // Call the RPC
-      final response = await _supabase.rpc('search_drivers', params: params);
+      // Call the new RPC
+      final response = await _supabase.rpc(
+        'search_drivers_for_parent_v2',
+        params: params,
+      );
 
       return (response as List)
           .map((data) => DriverAdModel.fromMap(data))
           .toList();
     } catch (e) {
+      if (e is PostgrestException) {
+        print(
+          'Postgrest Error: ${e.message} code: ${e.code} details: ${e.details} hint: ${e.hint}',
+        );
+      }
       print('Error searching drivers: $e');
       return [];
     }
@@ -56,30 +81,8 @@ class DriversRepository {
   /// Fetches a list of recent driver ads.
   /// Ideally, use actual geolocation here if available.
   Future<List<DriverAdModel>> getNearbyDrivers({int limit = 5}) async {
-    try {
-      // For now, we reuse search_drivers with no filters to get all available
-      // You could optimize this with a specific RPC or direct table query
-      final response = await _supabase.rpc(
-        'search_drivers',
-        params: {
-          'filter_gender': null,
-          'max_price': 1000.0, // High limit to get everything
-          'filter_area_id': null,
-          'filter_school_id': null,
-        },
-      );
-
-      final allDrivers = (response as List)
-          .map((data) => DriverAdModel.fromMap(data))
-          .toList();
-
-      // Return only top N
-      // (If you had a 'created_at' in your view, you could sort by that)
-      return allDrivers.take(limit).toList();
-    } catch (e) {
-      print('Error fetching featured drivers: $e');
-      return [];
-    }
+    // Reuse the robust search with no filters (nulls)
+    return searchDrivers({}, limit: limit);
   }
 
   // Get list of Driver IDs that I have favorited

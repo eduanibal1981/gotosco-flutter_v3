@@ -10,16 +10,13 @@ class DriverAdCard extends ConsumerWidget {
   final DriverAdModel driver;
 
   const DriverAdCard({super.key, required this.driver});
-  Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
-    // 1. Prepare the URI with 'tel' scheme
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
 
-    // 2. Check and Launch
+  Future<void> _makePhoneCall(BuildContext context, String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
     try {
       if (await canLaunchUrl(launchUri)) {
         await launchUrl(launchUri);
       } else {
-        // Fallback if simulator or no dialer
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Could not launch dialer')),
@@ -27,20 +24,17 @@ class DriverAdCard extends ConsumerWidget {
         }
       }
     } catch (e) {
-      print("Error launching call: $e");
+      debugPrint("Error launching call: $e");
     }
   }
 
   void _startChat(BuildContext context) {
-    // Navigate to the Chat Screen.
-    // We pass the driver's ID and name as 'extra' data so the Chat Screen
-    // can initialize the conversation immediately.
     context.push(
       '/chat',
       extra: {
         'userId': driver.driverId,
         'userName': driver.name,
-        'userRole': 'driver', // Optional: Helps if chat logic differs by role
+        'userRole': 'driver',
       },
     );
   }
@@ -55,16 +49,13 @@ class DriverAdCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(favoritesProvider);
-    // Check if THIS driver is in the list
     final isFavorite = favorites.value?.contains(driver.driverId) ?? false;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(
-          20,
-        ), // Slightly rounder for modern look
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),
@@ -168,16 +159,73 @@ class DriverAdCard extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          "${driver.vehicleType} • ${driver.gender}",
+                          "${driver.vehicleType} • ${driver.vehicleCapacity} Seats • ${driver.gender}",
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey.shade700,
                           ),
                         ),
                       ),
+                      if (driver.coveredSchools.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 4,
+                          runSpacing: 4,
+                          children: driver.coveredSchools.take(2).map((school) {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: Colors.blue.shade100),
+                              ),
+                              child: Text(
+                                school,
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.blue.shade800,
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
                     ],
                   ),
                 ),
+
+                // Distance Badge (Optional placement)
+                if (driver.distanceKm != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.teal.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.teal.shade100),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(Icons.location_on, size: 16, color: Colors.teal),
+                          Text(
+                            "${driver.distanceKm} km",
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.teal.shade800,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
 
                 // Price Badge
                 Column(
@@ -224,21 +272,16 @@ class DriverAdCard extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                // Chat Button
                 _buildActionButton(
                   icon: Icons.chat_bubble_outline,
                   color: Colors.blue,
-                  onTap: () =>
-                      _startChat(context), // <--- Connect the function here
+                  onTap: () => _startChat(context),
                 ),
                 const SizedBox(width: 10),
-
-                // Call Button
                 _buildActionButton(
                   icon: Icons.phone_outlined,
                   color: Colors.green,
                   onTap: () {
-                    // Ensure your DriverAdModel has a 'phone' field
                     if (driver.phone.isNotEmpty) {
                       _makePhoneCall(context, driver.phone);
                     } else {
@@ -251,24 +294,17 @@ class DriverAdCard extends ConsumerWidget {
                   },
                 ),
                 const SizedBox(width: 10),
-
-                // 4. FAVORITE BUTTON (CONNECTED)
                 _buildActionButton(
-                  // Change Icon based on state
                   icon: isFavorite ? Icons.favorite : Icons.favorite_border,
-                  // Change Color based on state (optional, or keep pink)
                   color: Colors.pink,
                   onTap: () {
-                    // Call the Provider to toggle
                     ref
                         .read(favoritesProvider.notifier)
                         .toggleFavorite(driver.driverId);
                   },
                 ),
                 const SizedBox(width: 10),
-                // BOOK BUTTON
                 Expanded(
-                  // Use Expanded to fill remaining space nicely
                   child: ElevatedButton(
                     onPressed: () => _navigateToBooking(context),
                     style: ElevatedButton.styleFrom(
@@ -286,8 +322,6 @@ class DriverAdCard extends ConsumerWidget {
                     ),
                   ),
                 ),
-                // View Profile (text link)
-                const SizedBox(width: 4),
               ],
             ),
           ),
@@ -296,7 +330,6 @@ class DriverAdCard extends ConsumerWidget {
     );
   }
 
-  // Helper for the square icon buttons
   Widget _buildActionButton({
     required IconData icon,
     required Color color,

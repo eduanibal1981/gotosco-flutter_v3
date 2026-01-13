@@ -8,6 +8,106 @@ part of 'drivers_controller.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Provider for searching driver ads.
+/// watches [driversFilterControllerProvider] internally for filters.
+/// Accepts [lat] and [lng] as arguments to avoid Maps in family.
+
+@ProviderFor(driverAds)
+final driverAdsProvider = DriverAdsFamily._();
+
+/// Provider for searching driver ads.
+/// watches [driversFilterControllerProvider] internally for filters.
+/// Accepts [lat] and [lng] as arguments to avoid Maps in family.
+
+final class DriverAdsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<DriverAdModel>>,
+          List<DriverAdModel>,
+          FutureOr<List<DriverAdModel>>
+        >
+    with
+        $FutureModifier<List<DriverAdModel>>,
+        $FutureProvider<List<DriverAdModel>> {
+  /// Provider for searching driver ads.
+  /// watches [driversFilterControllerProvider] internally for filters.
+  /// Accepts [lat] and [lng] as arguments to avoid Maps in family.
+  DriverAdsProvider._({
+    required DriverAdsFamily super.from,
+    required ({double? lat, double? lng}) super.argument,
+  }) : super(
+         retry: null,
+         name: r'driverAdsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$driverAdsHash();
+
+  @override
+  String toString() {
+    return r'driverAdsProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<DriverAdModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<DriverAdModel>> create(Ref ref) {
+    final argument = this.argument as ({double? lat, double? lng});
+    return driverAds(ref, lat: argument.lat, lng: argument.lng);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DriverAdsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$driverAdsHash() => r'154f24c931e5628f0bc82a4f45768ef4e453324c';
+
+/// Provider for searching driver ads.
+/// watches [driversFilterControllerProvider] internally for filters.
+/// Accepts [lat] and [lng] as arguments to avoid Maps in family.
+
+final class DriverAdsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<DriverAdModel>>,
+          ({double? lat, double? lng})
+        > {
+  DriverAdsFamily._()
+    : super(
+        retry: null,
+        name: r'driverAdsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Provider for searching driver ads.
+  /// watches [driversFilterControllerProvider] internally for filters.
+  /// Accepts [lat] and [lng] as arguments to avoid Maps in family.
+
+  DriverAdsProvider call({double? lat, double? lng}) =>
+      DriverAdsProvider._(argument: (lat: lat, lng: lng), from: this);
+
+  @override
+  String toString() => r'driverAdsProvider';
+}
+
 /// Controller that manages driver filters state.
 /// Provides filter summary and clear functionality.
 

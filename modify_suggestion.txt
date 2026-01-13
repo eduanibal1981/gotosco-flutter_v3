@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class DriverAdModel {
   final String driverId;
   final String name;
@@ -11,7 +13,7 @@ class DriverAdModel {
   final String bio;
   final String phone;
   final bool isOnline;
-
+  
   // New Fields
   final double? distanceKm;
   final List<String> coveredSchools; // Simple list of names for UI
@@ -39,8 +41,7 @@ class DriverAdModel {
     // Parse the JSON list of schools safely
     List<String> schoolNames = [];
     if (map['covered_schools'] != null) {
-      // It comes as List from Supabase (jsonb)
-      final List<dynamic> list = map['covered_schools'];
+      final List<dynamic> list = map['covered_schools']; // It comes as List from Supabase
       schoolNames = list.map((e) => e['name'].toString()).toList();
     }
 
@@ -57,11 +58,9 @@ class DriverAdModel {
       bio: map['bio'] ?? '',
       phone: map['phone'] ?? '',
       isOnline: map['is_online'] ?? false,
-
+      
       // New Fields Mapping
-      distanceKm: map['distance_km'] != null
-          ? (map['distance_km'] as num).toDouble()
-          : null,
+      distanceKm: map['distance_km'] != null ? (map['distance_km'] as num).toDouble() : null,
       vehicleCapacity: map['vehicle_capacity'] ?? 0,
       coveredSchools: schoolNames,
     );

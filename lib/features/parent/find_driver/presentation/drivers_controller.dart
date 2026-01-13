@@ -1,6 +1,20 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../data/driver_ad_model.dart';
+import '../data/drivers_repository.dart';
+
 part 'drivers_controller.g.dart';
+
+/// Provider for searching driver ads.
+/// watches [driversFilterControllerProvider] internally for filters.
+/// Accepts [lat] and [lng] as arguments to avoid Maps in family.
+@riverpod
+Future<List<DriverAdModel>> driverAds(Ref ref, {double? lat, double? lng}) {
+  final filters = ref.watch(driversFilterControllerProvider);
+  return ref
+      .watch(driversRepositoryProvider)
+      .searchDrivers(filters, parentLat: lat, parentLng: lng);
+}
 
 /// Controller that manages driver filters state.
 /// Provides filter summary and clear functionality.
