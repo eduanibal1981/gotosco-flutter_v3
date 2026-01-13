@@ -33,13 +33,14 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
     _schoolController = TextEditingController(text: widget.child.schoolName);
     _gradeController = TextEditingController(text: widget.child.grade);
     // Note: You might need to add medical/notes to your ChildModel if you want to edit them
-    _medicalController = TextEditingController();
-    _notesController = TextEditingController();
+    _medicalController = TextEditingController(
+      text: widget.child.medicalConditions,
+    );
+    _notesController = TextEditingController(text: widget.child.notes);
     _selectedGender = widget.child.gender ?? 'male';
-    // _selectedDate = widget.child.dob; // If you have dob in ChildModel
-    _selectedDate = DateTime.now().subtract(
-      const Duration(days: 365 * 6),
-    ); // Placeholder
+    _selectedDate =
+        widget.child.dob ??
+        DateTime.now().subtract(const Duration(days: 365 * 6));
   }
 
   @override

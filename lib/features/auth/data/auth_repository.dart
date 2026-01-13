@@ -53,15 +53,18 @@ class AuthRepository {
     required String email,
     required String password,
     required String fullName,
-    required String phone,
-    required UserRole role, // Enum: parent or driver
+    String? phone,
+    UserRole? role, // Enum: parent or driver (Optional now)
   }) async {
     // 1. Create the Auth User (in Supabase's secure auth system)
     final response = await _supabase.auth.signUp(
       email: email,
       password: password,
       // We store metadata for quick access without querying the DB
-      data: {'full_name': fullName, 'role': role.toDbString()},
+      data: {
+        'full_name': fullName,
+        if (role != null) 'role': role.toDbString(),
+      },
     );
 
     // 2. Create the Public Profile (in your 'users' table)

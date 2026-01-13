@@ -44,11 +44,58 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     // The router will handle navigation after redirect
     if (result == null) return;
 
-    // Native flow: handle navigation
+    _handleAuthResult(result);
+  }
+
+  // ============== EMAIL/PASSWORD HANDLER ==============
+  Future<void> _handleEmailAuth() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+    final name = _nameController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter email and password'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!_isLogin && name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter your full name'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Dismiss keyboard
+    FocusScope.of(context).unfocus();
+
+    AuthResult result;
+    if (_isLogin) {
+      result = await ref
+          .read(authControllerProvider.notifier)
+          .signInWithEmail(email, password);
+    } else {
+      result = await ref
+          .read(authControllerProvider.notifier)
+          .signUp(email: email, password: password, fullName: name);
+    }
+
+    if (!mounted) return;
+    _handleAuthResult(result);
+  }
+
+  void _handleAuthResult(AuthResult result) {
     if (result.success) {
       // Check if user has a role assigned
       if (result.role == null || result.role!.isEmpty) {
-        // New user without role - go to role selection
+        // New user without role or role not found - go to role selection
         context.go('/role-selection');
       } else {
         // Existing user with role - go to appropriate dashboard
@@ -61,7 +108,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } else if (result.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Google Sign-In failed: ${result.error}'),
+          content: Text(
+            '${_isLogin ? "Login" : "Sign up"} failed: ${result.error}',
+          ),
           backgroundColor: Colors.red.shade700,
         ),
       );
@@ -342,6 +391,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildMainButton() {
+    final isLoading = ref.watch(authControllerProvider).isLoading;
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -355,16 +406,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          // UI Mock Action
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                _isLogin ? 'Performing Login...' : 'Creating Account...',
-              ),
-            ),
-          );
-        },
+        onPressed: isLoading ? null : _handleEmailAuth,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -373,15 +415,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        child: Text(
-          _isLogin ? 'LOGIN' : 'SIGN UP',
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 1,
-          ),
-        ),
+        child: isLoading
+            ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Text(
+                _isLogin ? 'LOGIN' : 'SIGN UP',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: 1,
+                ),
+              ),
       ),
     );
   }

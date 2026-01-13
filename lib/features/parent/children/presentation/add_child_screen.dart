@@ -67,6 +67,14 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
           ),
         );
         context.pop();
+      } else {
+        final error = ref.read(childrenControllerProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to add child: ${error ?? "Unknown error"}'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (!mounted) return;

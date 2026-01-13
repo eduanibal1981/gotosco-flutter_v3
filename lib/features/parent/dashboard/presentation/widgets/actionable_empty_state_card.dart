@@ -87,10 +87,10 @@ class ActionableEmptyStateCard extends ConsumerWidget {
                   width: double.infinity,
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      // SWITCH TO TAB 0 ("Find" Tab)
+                      // SWITCH TO TAB 1 ("Find" Tab)
                       ref
                           .read(parentDashboardIndexProvider.notifier)
-                          .setIndex(0);
+                          .setIndex(1);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.indigo.shade600,

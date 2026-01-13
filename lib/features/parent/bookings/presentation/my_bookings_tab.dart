@@ -193,8 +193,8 @@ class MyBookingsTab extends ConsumerWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                // Navigate to Find tab (index 0)
-                ref.read(parentDashboardIndexProvider.notifier).setIndex(0);
+                // Navigate to Find Drivers tab (index 1)
+                ref.read(parentDashboardIndexProvider.notifier).setIndex(1);
               },
               icon: const Icon(Icons.search),
               label: const Text('Find a Driver'),

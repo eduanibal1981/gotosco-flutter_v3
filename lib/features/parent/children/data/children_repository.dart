@@ -57,7 +57,7 @@ class ChildrenRepository {
     await _supabase.from('children').insert({
       'parent_id': user.id,
       'name': name,
-      'school': school,
+      'school_name': school,
       'grade': grade,
       'gender': gender, // 'male' or 'female'
       'date_of_birth': dob.toIso8601String(),
@@ -82,7 +82,7 @@ class ChildrenRepository {
         .from('children')
         .update({
           'name': name,
-          'school': school,
+          'school_name': school,
           'grade': grade,
           'gender': gender,
           'date_of_birth': dob.toIso8601String(),

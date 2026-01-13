@@ -55,12 +55,13 @@ class AuthController extends _$AuthController {
   }
 
   /// Signs up a new user with the given details.
+  /// Signs up a new user with the given details.
   Future<AuthResult> signUp({
     required String email,
     required String password,
     required String fullName,
-    required String phone,
-    required UserRole role,
+    String? phone,
+    UserRole? role,
   }) async {
     state = const AsyncLoading();
 
@@ -99,7 +100,7 @@ class AuthController extends _$AuthController {
         return result;
       }
 
-      final result = AuthResult.success(role.toDbString());
+      final result = AuthResult.success(role?.toDbString());
       state = AsyncData(result);
       return result;
     } catch (e) {
