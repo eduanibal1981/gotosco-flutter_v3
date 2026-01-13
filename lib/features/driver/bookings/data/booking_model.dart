@@ -3,6 +3,7 @@ class BookingModel {
   final String id;
   final String createdAt;
   final String status; // 'pending', 'accepted', 'rejected'
+  final String bookingType; // 'Two Way', 'One Way to School', etc.
   final String driverId;
   final String parentId;
   final double price;
@@ -19,6 +20,7 @@ class BookingModel {
     required this.id,
     required this.createdAt,
     required this.status,
+    required this.bookingType,
     required this.driverId,
     required this.parentId,
     required this.price,
@@ -35,6 +37,7 @@ class BookingModel {
       id: map['id'] ?? '',
       createdAt: map['created_at'] ?? '',
       status: map['status'] ?? 'pending',
+      bookingType: map['booking_type'] ?? '',
       driverId: map['driver_id'] ?? '',
       parentId: map['parent_id'] ?? '',
       price: (map['price'] as num?)?.toDouble() ?? 0.0,

@@ -1,15 +1,15 @@
 // lib/features/driver/bookings/presentation/driver_bookings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_card.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_detail_sheet.dart';
 
 class DriverBookingsScreen extends ConsumerStatefulWidget {
-  const DriverBookingsScreen({super.key});
+  final int initialTabIndex;
+
+  const DriverBookingsScreen({super.key, this.initialTabIndex = 0});
 
   @override
   ConsumerState<DriverBookingsScreen> createState() =>
@@ -23,7 +23,11 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
+    );
   }
 
   @override

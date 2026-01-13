@@ -1,4 +1,5 @@
 // lib/features/driver/profile/presentation/driver_profile_tab.dart
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,6 +7,9 @@ import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/core/widgets/map_picker_screen.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import '../data/driver_profile_repository.dart';
 import '../data/driver_profile_model.dart';
 import '../data/driver_schedule_model.dart';
@@ -23,17 +27,179 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(currentDriverProfileProvider);
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: profileAsync.when(
-        data: (profile) {
-          if (profile == null) {
-            return _buildNoProfileState();
-          }
-          return _buildProfileContent(profile);
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Error: $err')),
+    return profileAsync.when(
+      data: (profile) {
+        return Scaffold(
+          backgroundColor: Colors.grey.shade50,
+          appBar: profile != null ? _buildAppBar(profile) : null,
+          body: profile == null
+              ? _buildNoProfileState()
+              : _buildProfileContent(profile),
+        );
+      },
+      loading: () => Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (err, _) => Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: Center(child: Text('Error: $err')),
+      ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(DriverProfileModel profile) {
+    return AppBar(
+      backgroundColor: Colors.white,
+      elevation: 0,
+      title: const Text(
+        'Profile',
+        style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
+      ),
+      actions: [_buildVerificationBadge(profile), const SizedBox(width: 16)],
+    );
+  }
+
+  Widget _buildVerificationBadge(DriverProfileModel profile) {
+    final status = profile.verificationStatus;
+
+    String label;
+    Color backgroundColor;
+    Color textColor;
+    IconData icon;
+
+    switch (status) {
+      case VerificationStatus.verified:
+        label = 'Verified';
+        backgroundColor = Colors.green.shade50;
+        textColor = Colors.green.shade700;
+        icon = Icons.verified;
+        break;
+      case VerificationStatus.pending:
+        label = 'Pending';
+        backgroundColor = Colors.orange.shade50;
+        textColor = Colors.orange.shade700;
+        icon = Icons.schedule;
+        break;
+      case VerificationStatus.unverified:
+        label = 'Unverified';
+        backgroundColor = Colors.red.shade50;
+        textColor = Colors.red.shade700;
+        icon = Icons.warning_amber_rounded;
+        break;
+    }
+
+    return GestureDetector(
+      onTap: () => _showVerificationInfo(status),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: textColor.withOpacity(0.3),
+            width: status == VerificationStatus.unverified ? 1.5 : 1,
+          ),
+          boxShadow: status == VerificationStatus.unverified
+              ? [
+                  BoxShadow(
+                    color: Colors.red.withOpacity(0.15),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: textColor),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (status == VerificationStatus.unverified) ...[
+              const SizedBox(width: 4),
+              Icon(
+                Icons.touch_app,
+                size: 14,
+                color: textColor.withOpacity(0.7),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showVerificationInfo(VerificationStatus status) {
+    String title;
+    String message;
+    IconData icon;
+    Color iconColor;
+
+    switch (status) {
+      case VerificationStatus.verified:
+        title = 'Verified Driver';
+        message =
+            'Your account has been verified by the GoToSco team. You can now receive booking requests from parents.';
+        icon = Icons.verified;
+        iconColor = Colors.green;
+        break;
+      case VerificationStatus.pending:
+        title = 'Verification Pending';
+        message =
+            'Your documents have been submitted and are currently under review by the GoToSco team. You\'ll be notified once the verification is complete.';
+        icon = Icons.schedule;
+        iconColor = Colors.orange;
+        break;
+      case VerificationStatus.unverified:
+        title = 'Upload Required Documents';
+        message =
+            'Please upload your driver\'s license and vehicle mulkia (registration) to get verified. These documents will only be reviewed by the GoToSco team and are required to start accepting bookings.';
+        icon = Icons.warning_amber_rounded;
+        iconColor = Colors.orange.shade700;
+        break;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(icon, color: iconColor, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          message,
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey.shade700,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it'),
+          ),
+        ],
       ),
     );
   }
@@ -186,6 +352,11 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 16),
+
+              // Location Settings Section
+              _buildLocationSettingsSection(profile),
 
               const SizedBox(height: 16),
 
@@ -770,6 +941,400 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
     // }
   }
 
+  /// Build the location settings section
+  Widget _buildLocationSettingsSection(DriverProfileModel profile) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.location_on,
+                  color: Colors.blue.shade600,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Location Settings',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // My Current Location Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My Current Location',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: Colors.grey.shade800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Location Address',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                // Location text field with map icon
+                GestureDetector(
+                  onTap: () => _openMapPicker(profile, 'current'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            profile.locationText ?? 'No location set',
+                            style: TextStyle(
+                              color: profile.locationText != null
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade400,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(
+                          Icons.map_outlined,
+                          color: Colors.blue.shade400,
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Use My Current Location button
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _useCurrentGPSLocation(profile, 'current'),
+                    icon: const Icon(Icons.near_me, size: 18),
+                    label: const Text('Use My Current Location'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade500,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Start Point Location Section
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.shade200),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Start Point Location',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    // Same as Current button
+                    OutlinedButton.icon(
+                      onPressed: profile.locationText != null
+                          ? () => _copyToStartLocation(profile)
+                          : null,
+                      icon: const Icon(Icons.copy, size: 14),
+                      label: const Text('Same as Current'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blue.shade600,
+                        side: BorderSide(color: Colors.blue.shade300),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        textStyle: const TextStyle(fontSize: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Start Point Address',
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                ),
+                const SizedBox(height: 8),
+                // Start location text field with map icon
+                GestureDetector(
+                  onTap: () => _openMapPicker(profile, 'start'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            profile.startLocationText ?? 'No start point set',
+                            style: TextStyle(
+                              color: profile.startLocationText != null
+                                  ? Colors.grey.shade800
+                                  : Colors.grey.shade400,
+                              fontSize: 14,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        Icon(
+                          Icons.map_outlined,
+                          color: Colors.blue.shade400,
+                          size: 22,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openMapPicker(
+    DriverProfileModel profile,
+    String locationType,
+  ) async {
+    final result = await Navigator.push<dynamic>(
+      context,
+      MaterialPageRoute(builder: (context) => const MapPickerScreen()),
+    );
+
+    if (result != null && mounted) {
+      // result is LatLng from MapPickerScreen
+      final lat = result.latitude;
+      final lng = result.longitude;
+
+      // Reverse geocode to get meaningful address
+      final locationText = await _reverseGeocode(lat, lng);
+
+      final repository = ref.read(driverProfileRepositoryProvider);
+      bool success;
+
+      if (locationType == 'current') {
+        success = await repository.updateDriverLocation(
+          driverId: profile.id,
+          locationText: locationText,
+          lat: lat,
+          lng: lng,
+        );
+      } else {
+        success = await repository.updateStartLocation(
+          driverId: profile.id,
+          locationText: locationText,
+          lat: lat,
+          lng: lng,
+        );
+      }
+
+      if (success && mounted) {
+        ref.invalidate(currentDriverProfileProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              locationType == 'current'
+                  ? 'Current location updated!'
+                  : 'Start point updated!',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Reverse geocode coordinates to a meaningful address using Nominatim (free OSM API)
+  Future<String> _reverseGeocode(double lat, double lng) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'com.example.gotosco_v3'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final addressObj = data['address'];
+
+        if (addressObj != null) {
+          // Build a readable address like: "Al Khwair, Way 4908, Muscat"
+          List<String?> parts = [
+            addressObj['building'],
+            addressObj['road'],
+            addressObj['suburb'] ?? addressObj['neighbourhood'],
+            addressObj['city'] ?? addressObj['town'],
+          ];
+
+          final displayName = parts
+              .where((e) => e != null && e.isNotEmpty)
+              .toSet()
+              .join(', ');
+
+          if (displayName.isNotEmpty) {
+            return displayName;
+          }
+        }
+
+        // Fallback to first 3 parts of display_name
+        final fallback = data['display_name']?.split(',').take(3).join(',');
+        if (fallback != null && fallback.isNotEmpty) {
+          return fallback.trim();
+        }
+      }
+    } catch (e) {
+      debugPrint('Geocoding Error: $e');
+    }
+
+    // Ultimate fallback to coordinates
+    return 'Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+  }
+
+  Future<void> _useCurrentGPSLocation(
+    DriverProfileModel profile,
+    String locationType,
+  ) async {
+    try {
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Getting your location...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+
+      final position = await Geolocator.getCurrentPosition();
+
+      // Get meaningful address via reverse geocoding
+      final locationText = await _reverseGeocode(
+        position.latitude,
+        position.longitude,
+      );
+
+      final repository = ref.read(driverProfileRepositoryProvider);
+      final success = await repository.updateDriverLocation(
+        driverId: profile.id,
+        locationText: locationText,
+        lat: position.latitude,
+        lng: position.longitude,
+      );
+
+      if (success && mounted) {
+        ref.invalidate(currentDriverProfileProvider);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Current location updated!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error getting location: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _copyToStartLocation(DriverProfileModel profile) async {
+    final repository = ref.read(driverProfileRepositoryProvider);
+    final success = await repository.copyLocationToStartPoint(profile.id);
+
+    if (success && mounted) {
+      ref.invalidate(currentDriverProfileProvider);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Start point set to current location!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please set current location first'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
+  }
+
   /// Build the weekly schedule section
   Widget _buildScheduleSection() {
     final schedulesAsync = ref.watch(driverSchedulesProvider);
@@ -907,7 +1472,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                             color: Colors.grey.shade600,
                           ),
                         ),
-                        initiallyExpanded: true,
+                        initiallyExpanded: false,
                         children:
                             (shiftSchedules..sort(
                                   (a, b) => a.dayIndex.compareTo(b.dayIndex),

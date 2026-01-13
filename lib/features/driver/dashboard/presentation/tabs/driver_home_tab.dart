@@ -188,6 +188,12 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 icon: Icons.inbox,
                 title: 'Booking Requests',
                 subtitle: 'No pending requests',
+                onTap: () {
+                  ref
+                      .read(driverBookingTabIndexNotifierProvider.notifier)
+                      .setIndex(0);
+                  ref.read(driverDashboardIndexProvider.notifier).setIndex(1);
+                },
               ),
               const SizedBox(height: 12),
               _buildEmptyCard(
@@ -353,6 +359,12 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 icon: Icons.inbox,
                 title: 'Booking Requests',
                 subtitle: 'Complete profile to receive requests',
+                onTap: () {
+                  ref
+                      .read(driverBookingTabIndexNotifierProvider.notifier)
+                      .setIndex(0);
+                  ref.read(driverDashboardIndexProvider.notifier).setIndex(1);
+                },
               ),
             ]),
           ),
@@ -451,6 +463,12 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 title: 'Booking Requests',
                 subtitle:
                     'Waiting for requests...\nGo online to receive bookings',
+                onTap: () {
+                  ref
+                      .read(driverBookingTabIndexNotifierProvider.notifier)
+                      .setIndex(0);
+                  ref.read(driverDashboardIndexProvider.notifier).setIndex(1);
+                },
               ),
 
               const SizedBox(height: 24),
@@ -613,7 +631,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               const SizedBox(height: 12),
 
-              // Weekly Earnings
+              // Monthly Earnings
               statsAsync.when(
                 data: (stats) =>
                     _buildEarningsCard(stats['monthly_earnings'] ?? 0),
@@ -696,6 +714,15 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                   children: [
                     // Role Switcher (for dual-role users)
                     const RoleSwitcherButton(),
+                    // Messages button
+                    IconButton(
+                      onPressed: () => context.push('/driver-messages'),
+                      icon: const Icon(
+                        Icons.message_outlined,
+                        color: Colors.white,
+                      ),
+                      tooltip: 'Messages',
+                    ),
                     // Logout button for testing
                     IconButton(
                       onPressed: () => _showLogoutDialog(context),
@@ -922,55 +949,61 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     required IconData icon,
     required String title,
     required String subtitle,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(10),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: Colors.grey.shade400, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 13,
-                    height: 1.3,
-                  ),
-                ),
-              ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: Colors.grey.shade400, size: 28),
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (onTap != null)
+              Icon(Icons.chevron_right, color: Colors.grey.shade400, size: 20),
+          ],
+        ),
       ),
     );
   }
@@ -1249,83 +1282,109 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
   }
 
   Widget _buildStudentsCard(int count) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.people, color: Colors.blue.shade600),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'My Children',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '$count enrolled',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            '$count',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.blue.shade600,
+    return GestureDetector(
+      onTap: () {
+        // Set the booking tab to "Active" (index 1) before navigating
+        ref.read(driverBookingTabIndexNotifierProvider.notifier).setIndex(1);
+        // Navigate to Booking tab (index 1) in the dashboard
+        ref.read(driverDashboardIndexProvider.notifier).setIndex(1);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.people, color: Colors.blue.shade600),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'My Children',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '$count enrolled',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ],
             ),
-          ),
-        ],
+            const Spacer(),
+            Row(
+              children: [
+                Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue.shade600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildEarningsCard(int amount) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.attach_money, color: Colors.green.shade600),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Weekly Earnings',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const Text(
-                'Estimated',
-                style: TextStyle(color: Colors.grey, fontSize: 13),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            '$amount OMR',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.green.shade600,
+    return GestureDetector(
+      onTap: () {
+        // Navigate to Earnings tab (index 0) in the dashboard
+        ref.read(driverDashboardIndexProvider.notifier).setIndex(0);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.attach_money, color: Colors.green.shade600),
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Monthly Earnings',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const Text(
+                  'Estimated',
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+              ],
             ),
-          ),
-        ],
+            const Spacer(),
+            Row(
+              children: [
+                Text(
+                  '$amount OMR',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.green.shade600,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(Icons.chevron_right, color: Colors.grey.shade400),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

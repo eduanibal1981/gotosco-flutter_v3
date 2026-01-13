@@ -16,11 +16,23 @@ final driverDashboardIndexProvider =
       return DashboardIndexNotifier();
     });
 
+// Provider for managing booking screen tab index
+final driverBookingTabIndexNotifierProvider =
+    StateNotifierProvider<BookingTabIndexNotifier, int>((ref) {
+      return BookingTabIndexNotifier();
+    });
+
 class DashboardIndexNotifier extends StateNotifier<int> {
   DashboardIndexNotifier()
     : super(2); // Default to Home tab (Index 2 in the new order)
 
   void setIndex(int index) => state = index;
+}
+
+class BookingTabIndexNotifier extends StateNotifier<int> {
+  BookingTabIndexNotifier() : super(0); // Default to Requests tab
+
+  void setIndex(int index) => state = index.clamp(0, 2);
 }
 
 class DriverDashboardScreen extends ConsumerStatefulWidget {
@@ -34,14 +46,18 @@ class DriverDashboardScreen extends ConsumerStatefulWidget {
 class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
   int? _previousIndex;
 
-  // Pages corresponding to Navbar items (Earnings - Booking - Home - Trips - Profile)
-  final List<Widget> _pages = [
-    const EarningsTab(), // Index 0: Earnings
-    const DriverBookingsScreen(), // Index 1: Booking
-    const DriverHomeTab(), // Index 2: Home
-    const TripsTab(), // Index 3: Trips
-    const DriverProfileTab(), // Index 4: Profile
-  ];
+  // Pages are built dynamically to pass booking tab index
+  List<Widget> _buildPages(int bookingTabIndex) {
+    return [
+      const EarningsTab(), // Index 0: Earnings
+      DriverBookingsScreen(
+        initialTabIndex: bookingTabIndex,
+      ), // Index 1: Booking
+      const DriverHomeTab(), // Index 2: Home
+      const TripsTab(), // Index 3: Trips
+      const DriverProfileTab(), // Index 4: Profile
+    ];
+  }
 
   @override
   void initState() {
@@ -87,6 +103,7 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedIndex = ref.watch(driverDashboardIndexProvider);
+    final bookingTabIndex = ref.watch(driverBookingTabIndexNotifierProvider);
 
     // Listen for tab changes and invalidate providers
     ref.listen<int>(driverDashboardIndexProvider, (previous, next) {
@@ -95,7 +112,10 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
-      body: IndexedStack(index: selectedIndex, children: _pages),
+      body: IndexedStack(
+        index: selectedIndex,
+        children: _buildPages(bookingTabIndex),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (i) =>

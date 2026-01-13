@@ -19,6 +19,7 @@ import 'package:gotosco_v3/features/parent/dashboard/presentation/parent_dashboa
 import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_screen.dart';
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
+import 'package:gotosco_v3/features/driver/messages/presentation/driver_messages_screen.dart';
 
 part 'router.g.dart';
 
@@ -54,6 +55,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/driver-bookings',
         builder: (context, state) => const DriverBookingsScreen(),
+      ),
+      GoRoute(
+        path: '/driver-messages',
+        builder: (context, state) => const DriverMessagesScreen(),
       ),
 
       // ... inside routes list

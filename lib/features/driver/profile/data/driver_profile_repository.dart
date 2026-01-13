@@ -136,6 +136,89 @@ class DriverProfileRepository {
     }
   }
 
+  /// Updates the driver's current location
+  /// Uses PostGIS geography format for storing coordinates
+  Future<bool> updateDriverLocation({
+    required String driverId,
+    required String locationText,
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      // Create PostGIS geography point in WKT format
+      final geoPoint = 'SRID=4326;POINT($lng $lat)';
+
+      await _supabase
+          .from('drivers')
+          .update({
+            'location_text': locationText,
+            'location_geo': geoPoint,
+            'last_location_update': DateTime.now().toIso8601String(),
+          })
+          .eq('user_id', driverId);
+
+      return true;
+    } catch (e) {
+      print('Error updating driver location: $e');
+      return false;
+    }
+  }
+
+  /// Updates the driver's start point location
+  Future<bool> updateStartLocation({
+    required String driverId,
+    required String locationText,
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      // Create PostGIS geography point in WKT format
+      final geoPoint = 'SRID=4326;POINT($lng $lat)';
+
+      await _supabase
+          .from('drivers')
+          .update({
+            'start_location_text': locationText,
+            'start_location_geo': geoPoint,
+          })
+          .eq('user_id', driverId);
+
+      return true;
+    } catch (e) {
+      print('Error updating start location: $e');
+      return false;
+    }
+  }
+
+  /// Copies current location to start location
+  Future<bool> copyLocationToStartPoint(String driverId) async {
+    try {
+      // Fetch current location
+      final driver = await _supabase
+          .from('drivers')
+          .select('location_text, location_geo')
+          .eq('user_id', driverId)
+          .maybeSingle();
+
+      if (driver == null || driver['location_geo'] == null) {
+        return false;
+      }
+
+      await _supabase
+          .from('drivers')
+          .update({
+            'start_location_text': driver['location_text'],
+            'start_location_geo': driver['location_geo'],
+          })
+          .eq('user_id', driverId);
+
+      return true;
+    } catch (e) {
+      print('Error copying location to start point: $e');
+      return false;
+    }
+  }
+
   /// Uploads a document (license or mulkia) to Supabase Storage
   /// Returns the public URL of the uploaded file
   Future<String?> uploadDocument({

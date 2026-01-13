@@ -2,6 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../profile/data/driver_profile_repository.dart';
+import '../../dashboard/presentation/driver_dashboard_screen.dart';
+import '../../profile/data/driver_profile_model.dart';
 
 class EarningsTab extends ConsumerWidget {
   const EarningsTab({super.key});
@@ -9,6 +12,7 @@ class EarningsTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final statsAsync = ref.watch(driverStatsProvider);
+    final profileAsync = ref.watch(currentDriverProfileProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -131,7 +135,24 @@ class EarningsTab extends ConsumerWidget {
                 // Pricing Info
                 _buildSectionTitle('Your Pricing'),
                 const SizedBox(height: 12),
-                _buildPricingCard(),
+                profileAsync.when(
+                  data: (profile) {
+                    if (profile == null ||
+                        (profile.priceMonthlyTwoWay == 0 &&
+                            profile.priceMonthlyOneWay == 0 &&
+                            profile.priceDaily == 0)) {
+                      return _buildEmptyPricingCard(ref);
+                    }
+                    return _buildPricingCard(profile);
+                  },
+                  loading: () => const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(8.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                  error: (e, _) => Text('Error loading pricing: $e'),
+                ),
 
                 const SizedBox(height: 24),
 
@@ -295,7 +316,54 @@ class EarningsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildPricingCard() {
+  Widget _buildEmptyPricingCard(WidgetRef ref) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.info_outline, color: Colors.orange.shade400, size: 32),
+          const SizedBox(height: 12),
+          const Text(
+            'No Pricing Set',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Set your monthly and daily prices on your profile page to attract more parents.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                // Navigate to Profile tab (index 4)
+                ref.read(driverDashboardIndexProvider.notifier).setIndex(4);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Set Prices in Profile'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPricingCard(DriverProfileModel profile) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -307,11 +375,20 @@ class EarningsTab extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _buildPricingRow('Two-Way Monthly', '50 OMR'),
+          _buildPricingRow(
+            'Two-Way Monthly',
+            '${profile.priceMonthlyTwoWay.toStringAsFixed(0)} OMR',
+          ),
           const Divider(height: 20),
-          _buildPricingRow('One-Way Monthly', '30 OMR'),
+          _buildPricingRow(
+            'One-Way Monthly',
+            '${profile.priceMonthlyOneWay.toStringAsFixed(0)} OMR',
+          ),
           const Divider(height: 20),
-          _buildPricingRow('Additional Child', '-10%'),
+          _buildPricingRow(
+            'Daily Pricing',
+            '${profile.priceDaily.toStringAsFixed(1)} OMR',
+          ),
         ],
       ),
     );

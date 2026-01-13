@@ -1,4 +1,7 @@
 // lib/features/driver/profile/data/driver_profile_model.dart
+
+enum VerificationStatus { verified, pending, unverified }
+
 class DriverProfileModel {
   final String id;
   final String userId;
@@ -29,8 +32,19 @@ class DriverProfileModel {
   final double rating;
   final int totalReviews;
   final bool isVerified;
+  final bool licenseVerified;
+  final bool insuranceVerified;
+  final bool backgroundCheckVerified;
   final List<String> serviceAreas;
   final List<String> schools;
+
+  // Location
+  final String? locationText;
+  final double? locationLat;
+  final double? locationLng;
+  final String? startLocationText;
+  final double? startLocationLat;
+  final double? startLocationLng;
 
   DriverProfileModel({
     required this.id,
@@ -54,8 +68,17 @@ class DriverProfileModel {
     this.rating = 0,
     this.totalReviews = 0,
     this.isVerified = false,
+    this.licenseVerified = false,
+    this.insuranceVerified = false,
+    this.backgroundCheckVerified = false,
     this.serviceAreas = const [],
     this.schools = const [],
+    this.locationText,
+    this.locationLat,
+    this.locationLng,
+    this.startLocationText,
+    this.startLocationLat,
+    this.startLocationLng,
   });
 
   factory DriverProfileModel.fromMap(Map<String, dynamic> map) {
@@ -88,9 +111,19 @@ class DriverProfileModel {
       // Note: total_reviews column doesn't exist in schema, default to 0
       totalReviews: map['total_reviews'] ?? 0,
       isVerified: map['is_verified'] ?? false,
+      licenseVerified: map['license_verified'] ?? false,
+      insuranceVerified: map['insurance_verified'] ?? false,
+      backgroundCheckVerified: map['background_check_verified'] ?? false,
       // Note: service_areas and schools columns don't exist in schema
       serviceAreas: const [],
       schools: const [],
+      // Location fields
+      locationText: map['location_text'],
+      locationLat: (map['location_lat'] as num?)?.toDouble(),
+      locationLng: (map['location_lng'] as num?)?.toDouble(),
+      startLocationText: map['start_location_text'],
+      startLocationLat: (map['start_location_lat'] as num?)?.toDouble(),
+      startLocationLng: (map['start_location_lng'] as num?)?.toDouble(),
     );
   }
 
@@ -133,8 +166,17 @@ class DriverProfileModel {
     double? rating,
     int? totalReviews,
     bool? isVerified,
+    bool? licenseVerified,
+    bool? insuranceVerified,
+    bool? backgroundCheckVerified,
     List<String>? serviceAreas,
     List<String>? schools,
+    String? locationText,
+    double? locationLat,
+    double? locationLng,
+    String? startLocationText,
+    double? startLocationLat,
+    double? startLocationLng,
   }) {
     return DriverProfileModel(
       id: id ?? this.id,
@@ -158,8 +200,38 @@ class DriverProfileModel {
       rating: rating ?? this.rating,
       totalReviews: totalReviews ?? this.totalReviews,
       isVerified: isVerified ?? this.isVerified,
+      licenseVerified: licenseVerified ?? this.licenseVerified,
+      insuranceVerified: insuranceVerified ?? this.insuranceVerified,
+      backgroundCheckVerified:
+          backgroundCheckVerified ?? this.backgroundCheckVerified,
       serviceAreas: serviceAreas ?? this.serviceAreas,
       schools: schools ?? this.schools,
+      locationText: locationText ?? this.locationText,
+      locationLat: locationLat ?? this.locationLat,
+      locationLng: locationLng ?? this.locationLng,
+      startLocationText: startLocationText ?? this.startLocationText,
+      startLocationLat: startLocationLat ?? this.startLocationLat,
+      startLocationLng: startLocationLng ?? this.startLocationLng,
     );
+  }
+
+  /// Get verification status based on document uploads and admin verification
+  VerificationStatus get verificationStatus {
+    // If admin has verified the driver
+    if (isVerified) {
+      return VerificationStatus.verified;
+    }
+
+    // If both documents are uploaded but not yet verified
+    final hasLicenseImage =
+        licenseImageUrl != null && licenseImageUrl!.isNotEmpty;
+    final hasMulkiaImage = mulkiaImageUrl != null && mulkiaImageUrl!.isNotEmpty;
+
+    if (hasLicenseImage && hasMulkiaImage) {
+      return VerificationStatus.pending;
+    }
+
+    // Otherwise, driver hasn't uploaded required documents
+    return VerificationStatus.unverified;
   }
 }

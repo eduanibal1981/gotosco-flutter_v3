@@ -80,17 +80,27 @@ class DriverBookingsRepository {
   }
 
   Future<void> acceptBooking(String bookingId) async {
-    await _supabase
+    final response = await _supabase
         .from('bookings')
         .update({'status': 'accepted'})
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .select();
+
+    if (response.isEmpty) {
+      throw Exception('Update failed: No rows affected or permission denied');
+    }
   }
 
   Future<void> rejectBooking(String bookingId) async {
-    await _supabase
+    final response = await _supabase
         .from('bookings')
         .update({'status': 'rejected'})
-        .eq('id', bookingId);
+        .eq('id', bookingId)
+        .select();
+
+    if (response.isEmpty) {
+      throw Exception('Update failed: No rows affected or permission denied');
+    }
   }
 
   Future<void> deleteBooking(String bookingId) async {

@@ -1,6 +1,7 @@
 // lib/features/driver/bookings/presentation/widgets/booking_card.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
@@ -72,6 +73,24 @@ class BookingCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  // Chat button
+                  IconButton(
+                    onPressed: () => context.push(
+                      '/chat',
+                      extra: {
+                        'userId': booking.parentId,
+                        'userName': booking.parentName ?? 'Parent',
+                      },
+                    ),
+                    icon: Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.blue.shade400,
+                      size: 20,
+                    ),
+                    tooltip: 'Chat with parent',
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  const SizedBox(width: 4),
                   _buildStatusChip(booking.status),
                 ],
               ),
@@ -112,41 +131,7 @@ class BookingCard extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // Action Buttons
-              if (isPending)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () async {
-                        await ref
-                            .read(driverBookingsRepositoryProvider)
-                            .rejectBooking(booking.id);
-                        ref.invalidate(driverBookingsProvider);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Text('Reject'),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton(
-                      onPressed: () async {
-                        await ref
-                            .read(driverBookingsRepositoryProvider)
-                            .acceptBooking(booking.id);
-                        ref.invalidate(driverBookingsProvider);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.teal,
-                        foregroundColor: Colors.white,
-                        visualDensity: VisualDensity.compact,
-                      ),
-                      child: const Text('Accept'),
-                    ),
-                  ],
-                ),
+              if (isPending) _BookingActions(booking: booking),
 
               if (canDelete)
                 Row(
@@ -247,6 +232,110 @@ class BookingCard extends ConsumerWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+    );
+  }
+}
+
+class _BookingActions extends ConsumerStatefulWidget {
+  final BookingModel booking;
+
+  const _BookingActions({required this.booking});
+
+  @override
+  ConsumerState<_BookingActions> createState() => _BookingActionsState();
+}
+
+class _BookingActionsState extends ConsumerState<_BookingActions> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        if (_isLoading)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          )
+        else ...[
+          OutlinedButton(
+            onPressed: () async {
+              setState(() => _isLoading = true);
+              try {
+                await ref
+                    .read(driverBookingsRepositoryProvider)
+                    .rejectBooking(widget.booking.id);
+                ref.invalidate(driverBookingsProvider);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Booking rejected'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              } finally {
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Reject'),
+          ),
+          const SizedBox(width: 12),
+          ElevatedButton(
+            onPressed: () async {
+              setState(() => _isLoading = true);
+              try {
+                await ref
+                    .read(driverBookingsRepositoryProvider)
+                    .acceptBooking(widget.booking.id);
+                ref.invalidate(driverBookingsProvider);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Booking accepted!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              } finally {
+                if (mounted) {
+                  setState(() => _isLoading = false);
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              visualDensity: VisualDensity.compact,
+            ),
+            child: const Text('Accept'),
+          ),
+        ],
+      ],
     );
   }
 }
