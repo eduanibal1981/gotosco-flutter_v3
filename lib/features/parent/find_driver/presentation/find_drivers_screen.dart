@@ -16,10 +16,33 @@ class FindDriversScreen extends ConsumerStatefulWidget {
 class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   Position? _currentPosition;
 
+  final ScrollController _scrollController = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _determinePosition();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      ref
+          .read(
+            driverAdsProvider(
+              lat: _currentPosition?.latitude,
+              lng: _currentPosition?.longitude,
+            ).notifier,
+          )
+          .loadNextPage();
+    }
   }
 
   Future<void> _determinePosition() async {
@@ -81,6 +104,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       body: CustomScrollView(
+        controller: _scrollController,
         slivers: [
           // --- Search & Filter Header ---
           SliverAppBar(
@@ -212,6 +236,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
           // --- Drivers List ---
           driversAsync.when(
+            skipLoadingOnReload: true,
             data: (drivers) {
               if (drivers.isEmpty) {
                 return SliverFillRemaining(
@@ -278,6 +303,8 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                   ),
                 );
               }
+
+              final bool isPaginating = driversAsync.isLoading;
               return SliverPadding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -285,8 +312,18 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 ),
                 sliver: SliverList(
                   delegate: SliverChildBuilderDelegate(
-                    (context, index) => DriverAdCard(driver: drivers[index]),
-                    childCount: drivers.length,
+                    (context, index) {
+                      // Show loading spinner at the bottom
+                      if (index == drivers.length) {
+                        return const Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      }
+                      return DriverAdCard(driver: drivers[index]);
+                    },
+                    // Add 1 for the spinner if paginating
+                    childCount: drivers.length + (isPaginating ? 1 : 0),
                   ),
                 ),
               );

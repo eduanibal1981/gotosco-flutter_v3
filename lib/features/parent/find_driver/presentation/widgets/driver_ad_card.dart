@@ -46,6 +46,10 @@ class DriverAdCard extends ConsumerWidget {
     );
   }
 
+  void _viewProfile(BuildContext context) {
+    context.push('/driver-detail', extra: driver);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(favoritesProvider);
@@ -74,43 +78,46 @@ class DriverAdCard extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Avatar
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 32,
-                      backgroundColor: Colors.grey.shade100,
-                      backgroundImage: driver.photoUrl != null
-                          ? NetworkImage(driver.photoUrl!)
-                          : null,
-                      child: driver.photoUrl == null
-                          ? Text(
-                              driver.name[0].toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.indigo,
-                              ),
-                            )
-                          : null,
-                    ),
-                    if (driver.isVerified)
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(2),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.verified,
-                            size: 20,
-                            color: Colors.blue,
+                GestureDetector(
+                  onTap: () => _viewProfile(context),
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 32,
+                        backgroundColor: Colors.grey.shade100,
+                        backgroundImage: driver.photoUrl != null
+                            ? NetworkImage(driver.photoUrl!)
+                            : null,
+                        child: driver.photoUrl == null
+                            ? Text(
+                                driver.name[0].toUpperCase(),
+                                style: const TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.indigo,
+                                ),
+                              )
+                            : null,
+                      ),
+                      if (driver.isVerified)
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.verified,
+                              size: 20,
+                              color: Colors.blue,
+                            ),
                           ),
                         ),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 16),
 
@@ -166,31 +173,30 @@ class DriverAdCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      if (driver.coveredSchools.isNotEmpty) ...[
+                      if (driver.coveredSchools.isNotEmpty ||
+                          driver.coveredAreas.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Wrap(
-                          spacing: 4,
+                          spacing: 8,
                           runSpacing: 4,
-                          children: driver.coveredSchools.take(2).map((school) {
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
+                          children: [
+                            if (driver.coveredSchools.isNotEmpty)
+                              _buildClickableLabel(
+                                context,
+                                '${driver.coveredSchools.length} Schools',
+                                Icons.school,
+                                driver.coveredSchools,
+                                'Schools Covered',
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: Colors.blue.shade100),
+                            if (driver.coveredAreas.isNotEmpty)
+                              _buildClickableLabel(
+                                context,
+                                '${driver.coveredAreas.length} Areas',
+                                Icons.location_city,
+                                driver.coveredAreas,
+                                'Areas Covered',
                               ),
-                              child: Text(
-                                school,
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: Colors.blue.shade800,
-                                ),
-                              ),
-                            );
-                          }).toList(),
+                          ],
                         ),
                       ],
                     ],
@@ -243,6 +249,21 @@ class DriverAdCard extends ConsumerWidget {
                       "mo/2-way",
                       style: TextStyle(fontSize: 10, color: Colors.grey),
                     ),
+                    if (driver.otherPrices.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      InkWell(
+                        onTap: () => _showOtherPrices(context),
+                        child: const Text(
+                          "Other Prices",
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.blue,
+                            decoration: TextDecoration.underline,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -353,5 +374,158 @@ class DriverAdCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildClickableLabel(
+    BuildContext context,
+    String label,
+    IconData icon,
+    List<String> items,
+    String dialogTitle,
+  ) {
+    return InkWell(
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(dialogTitle),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    dense: true,
+                    leading: const Icon(
+                      Icons.check_circle,
+                      color: Colors.indigo,
+                      size: 20,
+                    ),
+                    title: Text(items[index]),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Close'),
+              ),
+            ],
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: Colors.indigo.shade50,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.indigo.shade100),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: Colors.indigo),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.indigo.shade700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showOtherPrices(BuildContext context) {
+    // Combine main price with others for a complete list
+    final allPrices = <String, double>{
+      'price_monthly_two_way': driver.priceMonthlyTwoWay,
+      ...driver.otherPrices,
+    };
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Price List',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const Divider(),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView(
+                  shrinkWrap: true,
+                  children: allPrices.entries.map((e) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _formatPriceKey(e.key),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          Text(
+                            '${e.value.toInt()} OMR',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.indigo,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatPriceKey(String key) {
+    // Remove 'price_' prefix
+    var formatted = key.replaceAll('price_', '');
+    // Replace underscores with spaces
+    formatted = formatted.replaceAll('_', ' ');
+    // Capitalize each word
+    return formatted
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return '';
+          return '${word[0].toUpperCase()}${word.substring(1)}';
+        })
+        .join(' ');
   }
 }

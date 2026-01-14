@@ -1,6 +1,6 @@
 // lib/features/parent/find_driver/data/drivers_repository.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'driver_ad_model.dart';
 
@@ -124,6 +124,81 @@ class DriversRepository {
       }
     } catch (e) {
       throw Exception('Failed to toggle favorite: $e');
+    }
+  }
+
+  // --- Reference Data ---
+
+  Future<List<Map<String, dynamic>>> getCities() async {
+    try {
+      final data = await _supabase
+          .from('cities')
+          .select('id, name')
+          .order('name');
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint('Error fetching cities: $e');
+      return [];
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getAreas({String? cityId}) async {
+    try {
+      var query = _supabase.from('areas').select('id, name');
+      if (cityId != null) {
+        query = query.eq('city_id', cityId);
+      }
+      final data = await query.order('name');
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint('Error fetching areas: $e');
+      return [];
+    }
+  }
+
+  Future<({double min, double max})> getPriceLimits() async {
+    try {
+      final minReq = _supabase
+          .from('drivers')
+          .select('price_monthly_two_way')
+          .gte('price_monthly_two_way', 0)
+          .order('price_monthly_two_way', ascending: true)
+          .limit(1)
+          .maybeSingle();
+
+      final maxReq = _supabase
+          .from('drivers')
+          .select('price_monthly_two_way')
+          .gte('price_monthly_two_way', 0)
+          .order('price_monthly_two_way', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      final results = await Future.wait([minReq, maxReq]);
+
+      final minVal =
+          (results[0]?['price_monthly_two_way'] as num?)?.toDouble() ?? 0.0;
+      final maxVal =
+          (results[1]?['price_monthly_two_way'] as num?)?.toDouble() ?? 5000.0;
+
+      return (min: minVal, max: maxVal);
+    } catch (e) {
+      debugPrint('Error fetching price limits: $e');
+      return (min: 0.0, max: 5000.0);
+    }
+  }
+
+  Future<List<Map<String, dynamic>>> getSchools({String? cityId}) async {
+    try {
+      var query = _supabase.from('schools').select('id, name');
+      if (cityId != null) {
+        query = query.eq('city_id', cityId);
+      }
+      final data = await query.order('name');
+      return List<Map<String, dynamic>>.from(data);
+    } catch (e) {
+      debugPrint('Error fetching schools: $e');
+      return [];
     }
   }
 }
