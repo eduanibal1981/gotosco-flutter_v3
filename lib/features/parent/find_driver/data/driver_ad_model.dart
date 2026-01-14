@@ -1,48 +1,37 @@
-class DriverAdModel {
-  final String driverId;
-  final String name;
-  final String? photoUrl;
-  final String gender;
-  final String vehicleType;
-  final double rating;
-  final int totalReviews;
-  final double priceMonthlyTwoWay;
-  final bool isVerified;
-  final String bio;
-  final String phone;
-  final bool isOnline;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  // New Fields
-  final double? distanceKm;
-  final List<String> coveredSchools; // Simple list of names for UI
-  final List<String> coveredAreas; // Simple list of names for UI
-  final int vehicleCapacity;
-  final Map<String, double> otherPrices;
-  final List<String> adPhotos;
+part 'driver_ad_model.freezed.dart';
+part 'driver_ad_model.g.dart';
 
-  DriverAdModel({
-    required this.driverId,
-    required this.name,
-    this.photoUrl,
-    required this.gender,
-    required this.vehicleType,
-    required this.rating,
-    required this.totalReviews,
-    required this.priceMonthlyTwoWay,
-    required this.isVerified,
-    required this.bio,
-    required this.phone,
-    required this.isOnline,
-    this.distanceKm,
-    this.coveredSchools = const [],
-    this.coveredAreas = const [],
-    this.vehicleCapacity = 0,
-    this.otherPrices = const {},
-    this.adPhotos = const [],
-  });
+@freezed
+abstract class DriverAdModel with _$DriverAdModel {
+  const DriverAdModel._();
+
+  const factory DriverAdModel({
+    @JsonKey(name: 'driver_id') required String driverId,
+    @Default('Driver') String name,
+    @JsonKey(name: 'photo_url') String? photoUrl,
+    @Default('male') String gender,
+    @JsonKey(name: 'vehicle_type') @Default('') String vehicleType,
+    @Default(0.0) double rating,
+    @JsonKey(name: 'total_reviews') @Default(0) int totalReviews,
+    @JsonKey(name: 'price_monthly_two_way')
+    @Default(0.0)
+    double priceMonthlyTwoWay,
+    @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
+    @Default('') String bio,
+    @Default('') String phone,
+    @JsonKey(name: 'is_online') @Default(false) bool isOnline,
+    @JsonKey(name: 'distance_km') double? distanceKm,
+    @Default([]) List<String> coveredSchools,
+    @Default([]) List<String> coveredAreas,
+    @JsonKey(name: 'vehicle_capacity') @Default(0) int vehicleCapacity,
+    @Default({}) Map<String, double> otherPrices,
+    @Default([]) List<String> adPhotos,
+  }) = _DriverAdModel;
 
   factory DriverAdModel.fromMap(Map<String, dynamic> map) {
-    // Parse the JSON list of schools safely
+    // Parse covered_schools (handle JSONB list of objects)
     List<String> schoolNames = [];
     if (map['covered_schools'] != null) {
       final List<dynamic> list = map['covered_schools'];
@@ -56,9 +45,8 @@ class DriverAdModel {
           .toList();
     }
 
-    // Parse the JSON list of areas safely
+    // Parse service_areas
     List<String> areaNames = [];
-    // SQL function now returns 'service_areas', but check 'covered_areas' for backward compatibility
     final areasJson = map['service_areas'] ?? map['covered_areas'];
     if (areasJson != null) {
       final List<dynamic> list = areasJson;
@@ -70,6 +58,34 @@ class DriverAdModel {
           })
           .where((s) => s.isNotEmpty)
           .toList();
+    }
+
+    // Parse other prices (dynamic keys)
+    final otherPrices = <String, double>{};
+    for (var key in map.keys) {
+      if (key.startsWith('price_') && key != 'price_monthly_two_way') {
+        final val = map[key];
+        if (val is num) {
+          otherPrices[key] = val.toDouble();
+        } else if (val is String) {
+          final parsed = double.tryParse(val);
+          if (parsed != null) {
+            otherPrices[key] = parsed;
+          }
+        }
+      }
+    }
+
+    // Parse adPhotos (TEXT[] from SQL)
+    List<String> photos = [];
+    if (map['advs_photos'] != null) {
+      final val = map['advs_photos'];
+      if (val is List) {
+        photos = val
+            .map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
     }
 
     return DriverAdModel(
@@ -85,42 +101,18 @@ class DriverAdModel {
       bio: map['bio'] ?? '',
       phone: map['phone'] ?? '',
       isOnline: map['is_online'] ?? false,
-
-      // New Fields Mapping
       distanceKm: map['distance_km'] != null
           ? (map['distance_km'] as num).toDouble()
           : null,
       vehicleCapacity: map['vehicle_capacity'] ?? 0,
       coveredSchools: schoolNames,
       coveredAreas: areaNames,
-      otherPrices: _parseOtherPrices(map),
-      adPhotos: _parseInfos(map['advs_photos']),
+      otherPrices: otherPrices,
+      adPhotos: photos,
     );
   }
 
-  static List<String> _parseInfos(dynamic value) {
-    if (value == null) return [];
-    if (value is List) {
-      return value.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
-    }
-    return [];
-  }
-
-  static Map<String, double> _parseOtherPrices(Map<String, dynamic> map) {
-    final prices = <String, double>{};
-    for (var key in map.keys) {
-      if (key.startsWith('price_') && key != 'price_monthly_two_way') {
-        final val = map[key];
-        if (val is num) {
-          prices[key] = val.toDouble();
-        } else if (val is String) {
-          final parsed = double.tryParse(val);
-          if (parsed != null) {
-            prices[key] = parsed;
-          }
-        }
-      }
-    }
-    return prices;
-  }
+  // Alias for fromJson to satisfy convention if needed, though fromMap is what was called
+  factory DriverAdModel.fromJson(Map<String, dynamic> json) =>
+      DriverAdModel.fromMap(json);
 }

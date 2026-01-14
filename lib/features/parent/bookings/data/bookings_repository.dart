@@ -91,6 +91,12 @@ class BookingsRepository {
         .eq('id', bookingId);
   }
 
+  /// Permanently deletes a booking.
+  /// Note: This might fail if there are related payments or other constrained records.
+  Future<void> deleteBooking(String bookingId) async {
+    await _supabase.from('bookings').delete().eq('id', bookingId);
+  }
+
   // Stream remains mostly the same, just fetching the new columns happens automatically via *
   Stream<List<Map<String, dynamic>>> getBookingsStream() {
     final userId = _supabase.auth.currentUser!.id;
@@ -100,8 +106,7 @@ class BookingsRepository {
         .eq('parent_id', userId)
         .order('created_at', ascending: false)
         .asyncMap((bookings) async {
-          final enriched = <Map<String, dynamic>>[];
-          for (var booking in bookings) {
+          final enrichedFutures = bookings.map((booking) async {
             final driver = await _supabase
                 .from('users')
                 .select('full_name, photo_url')
@@ -113,7 +118,7 @@ class BookingsRepository {
                 .count(CountOption.exact)
                 .eq('booking_id', booking['id']);
 
-            enriched.add({
+            return {
               ...booking,
               'driver_name': driver['full_name'],
               'driver_photo': driver['photo_url'],
@@ -121,9 +126,10 @@ class BookingsRepository {
               // Map new columns to old keys for UI compatibility
               'home_location': booking['hometxt_location'],
               'school_location': booking['schooltxt_location'],
-            });
-          }
-          return enriched;
+            };
+          });
+
+          return Future.wait(enrichedFutures);
         });
   }
 }
