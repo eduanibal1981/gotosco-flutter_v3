@@ -1,6 +1,8 @@
 // lib/features/driver/profile/presentation/driver_profile_tab.dart
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
@@ -919,28 +921,58 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
     DriverProfileModel profile,
     String type,
   ) async {
-    // Show a simple dialog for now - in production, use image_picker
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Document upload for $type - Coming soon!'),
-        backgroundColor: Colors.teal,
-      ),
-    );
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(source: ImageSource.gallery);
 
-    // TODO: Implement with image_picker:
-    // final picker = ImagePicker();
-    // final image = await picker.pickImage(source: ImageSource.gallery);
-    // if (image != null) {
-    //   final file = File(image.path);
-    //   await ref.read(driverProfileRepositoryProvider).uploadDocument(
-    //     driverId: profile.id,
-    //     file: file,
-    //     documentType: type,
-    //   );
-    //   ref.invalidate(currentDriverProfileProvider);
-    // }
+      if (image != null && mounted) {
+        // Show loading snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Uploading $type...'),
+            duration: const Duration(seconds: 1),
+          ),
+        );
+
+        final file = File(image.path);
+        final url = await ref.read(driverProfileRepositoryProvider).uploadDocument(
+              driverId: profile.id,
+              file: file,
+              documentType: type,
+            );
+
+        if (url != null) {
+          ref.invalidate(currentDriverProfileProvider);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Document upload for $type successful!'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to upload document'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
-
   /// Build the location settings section
   Widget _buildLocationSettingsSection(DriverProfileModel profile) {
     return Container(
