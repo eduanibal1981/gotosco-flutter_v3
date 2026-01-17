@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/widgets/location_input_field.dart';
+import 'package:gotosco_v3/features/parent/dashboard/presentation/dashboard_controller.dart';
 import '../../children/data/children_repository.dart';
-import '../data/bookings_repository.dart';
 import 'bookings_controller.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
@@ -21,9 +20,7 @@ class BookingScreen extends ConsumerStatefulWidget {
   ConsumerState<BookingScreen> createState() => _BookingScreenState();
 }
 
-class _BookingScreenState extends ConsumerState<BookingScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _BookingScreenState extends ConsumerState<BookingScreen> {
   // NEW: State to store precise coordinates
   double? _homeLat, _homeLng;
   double? _schoolLat, _schoolLng;
@@ -38,6 +35,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
   TimeOfDay? _schoolPickupTime;
   final List<String> _selectedChildIds = [];
 
+  // NEW: Recurring State
+  DateTime _startDate = DateTime.now().add(const Duration(days: 1)); // Tomorrow
+  DateTime _endDate = DateTime.now().add(
+    const Duration(days: 30),
+  ); // Next Month
+  bool _isRecurring = false;
+  bool _isMonthlySubscription = false;
+  final List<String> _selectedDays = [];
+
   final List<String> _bookingTypes = [
     'Two Way',
     'One Way to School',
@@ -45,18 +51,19 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
     'Other',
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
+  final List<String> _weekDays = [
+    'Monday',
+    'Tuesday',
+    'Wednesday',
+    'Thursday',
+    'Sunday',
+  ]; // Assuming Friday/Saturday is weekend in this region (e.g., Middle East) or standard Mon-Fri.
 
   @override
   void dispose() {
     _notesController.dispose();
     _homeLocController.dispose();
     _schoolLocController.dispose();
-    _tabController.dispose();
     super.dispose();
   }
 
@@ -72,6 +79,22 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
         } else {
           _schoolPickupTime = picked;
         }
+      });
+    }
+  }
+
+  Future<void> _selectDateRange() async {
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      initialDateRange: DateTimeRange(start: _startDate, end: _endDate),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _startDate = picked.start;
+        _endDate = picked.end;
       });
     }
   }
@@ -93,6 +116,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
             homePickupTime: _homePickupTime,
             schoolPickupTime: _schoolPickupTime,
             notes: _notesController.text.trim(),
+            startDate: _startDate,
+            endDate: _endDate,
+            isRecurring: _isRecurring,
+            recurringDays: _isRecurring ? _selectedDays : null,
+            isMonthlySubscription: _isMonthlySubscription,
           );
 
       if (!mounted) return;
@@ -113,8 +141,29 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
           _schoolLocController.clear();
           _homePickupTime = null;
           _schoolPickupTime = null;
+          _isRecurring = false;
+          _isMonthlySubscription = false;
+          _selectedDays.clear();
         });
-        _tabController.animateTo(1);
+
+        // Navigation Logic:
+        // 1. Set the dashboard index to 3 (My Bookings)
+        ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
+
+        // 2. Navigate to the parent home/dashboard
+        // Assuming '/parent-home' is the route for ParentDashboardScreen
+        // If not, we might need to verify routes.
+        // But usually it is '/parent-home'.
+        context.go('/parent-home');
+      } else {
+        // Show error from controller if success is false
+        final error = ref.read(bookingsControllerProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Failed: ${error ?? 'Unknown error'}"),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -127,29 +176,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text("Book ${widget.driverName}"),
-        bottom: TabBar(
-          controller: _tabController,
-          labelColor: Colors.indigo,
-          indicatorColor: Colors.indigo,
-          tabs: const [
-            Tab(text: "Request New"),
-            Tab(text: "My Bookings"),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildRequestTab(),
-          _buildHistoryTab(), // (This method remains the same as previous answer)
-        ],
-      ),
+      appBar: AppBar(title: Text("Book ${widget.driverName}")),
+      body: _buildRequestForm(),
     );
   }
 
-  Widget _buildRequestTab() {
+  Widget _buildRequestForm() {
     final myChildren = ref.watch(myChildrenProvider);
 
     return SingleChildScrollView(
@@ -203,13 +235,120 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
                   child: CircularProgressIndicator(),
                 ),
               ),
-              error: (e, s) => Text("Error: $e"),
+              error: (err, _) => const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text("Error loading children"),
+              ),
             ),
+          ),
+          const SizedBox(height: 20),
+
+          // 2. DATES & RECURRING
+          const Text(
+            "Dates & Schedule",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+
+          // Date Range Picker
+          InkWell(
+            onTap: _selectDateRange,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.date_range, color: Colors.indigo),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          "Date Range",
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          "${_startDate.day}/${_startDate.month}/${_startDate.year} - ${_endDate.day}/${_endDate.month}/${_endDate.year}",
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: Colors.grey),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Recurring Toggle
+          SwitchListTile(
+            value: _isRecurring,
+            onChanged: (val) {
+              setState(() => _isRecurring = val);
+            },
+            title: const Text("Recurring Trip"),
+            subtitle: const Text("Repeat on specific days"),
+            activeColor: Colors.indigo,
+            contentPadding: EdgeInsets.zero,
+          ),
+
+          // Days Selector (Visible if Recurring)
+          if (_isRecurring)
+            Padding(
+              padding: const EdgeInsets.only(top: 8, bottom: 8),
+              child: Wrap(
+                spacing: 8,
+                children: _weekDays.map((day) {
+                  final isSelected = _selectedDays.contains(day);
+                  return FilterChip(
+                    label: Text(day.substring(0, 3)),
+                    selected: isSelected,
+                    onSelected: (selected) {
+                      setState(() {
+                        if (selected) {
+                          _selectedDays.add(day);
+                        } else {
+                          _selectedDays.remove(day);
+                        }
+                      });
+                    },
+                    selectedColor: Colors.indigo.shade100,
+                    checkmarkColor: Colors.indigo,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.indigo.shade900 : Colors.black,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+
+          // Monthly Subscription Toggle
+          SwitchListTile(
+            value: _isMonthlySubscription,
+            onChanged: (val) {
+              setState(() => _isMonthlySubscription = val);
+            },
+            title: const Text("Monthly Subscription"),
+            subtitle: const Text("Renew automatically (if supported)"),
+            activeColor: Colors.indigo,
+            contentPadding: EdgeInsets.zero,
           ),
 
           const SizedBox(height: 20),
 
-          // 2. BOOKING TYPE
+          // 3. BOOKING TYPE
           const Text(
             "Booking Type",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -234,9 +373,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
 
           const SizedBox(height: 20),
 
-          // 3. LOCATIONS
-          // REPLACE THE OLD ROW WITH THIS:
-          // 3. LOCATIONS
+          // 4. LOCATIONS
           LocationInputField(
             label: "Home Location",
             controller: _homeLocController,
@@ -263,7 +400,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
 
           const SizedBox(height: 20),
 
-          // 4. TIMES (Dynamic based on Type)
+          // 5. TIMES (Dynamic based on Type)
           const Text(
             "Preferred Times",
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
@@ -300,7 +437,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
 
           const SizedBox(height: 20),
 
-          // 5. NOTES
+          // 6. NOTES
           const Text("Notes", style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
           TextField(
@@ -398,408 +535,6 @@ class _BookingScreenState extends ConsumerState<BookingScreen>
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildHistoryTab() {
-    final bookingsAsync = ref.watch(myBookingsProvider);
-
-    return bookingsAsync.when(
-      data: (bookings) {
-        if (bookings.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.book_outlined, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text(
-                  "No bookings yet",
-                  style: TextStyle(fontSize: 18, color: Colors.grey),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  "Request a booking to get started!",
-                  style: TextStyle(color: Colors.grey),
-                ),
-              ],
-            ),
-          );
-        }
-
-        // Group bookings by status
-        final pending = bookings
-            .where((b) => b['status'] == 'pending')
-            .toList();
-        final accepted = bookings
-            .where((b) => b['status'] == 'accepted')
-            .toList();
-        final completed = bookings
-            .where((b) => b['status'] == 'completed')
-            .toList();
-        final rejected = bookings
-            .where((b) => b['status'] == 'rejected')
-            .toList();
-
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // ACCEPTED (Active) Bookings - Most important
-            if (accepted.isNotEmpty) ...[
-              _buildStatusHeader(
-                "Active Bookings",
-                Colors.green,
-                accepted.length,
-              ),
-              ...accepted.map(
-                (b) => _buildBookingCard(b, showTrackButton: true),
-              ),
-              const SizedBox(height: 20),
-            ],
-
-            // PENDING Bookings
-            if (pending.isNotEmpty) ...[
-              _buildStatusHeader(
-                "Pending Approval",
-                Colors.orange,
-                pending.length,
-              ),
-              ...pending.map((b) => _buildBookingCard(b)),
-              const SizedBox(height: 20),
-            ],
-
-            // COMPLETED Bookings (History)
-            if (completed.isNotEmpty) ...[
-              _buildStatusHeader("Completed", Colors.grey, completed.length),
-              ...completed.map((b) => _buildBookingCard(b)),
-              const SizedBox(height: 20),
-            ],
-
-            // REJECTED Bookings
-            if (rejected.isNotEmpty) ...[
-              _buildStatusHeader("Rejected", Colors.red, rejected.length),
-              ...rejected.map((b) => _buildBookingCard(b)),
-            ],
-          ],
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text("Error: $e"),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusHeader(String title, Color color, int count) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 20,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              count.toString(),
-              style: TextStyle(color: color, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBookingCard(
-    Map<String, dynamic> booking, {
-    bool showTrackButton = false,
-  }) {
-    final status = booking['status'] as String?;
-    final driverName = booking['driver_name'] as String? ?? 'Driver';
-    final driverPhoto = booking['driver_photo'] as String?;
-    final bookingType = booking['booking_type'] as String? ?? '';
-    final homeLocation = booking['home_location'] as String? ?? '';
-    final schoolLocation = booking['school_location'] as String? ?? '';
-    final homePickupTime = booking['home_pickup_time'] as String?;
-    final schoolPickupTime = booking['school_pickup_time'] as String?;
-    final createdAt = booking['created_at'] != null
-        ? DateTime.tryParse(booking['created_at'])
-        : null;
-
-    Color statusColor;
-    IconData statusIcon;
-    switch (status) {
-      case 'accepted':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'pending':
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
-        break;
-      case 'completed':
-        statusColor = Colors.grey;
-        statusIcon = Icons.task_alt;
-        break;
-      case 'rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help_outline;
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: status == 'accepted' ? 3 : 1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: status == 'accepted'
-            ? BorderSide(color: Colors.green.shade200, width: 1)
-            : BorderSide.none,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with Driver Info and Status
-            Row(
-              children: [
-                CircleAvatar(
-                  radius: 24,
-                  backgroundColor: Colors.indigo.shade100,
-                  backgroundImage: driverPhoto != null
-                      ? NetworkImage(driverPhoto)
-                      : null,
-                  child: driverPhoto == null
-                      ? Icon(Icons.person, color: Colors.indigo.shade700)
-                      : null,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        driverName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      Text(
-                        bookingType,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(statusIcon, size: 14, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(
-                        status?.toUpperCase() ?? '',
-                        style: TextStyle(
-                          color: statusColor,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-
-            // Location Info
-            if (homeLocation.isNotEmpty)
-              _buildInfoRow(Icons.home, 'Home', homeLocation),
-            if (schoolLocation.isNotEmpty)
-              _buildInfoRow(Icons.school, 'School', schoolLocation),
-
-            // Time Info
-            if (homePickupTime != null || schoolPickupTime != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Row(
-                  children: [
-                    if (homePickupTime != null)
-                      _buildTimeBadge('Morning', homePickupTime),
-                    if (homePickupTime != null && schoolPickupTime != null)
-                      const SizedBox(width: 12),
-                    if (schoolPickupTime != null)
-                      _buildTimeBadge('Afternoon', schoolPickupTime),
-                  ],
-                ),
-              ),
-
-            // Created Date
-            if (createdAt != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  'Booked on ${_formatDate(createdAt)}',
-                  style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
-                ),
-              ),
-
-            // TRACK DRIVER BUTTON (only for accepted bookings)
-            if (showTrackButton && status == 'accepted') ...[
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => _navigateToTracking(booking),
-                  icon: const Icon(Icons.location_on),
-                  label: const Text('Track Driver'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.indigo,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 16, color: Colors.grey.shade600),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeBadge(String label, String time) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.indigo.shade50,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.access_time, size: 14, color: Colors.indigo.shade700),
-          const SizedBox(width: 4),
-          Text(
-            '$label: $time',
-            style: TextStyle(
-              color: Colors.indigo.shade700,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    final months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
-  }
-
-  void _navigateToTracking(Map<String, dynamic> booking) {
-    // Extract location data for the tracking screen
-    final homeLat = booking['home_lat'] as double?;
-    final homeLng = booking['home_lng'] as double?;
-    final schoolLat = booking['school_lat'] as double?;
-    final schoolLng = booking['school_lng'] as double?;
-
-    context.push(
-      '/tracking',
-      extra: {
-        'bookingId': booking['id'],
-        'driverId': booking['driver_id'],
-        'driverName': booking['driver_name'] ?? 'Driver',
-        'driverPhotoUrl': booking['driver_photo'],
-        'homeLocation': (homeLat != null && homeLng != null)
-            ? LatLng(homeLat, homeLng)
-            : null,
-        'schoolLocation': (schoolLat != null && schoolLng != null)
-            ? LatLng(schoolLat, schoolLng)
-            : null,
-      },
     );
   }
 }

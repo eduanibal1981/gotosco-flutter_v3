@@ -5,6 +5,7 @@ import 'package:gotosco_v3/core/constants/enums.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 part 'auth_repository.g.dart';
 
@@ -194,6 +195,53 @@ class AuthRepository {
     } catch (e) {
       // In C#, you might catch SqlException. Here we catch Supabase errors.
       print('Error fetching profile: $e');
+      return null;
+    }
+  }
+
+  /// Updates the user's profile in 'public.users'.
+  Future<void> updateProfile({
+    required String userId,
+    String? fullName,
+    String? phone,
+    String? photoUrl,
+  }) async {
+    final updates = <String, dynamic>{
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    if (fullName != null) updates['full_name'] = fullName;
+    if (phone != null) updates['phone'] = phone;
+    if (photoUrl != null) updates['photo_url'] = photoUrl;
+
+    if (updates.length > 1) {
+      // > 1 because updated_at is always there
+      await _supabase.from('users').update(updates).eq('id', userId);
+    }
+  }
+
+  /// Uploads a profile image to Supabase Storage and returns the public URL.
+  Future<String?> uploadProfileImage(String userId, File imageFile) async {
+    try {
+      final fileExt = imageFile.path.split('.').last;
+      final fileName =
+          '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath =
+          fileName; // Root of bucket or folder? usage: 'avatars/$fileName'
+
+      // Check if 'avatars' bucket exists, if not this throws.
+      // We assume 'avatars' bucket exists and is public.
+      await _supabase.storage
+          .from('avatars')
+          .upload(
+            filePath,
+            imageFile,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
+      return imageUrl;
+    } catch (e) {
+      print('Error uploading image: $e');
       return null;
     }
   }

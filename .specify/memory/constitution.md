@@ -58,43 +58,154 @@ go_router: ^14.x
 The project follows a **strict feature-first organization** where each business domain is isolated into its own feature module.
 
 #### Root Structure
-```
-lib/
-├── core/                    # Shared infrastructure
-│   ├── router/              # GoRouter configuration
-│   ├── theme/               # App themes, colors, text styles
-│   ├── constants/           # App-wide constants
-│   ├── utils/               # Helper functions, extensions
-│   ├── widgets/             # Reusable UI components
-│   └── services/            # Shared services (analytics, notifications)
-├── features/                # Business features
-│   ├── auth/
-│   ├── driver/
-│   ├── parent/
-│   ├── booking/
-│   ├── trips/
-│   └── students/
-└── main.dart
-```
-
-#### Per-Feature Structure (Mandatory)
-Each feature **must** follow this three-layer architecture:
-
-```
-lib/features/feature_name/
-├── data/                    # Data Layer
-│   ├── models/              # DTOs, API response models (Freezed)
-│   ├── repositories/        # Repository implementations
-│   └── datasources/         # Remote (Supabase) & Local data sources
-├── domain/                  # Domain Layer
-│   ├── entities/            # Business entities (pure Dart)
-│   └── repositories/        # Repository interfaces (abstract classes)
-└── presentation/            # Presentation Layer
-    ├── providers/           # Riverpod providers & notifiers
-    ├── screens/             # Full-page screens
-    ├── widgets/             # Feature-specific widgets
-    └── controllers/         # Business logic (AsyncNotifier/Notifier)
-```
+```lib/
+├── main.dart
+├── firebase_options.dart
+├── core/                              # Shared infrastructure
+│   ├── constants/
+│   │   ├── app_constants.dart
+│   │   └── enums.dart
+│   ├── models/
+│   │   ├── user_model.dart
+│   │   └── user_session.dart
+│   ├── providers/
+│   │   └── user_session_provider.dart
+│   ├── router/
+│   │   └── router.dart
+│   ├── services/
+│   │   ├── notification_service.dart
+│   │   └── supabase_service.dart
+│   ├── theme/
+│   │   └── app_theme.dart
+│   ├── utils/
+│   │   └── formatters.dart
+│   └── widgets/                       # Core reusable widgets
+│       ├── app_button.dart
+│       ├── custom_textfield.dart
+│       ├── empty_state_widget.dart
+│       ├── map_picker_screen.dart
+│       └── role_switcher_button.dart
+│
+└── features/                          # Business logic by domain
+    ├── auth/
+    │   ├── data/
+    │   │   └── auth_repository.dart
+    │   └── presentation/
+    │       ├── auth_controller.dart
+    │       ├── login_screen.dart
+    │       ├── role_selection_screen.dart
+    │       ├── splash_screen.dart
+    │       └── user_provider.dart
+    │
+    ├── driver/
+    │   ├── availability/
+    │   │   ├── data/
+    │   │   │   ├── driver_availability_model.dart
+    │   │   │   └── driver_availability_repository.dart
+    │   │   └── presentation/
+    │   │       ├── availability_control_sheet.dart
+    │   │       └── driver_availability_controller.dart
+    │   ├── bookings/
+    │   │   ├── data/
+    │   │   │   ├── booking_model.dart
+    │   │   │   └── driver_bookings_repository.dart
+    │   │   └── presentation/
+    │   │       ├── driver_bookings_screen.dart
+    │   │       └── widgets/
+    │   ├── dashboard/
+    │   │   ├── data/
+    │   │   │   └── driver_dashboard_repository.dart
+    │   │   └── presentation/
+    │   │       ├── driver_dashboard_screen.dart
+    │   │       ├── controllers/
+    │   │       ├── screens/
+    │   │       ├── tabs/
+    │   │       └── widgets/
+    │   ├── earnings/
+    │   │   └── presentation/
+    │   │       └── earnings_tab.dart
+    │   ├── messages/
+    │   │   ├── data/
+    │   │   │   └── driver_messages_repository.dart
+    │   │   └── presentation/
+    │   │       └── driver_messages_screen.dart
+    │   ├── profile/
+    │   │   ├── data/
+    │   │   │   ├── driver_profile_model.dart
+    │   │   │   ├── driver_profile_repository.dart
+    │   │   │   └── driver_schedule_model.dart
+    │   │   └── presentation/
+    │   │       └── driver_profile_tab.dart
+    │   ├── requests/
+    │   │   └── presentation/
+    │   │       └── requests_tab.dart
+    │   └── students/
+    │       └── presentation/
+    │           └── students_tab.dart
+    │
+    ├── parent/
+    │   ├── bookings/
+    │   │   ├── data/
+    │   │   │   └── bookings_repository.dart
+    │   │   └── presentation/
+    │   │       ├── booking_screen.dart
+    │   │       ├── bookings_controller.dart
+    │   │       ├── my_bookings_tab.dart
+    │   │       └── widgets/
+    │   ├── children/
+    │   │   ├── data/
+    │   │   │   ├── attendance_model.dart
+    │   │   │   ├── child_model.dart
+    │   │   │   └── children_repository.dart
+    │   │   └── presentation/
+    │   │       ├── add_child_screen.dart
+    │   │       ├── attendance_history_screen.dart
+    │   │       ├── children_controller.dart
+    │   │       ├── children_tab.dart
+    │   │       ├── edit_child_screen.dart
+    │   │       └── set_absence_screen.dart
+    │   ├── dashboard/
+    │   │   └── presentation/
+    │   │       ├── dashboard_controller.dart
+    │   │       ├── parent_dashboard_screen.dart
+    │   │       ├── tabs/
+    │   │       └── widgets/
+    │   ├── find_driver/
+    │   │   ├── data/
+    │   │   │   ├── driver_ad_model.dart
+    │   │   │   ├── drivers_repository.dart
+    │   │   │   └── location_repository.dart
+    │   │   └── presentation/
+    │   │       ├── driver_detail_screen.dart
+    │   │       ├── drivers_controller.dart
+    │   │       ├── filter_drivers_screen.dart
+    │   │       ├── find_drivers_screen.dart
+    │   │       ├── providers/
+    │   │       └── widgets/
+    │   ├── messages/
+    │   │   ├── data/
+    │   │   │   └── parent_messages_repository.dart
+    │   │   └── presentation/
+    │   │       └── parent_messages_screen.dart
+    │   ├── profile/
+    │   │   └── presentation/
+    │   │       └── profile_tab.dart
+    │   └── tracking/
+    │       ├── data/
+    │       │   ├── driver_location_model.dart
+    │       │   └── tracking_repository.dart
+    │       └── presentation/
+    │           ├── live_tracking_screen.dart
+    │           ├── tracking_controller.dart
+    │           └── widgets/
+    │
+    └── shared/
+        └── chat/
+            ├── data/
+            │   ├── chat_repository.dart
+            │   └── message_model.dart
+            └── presentation/
+                └── chat_screen.dart
 
 ### Layer Responsibilities
 

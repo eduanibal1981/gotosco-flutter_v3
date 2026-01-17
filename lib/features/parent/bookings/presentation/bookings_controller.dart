@@ -27,6 +27,12 @@ class BookingsController extends _$BookingsController {
     TimeOfDay? homePickupTime,
     TimeOfDay? schoolPickupTime,
     String? notes,
+    // NEW: Recurring Params
+    required DateTime startDate,
+    required DateTime endDate,
+    bool isRecurring = false,
+    List<String>? recurringDays,
+    bool isMonthlySubscription = false,
   }) async {
     // Validation
     if (childIds.isEmpty) {
@@ -44,6 +50,14 @@ class BookingsController extends _$BookingsController {
 
     if (bookingType == 'One Way Back Home' && schoolPickupTime == null) {
       throw Exception('Please select school pickup time');
+    }
+
+    if (endDate.isBefore(startDate)) {
+      throw Exception('End date cannot be before start date');
+    }
+
+    if (isRecurring && (recurringDays == null || recurringDays.isEmpty)) {
+      throw Exception('Please select at least one day for recurring booking');
     }
 
     state = const AsyncLoading();
@@ -64,6 +78,11 @@ class BookingsController extends _$BookingsController {
             homePickupTime: homePickupTime,
             schoolPickupTime: schoolPickupTime,
             notes: notes ?? '',
+            startDate: startDate,
+            endDate: endDate,
+            isRecurring: isRecurring,
+            recurringDays: recurringDays,
+            isMonthlySubscription: isMonthlySubscription,
           );
     });
 

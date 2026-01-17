@@ -7,7 +7,8 @@ import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
 import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
 import 'package:gotosco_v3/features/parent/bookings/data/bookings_repository.dart';
 import 'package:gotosco_v3/core/providers/user_session_provider.dart';
-import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
+
+import 'edit_profile_screen.dart'; // Import the new screen
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
@@ -44,7 +45,14 @@ class ProfileTab extends ConsumerWidget {
               // Header
               SliverToBoxAdapter(
                 child: Container(
-                  padding: const EdgeInsets.fromLTRB(20, 60, 20, 30),
+                  // Increased bottom padding to 50 to give more space for the stats card overlap
+                  // Added MediaQuery top padding to avoid status bar overlap
+                  padding: EdgeInsets.fromLTRB(
+                    20,
+                    MediaQuery.of(context).padding.top + 20,
+                    20,
+                    30,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [Colors.indigo.shade700, Colors.indigo.shade500],
@@ -54,6 +62,32 @@ class ProfileTab extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
+                      // Custom App Bar Row
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            "Profile",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit, color: Colors.white),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => EditProfileScreen(user: user),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
                       // Profile Photo
                       Stack(
                         children: [
@@ -75,28 +109,6 @@ class ProfileTab extends ConsumerWidget {
                                     ),
                                   )
                                 : null,
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                Icons.camera_alt,
-                                size: 18,
-                                color: Colors.indigo.shade600,
-                              ),
-                            ),
                           ),
                         ],
                       ),
@@ -146,47 +158,47 @@ class ProfileTab extends ConsumerWidget {
 
               // Quick Stats
               SliverToBoxAdapter(
-                child: Transform.translate(
-                  offset: const Offset(0, -20),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          _buildStatItem(
-                            icon: Icons.child_care,
-                            value: childrenCount.toString(),
-                            label: 'Children',
-                            color: Colors.blue,
-                          ),
-                          _buildDivider(),
-                          _buildStatItem(
-                            icon: Icons.directions_bus,
-                            value: activeBookings.toString(),
-                            label: 'Active',
-                            color: Colors.green,
-                          ),
-                          _buildDivider(),
-                          _buildStatItem(
-                            icon: Icons.verified_user,
-                            value: 'Member',
-                            label: 'Since 2024',
-                            color: Colors.purple,
-                          ),
-                        ],
-                      ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        _buildStatItem(
+                          icon: Icons.child_care,
+                          value: childrenCount.toString(),
+                          label: 'Children',
+                          color: Colors.blue,
+                        ),
+                        _buildDivider(),
+                        _buildStatItem(
+                          icon: Icons.directions_bus,
+                          value: activeBookings.toString(),
+                          label: 'Active',
+                          color: Colors.green,
+                        ),
+                        _buildDivider(),
+                        _buildStatItem(
+                          icon: Icons.verified_user,
+                          value: 'Member',
+                          label: 'Since 2024',
+                          color: Colors.purple,
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -212,25 +224,13 @@ class ProfileTab extends ConsumerWidget {
                         title: 'Email',
                         subtitle: user.email,
                       ),
-                      _buildListTile(
-                        icon: Icons.edit_outlined,
-                        title: 'Edit Profile',
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () {
-                          // TODO: Navigate to Edit Profile
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Edit Profile coming soon"),
-                            ),
-                          );
-                        },
-                      ),
+                      // Removed old "Edit Profile" button
                     ]),
 
                     const SizedBox(height: 20),
 
                     // Account Settings
-                    _buildSectionTitle('Account'),
+                    _buildSectionTitle('Account Settings'),
                     _buildSettingsCard([
                       // Role Switcher for dual-role users
                       Consumer(
@@ -284,13 +284,6 @@ class ProfileTab extends ConsumerWidget {
                           );
                         },
                       ),
-                    ]),
-
-                    const SizedBox(height: 20),
-
-                    // Settings
-                    _buildSectionTitle('Settings'),
-                    _buildSettingsCard([
                       _buildListTile(
                         icon: Icons.notifications_outlined,
                         title: 'Notifications',

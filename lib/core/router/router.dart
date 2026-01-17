@@ -21,6 +21,7 @@ import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboa
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 import 'package:gotosco_v3/features/driver/messages/presentation/driver_messages_screen.dart';
 import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
+import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart';
 
@@ -41,9 +42,7 @@ GoRouter router(Ref ref) {
       ),
       GoRoute(
         path: '/find-driver',
-        builder: (context, state) => const Scaffold(
-          body: Center(child: Text("Search Filter Placeholder")),
-        ),
+        builder: (context, state) => const FindDriversScreen(),
       ),
       GoRoute(
         path: '/driver-detail',

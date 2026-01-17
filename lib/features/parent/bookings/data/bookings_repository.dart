@@ -33,6 +33,12 @@ class BookingsRepository {
     TimeOfDay? homePickupTime,
     TimeOfDay? schoolPickupTime,
     String? notes,
+    // NEW: Recurring Booking Fields
+    required DateTime startDate,
+    required DateTime endDate,
+    bool isRecurring = false,
+    List<String>? recurringDays,
+    bool isMonthlySubscription = false,
   }) async {
     final userId = _supabase.auth.currentUser!.id;
 
@@ -59,14 +65,15 @@ class BookingsRepository {
             'homegeo_location': 'SRID=4326;POINT($homeLng $homeLat)',
           if (schoolLat != null && schoolLng != null)
             'schoolgeo_location': 'SRID=4326;POINT($schoolLng $schoolLat)',
-          // 'home_lat': homeLat, // GENERATED COLUMN
-          // 'home_lng': homeLng, // GENERATED COLUMN
-          // 'school_lat': schoolLat, // GENERATED COLUMN
-          // 'school_lng': schoolLng, // GENERATED COLUMN
           'home_pickup_time': formatTime(homePickupTime),
           'school_pickup_time': formatTime(schoolPickupTime),
           'notes': notes,
-          // price is omitted, so it will be null
+          // NEW FIELDS
+          'start_date': startDate.toIso8601String(),
+          'end_date': endDate.toIso8601String(),
+          'is_recurring': isRecurring,
+          'recurring_days': recurringDays, // e.g. ["Mon", "Tue"]
+          'is_monthly_subscription': isMonthlySubscription,
         })
         .select()
         .single();
@@ -113,16 +120,24 @@ class BookingsRepository {
                 .eq('id', booking['driver_id'])
                 .single();
 
-            final kidsCount = await _supabase
+            // Fetch children details
+            final childrenData = await _supabase
                 .from('booking_children')
-                .count(CountOption.exact)
+                .select('children(name)')
                 .eq('booking_id', booking['id']);
+
+            // Extract names list
+            final childNames = (childrenData as List).map((e) {
+              final child = e['children'];
+              return child != null ? child['name'] as String : 'Unknown';
+            }).toList();
 
             return {
               ...booking,
               'driver_name': driver['full_name'],
               'driver_photo': driver['photo_url'],
-              'kids_count': kidsCount,
+              'kids_count': childNames.length,
+              'child_names': childNames, // List<String>
               // Map new columns to old keys for UI compatibility
               'home_location': booking['hometxt_location'],
               'school_location': booking['schooltxt_location'],
