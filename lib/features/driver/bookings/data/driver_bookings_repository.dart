@@ -42,23 +42,17 @@ class DriverBookingsRepository {
             .eq('id', booking['parent_id'])
             .maybeSingle();
 
-        // Fetch Children
-        final childLinks = await _supabase
+        // Fetch Children (using Join)
+        final childrenResponse = await _supabase
             .from('booking_children')
-            .select('child_id')
+            .select('children(id, name, school_name, grade)')
             .eq('booking_id', booking['id']);
 
-        final childIds = (childLinks as List)
-            .map((c) => c['child_id'])
+        final childrenData = (childrenResponse as List)
+            .map((e) => e['children'])
+            .where((c) => c != null)
+            .map((c) => c as Map<String, dynamic>)
             .toList();
-
-        List<Map<String, dynamic>> childrenData = [];
-        if (childIds.isNotEmpty) {
-          childrenData = await _supabase
-              .from('children')
-              .select('id, name, school_name, grade')
-              .inFilter('id', childIds);
-        }
 
         // Combine Data
         final fullData = {

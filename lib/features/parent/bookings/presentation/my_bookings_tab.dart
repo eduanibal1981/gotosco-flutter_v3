@@ -455,6 +455,14 @@ class MyBookingsTab extends ConsumerWidget {
             if (schoolLocation.isNotEmpty)
               _buildInfoRow(Icons.school, schoolLocation),
 
+            // Children Names
+            if (booking['child_names'] != null &&
+                (booking['child_names'] as List).isNotEmpty)
+              _buildInfoRow(
+                Icons.child_care,
+                (booking['child_names'] as List).join(', '),
+              ),
+
             // Date
             if (createdAt != null)
               Padding(

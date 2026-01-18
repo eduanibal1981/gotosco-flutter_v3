@@ -706,7 +706,8 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
     "gender" "text",
     "fcm_token" "text",
     "email" "text",
-    "auth_provider" "text" DEFAULT 'phone'::"text"
+    "auth_provider" "text" DEFAULT 'phone'::"text",
+    "updated_at" timestamp with time zone
 );
 
 
@@ -1176,8 +1177,8 @@ CREATE TABLE IF NOT EXISTS "public"."bookings" (
     "is_recurring" boolean DEFAULT false,
     "recurrence_pattern" "jsonb",
     "subscription_status" "text",
-    "contract_start_date" "date",
-    "contract_end_date" "date",
+    "start_date" "date",
+    "end_date" "date",
     "homegeo_location" "public"."geography"(Point,4326),
     "schoolgeo_location" "public"."geography"(Point,4326),
     "home_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("homegeo_location")::"public"."geometry")) STORED,
@@ -1186,6 +1187,15 @@ CREATE TABLE IF NOT EXISTS "public"."bookings" (
     "school_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("schoolgeo_location")::"public"."geometry")) STORED,
     "routego_order" integer DEFAULT 999,
     "routeret_order" integer DEFAULT 999,
+    "is_monthly_subscription" boolean DEFAULT false,
+    "student_id" "uuid",
+    "school_id" "uuid",
+    "recurring_days" "text"[],
+    "payment_status" "text" DEFAULT 'unpaid'::"text",
+    "cancellation_reason" "text",
+    "cancelled_at" timestamp with time zone,
+    "contract_start_date" "date",
+    "contract_end_date" "date",
     CONSTRAINT "bookings_booking_type_check" CHECK (("booking_type" = ANY (ARRAY['Two Way'::"text", 'One Way to School'::"text", 'One Way Back Home'::"text", 'Other'::"text"]))),
     CONSTRAINT "bookings_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'accepted'::"text", 'rejected'::"text", 'completed'::"text", 'cancelled'::"text"]))),
     CONSTRAINT "bookings_subscription_status_check" CHECK (("subscription_status" = ANY (ARRAY['active'::"text", 'paused'::"text", 'cancelled'::"text", 'expired'::"text"])))
