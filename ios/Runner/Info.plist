@@ -8,6 +8,7 @@
 		<string>comgooglemaps</string>
 		<string>https</string>
 		<string>http</string>
+		<string>tel</string>
 	</array>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
