@@ -25,46 +25,39 @@ class DriverBookingsRepository {
   /// Get all bookings for the current driver
   Future<List<BookingModel>> getAllBookings() async {
     try {
-      // Get all bookings ordered by created_at (newest first)
+      // Get all bookings ordered by created_at (newest first) with related data
       final response = await _supabase
           .from('bookings')
-          .select()
+          .select(
+            '*, parent:users!parent_id(full_name, photo_url, phone), booking_children(children(id, name, school_name, grade))',
+          )
           .eq('driver_id', _driverId)
           .order('created_at', ascending: false);
 
-      final bookings = <BookingModel>[];
+      final bookings =
+          (response as List).map((booking) {
+            final parent = booking['parent'] as Map<String, dynamic>?;
+            final childrenList =
+                booking['booking_children'] as List<dynamic>? ?? [];
 
-      for (var booking in response) {
-        // Fetch Parent Info
-        final parent = await _supabase
-            .from('users')
-            .select('full_name, photo_url, phone')
-            .eq('id', booking['parent_id'])
-            .maybeSingle();
+            final childrenData =
+                childrenList
+                    .map((e) => e['children'])
+                    .where((c) => c != null)
+                    .map((c) => c as Map<String, dynamic>)
+                    .toList();
 
-        // Fetch Children (using Join)
-        final childrenResponse = await _supabase
-            .from('booking_children')
-            .select('children(id, name, school_name, grade)')
-            .eq('booking_id', booking['id']);
+            // Combine Data
+            final fullData = {
+              ...booking,
+              'parent_name': parent?['full_name'],
+              'parent_photo': parent?['photo_url'],
+              'parent_phone': parent?['phone'],
+              'children': childrenData,
+            };
 
-        final childrenData = (childrenResponse as List)
-            .map((e) => e['children'])
-            .where((c) => c != null)
-            .map((c) => c as Map<String, dynamic>)
-            .toList();
-
-        // Combine Data
-        final fullData = {
-          ...booking,
-          'parent_name': parent?['full_name'],
-          'parent_photo': parent?['photo_url'],
-          'parent_phone': parent?['phone'],
-          'children': childrenData,
-        };
-
-        bookings.add(BookingModel.fromMap(fullData));
-      }
+            return BookingModel.fromMap(fullData);
+          }).toList();
 
       return bookings;
     } catch (e) {
