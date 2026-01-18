@@ -31,6 +31,14 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
   }
 
   @override
+  void didUpdateWidget(DriverBookingsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTabIndex != oldWidget.initialTabIndex) {
+      _tabController.animateTo(widget.initialTabIndex.clamp(0, 2));
+    }
+  }
+
+  @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
