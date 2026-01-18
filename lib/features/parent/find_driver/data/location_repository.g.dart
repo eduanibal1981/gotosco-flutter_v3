@@ -81,7 +81,7 @@ final class CitiesProvider
         argument: null,
         retry: null,
         name: r'citiesProvider',
-        isAutoDispose: true,
+        isAutoDispose: false,
         dependencies: null,
         $allTransitiveDependencies: null,
       );
@@ -127,7 +127,7 @@ final class AreasProvider
   }) : super(
          retry: null,
          name: r'areasProvider',
-         isAutoDispose: true,
+         isAutoDispose: false,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
@@ -181,7 +181,7 @@ final class AreasFamily extends $Family
         name: r'areasProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
-        isAutoDispose: true,
+        isAutoDispose: false,
       );
 
   /// Fetch areas for a specific city
@@ -217,7 +217,7 @@ final class SchoolsProvider
   }) : super(
          retry: null,
          name: r'schoolsProvider',
-         isAutoDispose: true,
+         isAutoDispose: false,
          dependencies: null,
          $allTransitiveDependencies: null,
        );
@@ -271,7 +271,7 @@ final class SchoolsFamily extends $Family
         name: r'schoolsProvider',
         dependencies: null,
         $allTransitiveDependencies: null,
-        isAutoDispose: true,
+        isAutoDispose: false,
       );
 
   /// Fetch schools for a specific area

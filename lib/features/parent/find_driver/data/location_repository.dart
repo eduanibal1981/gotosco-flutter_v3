@@ -9,19 +9,19 @@ LocationRepository locationRepository(Ref ref) {
 }
 
 /// Fetch all cities
-@riverpod
+@Riverpod(keepAlive: true)
 Future<List<Map<String, dynamic>>> cities(Ref ref) {
   return ref.watch(locationRepositoryProvider).getCities();
 }
 
 /// Fetch areas for a specific city
-@riverpod
+@Riverpod(keepAlive: true)
 Future<List<Map<String, dynamic>>> areas(Ref ref, String cityId) {
   return ref.watch(locationRepositoryProvider).getAreas(cityId);
 }
 
 /// Fetch schools for a specific area
-@riverpod
+@Riverpod(keepAlive: true)
 Future<List<Map<String, dynamic>>> schools(Ref ref, String areaId) {
   return ref.watch(locationRepositoryProvider).getSchools(areaId);
 }
