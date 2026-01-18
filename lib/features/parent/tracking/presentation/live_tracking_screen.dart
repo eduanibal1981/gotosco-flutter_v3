@@ -179,7 +179,9 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
       onCallPressed: () async {
         final phone = bookingLocations.driverPhone;
         if (phone != null && phone.isNotEmpty) {
-          final uri = Uri(scheme: 'tel', path: phone);
+          // Remove spaces, dashes, parentheses to ensure valid tel URI
+          final cleanPhone = phone.replaceAll(RegExp(r'[^\d+]'), '');
+          final uri = Uri(scheme: 'tel', path: cleanPhone);
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);
           } else {
@@ -190,9 +192,11 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
             }
           }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Driver phone number not available')),
-          );
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Driver phone number not available')),
+            );
+          }
         }
       },
       onCancelPressed: () => Navigator.pop(context),

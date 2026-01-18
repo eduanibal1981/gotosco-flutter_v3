@@ -207,7 +207,7 @@ class DriverDashboardRepository {
         final children = await _supabase
             .from('booking_children')
             .select('child_id')
-            .inFilter('booking_id', acceptedBookingIds);
+            .in_('booking_id', acceptedBookingIds);
 
         // Use a set to count unique child IDs
         final uniqueChildIds = (children as List)
@@ -493,41 +493,73 @@ class DriverDashboardRepository {
         .eq('driver_id', _driverId)
         .order('created_at', ascending: false)
         .asyncMap((bookings) async {
-          final enriched = <Map<String, dynamic>>[];
-          for (var booking in bookings) {
-            try {
-              // Get parent info - use maybeSingle to avoid PGRST116
-              final parent = await _supabase
-                  .from('users')
-                  .select('full_name, photo_url, phone')
-                  .eq('id', booking['parent_id'] ?? '')
-                  .maybeSingle();
+          if (bookings.isEmpty) return <Map<String, dynamic>>[];
 
-              // Get children for this booking using a join
+          final bookingIds = bookings.map((b) => b['id']).toList();
+          final parentIds = bookings
+              .map((b) => b['parent_id'])
+              .where((id) => id != null)
+              .toSet() // Unique
+              .toList();
+
+          // 1. Fetch all parents
+          Map<String, Map<String, dynamic>> parentsMap = {};
+          if (parentIds.isNotEmpty) {
+            try {
+              final parents = await _supabase
+                  .from('users')
+                  .select('id, full_name, photo_url, phone')
+                  .in_('id', parentIds);
+
+              for (var p in parents as List) {
+                parentsMap[p['id']] = p;
+              }
+            } catch (e) {
+              print('Error fetching parents batch: $e');
+            }
+          }
+
+          // 2. Fetch all children for these bookings
+          Map<String, List<Map<String, dynamic>>> childrenMap = {};
+          if (bookingIds.isNotEmpty) {
+            try {
               final childrenData = await _supabase
                   .from('booking_children')
-                  .select('children(*)')
-                  .eq('booking_id', booking['id']);
+                  .select('booking_id, children(*)')
+                  .in_('booking_id', bookingIds);
 
-              final children = (childrenData as List)
-                  .map((c) => c['children'] as Map<String, dynamic>)
-                  .toList();
+              for (var item in childrenData as List) {
+                final bId = item['booking_id'] as String;
+                final child = item['children'] as Map<String, dynamic>?;
 
-              enriched.add({
-                ...booking,
-                'parent_name': parent?['full_name'] ?? 'Unknown Parent',
-                'parent_photo': parent?['photo_url'],
-                'parent_phone': parent?['phone'] ?? '',
-                'children': children,
-                // Compatibility mapping
-                'home_location': booking['hometxt_location'],
-                'school_location': booking['schooltxt_location'],
-              });
+                if (child != null) {
+                  if (!childrenMap.containsKey(bId)) {
+                    childrenMap[bId] = [];
+                  }
+                  childrenMap[bId]!.add(child);
+                }
+              }
             } catch (e) {
-              print('Error enriching booking ${booking['id']}: $e');
-              // Add without enrichment if it fails
-              enriched.add(booking);
+              print('Error fetching children batch: $e');
             }
+          }
+
+          // 3. Assemble
+          final enriched = <Map<String, dynamic>>[];
+          for (var booking in bookings) {
+            final parent = parentsMap[booking['parent_id']];
+            final children = childrenMap[booking['id']] ?? [];
+
+            enriched.add({
+              ...booking,
+              'parent_name': parent?['full_name'] ?? 'Unknown Parent',
+              'parent_photo': parent?['photo_url'],
+              'parent_phone': parent?['phone'] ?? '',
+              'children': children,
+              // Compatibility mapping
+              'home_location': booking['hometxt_location'],
+              'school_location': booking['schooltxt_location'],
+            });
           }
           return enriched;
         });
