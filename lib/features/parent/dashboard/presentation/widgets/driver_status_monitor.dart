@@ -113,6 +113,7 @@ class DriverStatusMonitor extends ConsumerWidget {
       badgeColor: Colors.blue,
       isActive: false,
       onViewAll: () {
+        // Navigate to "My Bookings" tab (Index 3)
         ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
       },
       onTrack: () {
