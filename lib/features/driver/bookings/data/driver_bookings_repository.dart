@@ -34,30 +34,29 @@ class DriverBookingsRepository {
           .eq('driver_id', _driverId)
           .order('created_at', ascending: false);
 
-      final bookings =
-          (response as List).map((booking) {
-            final parent = booking['parent'] as Map<String, dynamic>?;
-            final childrenList =
-                booking['booking_children'] as List<dynamic>? ?? [];
+      final bookings = (response as List).map((data) {
+        final booking = data as Map<String, dynamic>;
+        final parent = booking['parent'] as Map<String, dynamic>?;
+        final childrenList =
+            booking['booking_children'] as List<dynamic>? ?? [];
 
-            final childrenData =
-                childrenList
-                    .map((e) => e['children'])
-                    .where((c) => c != null)
-                    .map((c) => c as Map<String, dynamic>)
-                    .toList();
+        final childrenData = childrenList
+            .map((e) => e['children'])
+            .where((c) => c != null)
+            .map((c) => c as Map<String, dynamic>)
+            .toList();
 
-            // Combine Data
-            final fullData = {
-              ...booking,
-              'parent_name': parent?['full_name'],
-              'parent_photo': parent?['photo_url'],
-              'parent_phone': parent?['phone'],
-              'children': childrenData,
-            };
+        // Combine Data
+        final fullData = <String, dynamic>{
+          ...booking,
+          'parent_name': parent?['full_name'],
+          'parent_photo': parent?['photo_url'],
+          'parent_phone': parent?['phone'],
+          'children': childrenData,
+        };
 
-            return BookingModel.fromMap(fullData);
-          }).toList();
+        return BookingModel.fromMap(fullData);
+      }).toList();
 
       return bookings;
     } catch (e) {

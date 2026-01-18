@@ -207,7 +207,7 @@ class DriverDashboardRepository {
         final children = await _supabase
             .from('booking_children')
             .select('child_id')
-            .in_('booking_id', acceptedBookingIds);
+            .inFilter('booking_id', acceptedBookingIds);
 
         // Use a set to count unique child IDs
         final uniqueChildIds = (children as List)
@@ -509,7 +509,7 @@ class DriverDashboardRepository {
               final parents = await _supabase
                   .from('users')
                   .select('id, full_name, photo_url, phone')
-                  .in_('id', parentIds);
+                  .inFilter('id', parentIds);
 
               for (var p in parents as List) {
                 parentsMap[p['id']] = p;
@@ -526,7 +526,7 @@ class DriverDashboardRepository {
               final childrenData = await _supabase
                   .from('booking_children')
                   .select('booking_id, children(*)')
-                  .in_('booking_id', bookingIds);
+                  .inFilter('booking_id', bookingIds);
 
               for (var item in childrenData as List) {
                 final bId = item['booking_id'] as String;
