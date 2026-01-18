@@ -1,5 +1,6 @@
 // lib/features/driver/profile/data/driver_profile_repository.dart
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -17,16 +18,16 @@ DriverProfileRepository driverProfileRepository(Ref ref) {
 @riverpod
 Future<DriverProfileModel?> currentDriverProfile(Ref ref) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
-  print('DEBUG: currentDriverProfile called, userId: $userId');
+  debugPrint('DEBUG: currentDriverProfile called, userId: $userId');
 
   if (userId == null) {
-    print('DEBUG: userId is null, returning null');
+    debugPrint('DEBUG: userId is null, returning null');
     return null;
   }
 
   final repository = ref.read(driverProfileRepositoryProvider);
   final profile = await repository.getDriverProfile(userId);
-  print(
+  debugPrint(
     'DEBUG: getDriverProfile returned: ${profile != null ? 'profile found' : 'null'}',
   );
   return profile;
@@ -49,11 +50,11 @@ class DriverProfileRepository {
 
   /// Fetches the driver profile for the given user ID
   Future<DriverProfileModel?> getDriverProfile(String userId) async {
-    print('DEBUG: getDriverProfile called with userId: $userId');
+    debugPrint('DEBUG: getDriverProfile called with userId: $userId');
 
     try {
       // First, try with the user join - select all columns from users
-      print('DEBUG: Attempting JOIN query on drivers table...');
+      debugPrint('DEBUG: Attempting JOIN query on drivers table...');
       final response = await _supabase
           .from('drivers')
           .select('''
@@ -63,38 +64,38 @@ class DriverProfileRepository {
           .eq('user_id', userId)
           .maybeSingle();
 
-      print(
+      debugPrint(
         'DEBUG: JOIN query response: ${response != null ? 'data found' : 'null'}',
       );
 
       if (response != null) {
-        print('DEBUG: Response data: $response');
+        debugPrint('DEBUG: Response data: $response');
         return DriverProfileModel.fromMap(response);
       }
     } catch (e) {
-      print('DEBUG: Error fetching driver profile with JOIN: $e');
+      debugPrint('DEBUG: Error fetching driver profile with JOIN: $e');
       // Fall through to try without the join
     }
 
     // Fallback: Try without the user join (in case foreign key is missing/misconfigured)
     try {
-      print('DEBUG: Attempting fallback query (no JOIN)...');
+      debugPrint('DEBUG: Attempting fallback query (no JOIN)...');
       final driverData = await _supabase
           .from('drivers')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
 
-      print(
+      debugPrint(
         'DEBUG: Fallback driver query result: ${driverData != null ? 'found' : 'null'}',
       );
 
       if (driverData == null) {
-        print('DEBUG: No driver data found for userId: $userId');
+        debugPrint('DEBUG: No driver data found for userId: $userId');
         return null;
       }
 
-      print('DEBUG: Driver data found: $driverData');
+      debugPrint('DEBUG: Driver data found: $driverData');
 
       // Fetch user data separately - use * to get all available columns
       // since the schema may vary (email column doesn't exist)
@@ -105,9 +106,9 @@ class DriverProfileRepository {
             .select('*')
             .eq('id', userId)
             .maybeSingle();
-        print('DEBUG: User data: $userData');
+        debugPrint('DEBUG: User data: $userData');
       } catch (userError) {
-        print('DEBUG: Error fetching user data: $userError');
+        debugPrint('DEBUG: Error fetching user data: $userError');
         // Continue without user data - driver data is still valid
       }
 
@@ -116,7 +117,7 @@ class DriverProfileRepository {
 
       return DriverProfileModel.fromMap(combinedData);
     } catch (e) {
-      print('DEBUG: Error fetching driver profile (fallback): $e');
+      debugPrint('DEBUG: Error fetching driver profile (fallback): $e');
       return null;
     }
   }
@@ -131,7 +132,7 @@ class DriverProfileRepository {
       await _supabase.from('drivers').update(updates).eq('user_id', driverId);
       return true;
     } catch (e) {
-      print('Error updating driver profile: $e');
+      debugPrint('Error updating driver profile: $e');
       return false;
     }
   }
@@ -159,7 +160,7 @@ class DriverProfileRepository {
 
       return true;
     } catch (e) {
-      print('Error updating driver location: $e');
+      debugPrint('Error updating driver location: $e');
       return false;
     }
   }
@@ -185,7 +186,7 @@ class DriverProfileRepository {
 
       return true;
     } catch (e) {
-      print('Error updating start location: $e');
+      debugPrint('Error updating start location: $e');
       return false;
     }
   }
@@ -214,7 +215,7 @@ class DriverProfileRepository {
 
       return true;
     } catch (e) {
-      print('Error copying location to start point: $e');
+      debugPrint('Error copying location to start point: $e');
       return false;
     }
   }
@@ -248,7 +249,7 @@ class DriverProfileRepository {
 
       return publicUrl;
     } catch (e) {
-      print('Error uploading document: $e');
+      debugPrint('Error uploading document: $e');
       return null;
     }
   }
@@ -272,7 +273,7 @@ class DriverProfileRepository {
       // Primary key is user_id
       return response['user_id'] as String?;
     } catch (e) {
-      print('Error creating driver profile: $e');
+      debugPrint('Error creating driver profile: $e');
       return null;
     }
   }
@@ -295,7 +296,7 @@ class DriverProfileRepository {
           .map((e) => DriverScheduleModel.fromMap(e))
           .toList();
     } catch (e) {
-      print('Error fetching driver schedules: $e');
+      debugPrint('Error fetching driver schedules: $e');
       return [];
     }
   }
@@ -312,7 +313,7 @@ class DriverProfileRepository {
 
       return (response as List).isNotEmpty;
     } catch (e) {
-      print('Error checking schedules: $e');
+      debugPrint('Error checking schedules: $e');
       return false;
     }
   }
@@ -321,7 +322,7 @@ class DriverProfileRepository {
   Future<String?> createSchedule(DriverScheduleModel schedule) async {
     try {
       final mapData = schedule.toMap();
-      print('DEBUG createSchedule: Inserting schedule with data: $mapData');
+      debugPrint('DEBUG createSchedule: Inserting schedule with data: $mapData');
 
       final response = await _supabase
           .from('driver_schedules')
@@ -329,12 +330,12 @@ class DriverProfileRepository {
           .select('id')
           .single();
 
-      print(
+      debugPrint(
         'DEBUG createSchedule: Success! Created schedule with id: ${response['id']}',
       );
       return response['id'] as String?;
     } catch (e) {
-      print('DEBUG createSchedule ERROR: $e');
+      debugPrint('DEBUG createSchedule ERROR: $e');
       return null;
     }
   }
@@ -351,7 +352,7 @@ class DriverProfileRepository {
           .eq('id', scheduleId);
       return true;
     } catch (e) {
-      print('Error updating schedule: $e');
+      debugPrint('Error updating schedule: $e');
       return false;
     }
   }
@@ -365,7 +366,7 @@ class DriverProfileRepository {
           .eq('id', scheduleId);
       return true;
     } catch (e) {
-      print('Error deleting schedule: $e');
+      debugPrint('Error deleting schedule: $e');
       return false;
     }
   }
