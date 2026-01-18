@@ -136,16 +136,13 @@ class AuthRepository {
 
       // Create/Update public profile if this is a new user
       if (response.user != null) {
-        final existingProfile = await getUserProfile(response.user!.id);
-        if (existingProfile == null) {
-          await _createPublicProfile(
-            userId: response.user!.id,
-            email: googleUser.email,
-            fullName: googleUser.displayName ?? 'User',
-            phone: null, // Google users may not have phone
-            authProvider: 'google',
-          );
-        }
+        await _createPublicProfile(
+          userId: response.user!.id,
+          email: googleUser.email,
+          fullName: googleUser.displayName ?? 'User',
+          phone: null, // Google users may not have phone
+          authProvider: 'google',
+        );
       }
 
       return response;
@@ -178,7 +175,8 @@ class AuthRepository {
     };
 
     // 'upsert' means "Insert, or Update if it already exists"
-    await _supabase.from('users').upsert(userData);
+    // ignoreDuplicates: true means "Insert if not exists, otherwise do nothing"
+    await _supabase.from('users').upsert(userData, ignoreDuplicates: true);
   }
 
   /// Fetches the full profile from the database.
@@ -193,7 +191,7 @@ class AuthRepository {
 
       return UserModel.fromJson(response);
     } catch (e) {
-      // In C#, you might catch SqlException. Here we catch Supabase errors.
+      // In C#, you might catch Supabase errors. Here we catch Supabase errors.
       print('Error fetching profile: $e');
       return null;
     }
