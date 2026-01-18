@@ -53,13 +53,12 @@ class DriverProfileRepository {
 
     try {
       // First, try with the user join - select all columns from users
+      // Optimized: removed explicit foreign key name to rely on auto-detection
+      // which is more robust if the FK name changes but relationship is unique.
       print('DEBUG: Attempting JOIN query on drivers table...');
       final response = await _supabase
           .from('drivers')
-          .select('''
-            *,
-            users!drivers_user_id_fkey(*)
-          ''')
+          .select('*, users(*)')
           .eq('user_id', userId)
           .maybeSingle();
 
@@ -78,12 +77,28 @@ class DriverProfileRepository {
 
     // Fallback: Try without the user join (in case foreign key is missing/misconfigured)
     try {
-      print('DEBUG: Attempting fallback query (no JOIN)...');
-      final driverData = await _supabase
-          .from('drivers')
-          .select()
-          .eq('user_id', userId)
-          .maybeSingle();
+      print('DEBUG: Attempting fallback query (parallel fetch)...');
+
+      // OPTIMIZATION: Run queries in parallel to reduce total latency
+      final results = await Future.wait([
+        _supabase
+            .from('drivers')
+            .select()
+            .eq('user_id', userId)
+            .maybeSingle(),
+        _supabase
+            .from('users')
+            .select('*')
+            .eq('id', userId)
+            .maybeSingle()
+            .catchError((e) {
+              print('DEBUG: Error fetching user data: $e');
+              return null; // Return null on error for user
+            }),
+      ]);
+
+      final driverData = results[0] as Map<String, dynamic>?;
+      final userData = results[1] as Map<String, dynamic>?;
 
       print(
         'DEBUG: Fallback driver query result: ${driverData != null ? 'found' : 'null'}',
@@ -95,20 +110,8 @@ class DriverProfileRepository {
       }
 
       print('DEBUG: Driver data found: $driverData');
-
-      // Fetch user data separately - use * to get all available columns
-      // since the schema may vary (email column doesn't exist)
-      Map<String, dynamic>? userData;
-      try {
-        userData = await _supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-        print('DEBUG: User data: $userData');
-      } catch (userError) {
-        print('DEBUG: Error fetching user data: $userError');
-        // Continue without user data - driver data is still valid
+      if (userData != null) {
+        print('DEBUG: User data found: $userData');
       }
 
       // Combine the data
@@ -190,7 +193,7 @@ class DriverProfileRepository {
     }
   }
 
-  /// Copies current location to start location
+  /// Copies current location to start point
   Future<bool> copyLocationToStartPoint(String driverId) async {
     try {
       // Fetch current location
