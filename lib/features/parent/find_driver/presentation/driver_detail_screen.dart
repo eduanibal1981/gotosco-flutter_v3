@@ -345,7 +345,8 @@ class DriverDetailScreen extends ConsumerWidget {
             ? CachedNetworkImage(
                 imageUrl: driver.photoUrl!,
                 fit: BoxFit.cover,
-                placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                placeholder: (context, url) =>
+                    const Center(child: CircularProgressIndicator()),
                 errorWidget: (context, url, error) => const Center(
                   child: Icon(Icons.person, size: 64, color: Colors.grey),
                 ),
@@ -362,7 +363,8 @@ class DriverDetailScreen extends ConsumerWidget {
         return CachedNetworkImage(
           imageUrl: driver.adPhotos[index],
           fit: BoxFit.cover,
-          placeholder: (context, url) => Container(color: Colors.grey.shade200),
+          placeholder: (context, url) =>
+              const Center(child: CircularProgressIndicator()),
           errorWidget: (context, url, error) => Container(
             color: Colors.grey.shade100,
             child: const Icon(Icons.error),
