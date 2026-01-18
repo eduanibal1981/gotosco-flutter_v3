@@ -1,4 +1,5 @@
 // lib/features/parent/dashboard/presentation/widgets/active_booking_card.dart
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
 class ActiveBookingCard extends StatelessWidget {
@@ -51,10 +52,13 @@ class ActiveBookingCard extends StatelessWidget {
                 Positioned.fill(
                   child: Opacity(
                     opacity: 0.1,
-                    child: Image.network(
-                      'https://maps.googleapis.com/maps/api/staticmap?center=23.5880,58.3829&zoom=13&size=600x300&key=YOUR_API_KEY_HERE',
+                    child: CachedNetworkImage(
+                      imageUrl:
+                          'https://maps.googleapis.com/maps/api/staticmap?center=23.5880,58.3829&zoom=13&size=600x300&key=YOUR_API_KEY_HERE',
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      placeholder: (context, url) =>
+                          const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) =>
                           Container(color: Colors.grey.shade100),
                     ),
                   ),
