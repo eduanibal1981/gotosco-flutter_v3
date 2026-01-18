@@ -1,4 +1,5 @@
 // lib/features/parent/find_driver/presentation/widgets/driver_ad_card.dart
+import 'package:cached_network_image/cached_network_image.dart'; // <--- Import CachedNetworkImage
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart'; // <--- Import Riverpod
 import 'package:go_router/go_router.dart';
@@ -89,7 +90,7 @@ class DriverAdCard extends ConsumerWidget {
                           radius: 32,
                           backgroundColor: Colors.grey.shade100,
                           backgroundImage: driver.photoUrl != null
-                              ? NetworkImage(driver.photoUrl!)
+                              ? CachedNetworkImageProvider(driver.photoUrl!)
                               : null,
                           child: driver.photoUrl == null
                               ? Text(

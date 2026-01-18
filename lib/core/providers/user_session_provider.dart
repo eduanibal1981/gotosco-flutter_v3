@@ -4,6 +4,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_session.dart';
+import 'shared_preferences_provider.dart';
 
 part 'user_session_provider.g.dart';
 
@@ -17,6 +18,9 @@ class UserSessionNotifier extends _$UserSessionNotifier {
   Future<UserSession?> build() async {
     // Listen to auth state changes to rebuild
     ref.listen(_authStateProvider, (_, __) => ref.invalidateSelf());
+
+    // Preload shared preferences
+    final prefs = await ref.watch(sharedPreferencesProvider.future);
 
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return null;
@@ -34,7 +38,7 @@ class UserSessionNotifier extends _$UserSessionNotifier {
       if (roles.isEmpty) return null;
 
       // Get the last active role from local storage or default to first role
-      final activeRole = await _getLastActiveRole(roles);
+      final activeRole = _getLastActiveRole(roles, prefs);
 
       return UserSession(
         userId: user.id,
@@ -80,9 +84,8 @@ class UserSessionNotifier extends _$UserSessionNotifier {
   }
 
   /// Get the last active role from local storage
-  Future<String> _getLastActiveRole(List<String> roles) async {
+  String _getLastActiveRole(List<String> roles, SharedPreferences prefs) {
     try {
-      final prefs = await SharedPreferences.getInstance();
       final lastRole = prefs.getString('last_active_role');
 
       // If we have a saved role and it's still valid, use it
@@ -101,7 +104,7 @@ class UserSessionNotifier extends _$UserSessionNotifier {
   /// Save the active role to local storage
   Future<void> _saveLastActiveRole(String role) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
+      final prefs = await ref.read(sharedPreferencesProvider.future);
       await prefs.setString('last_active_role', role);
     } catch (e) {
       print('Error saving last active role: $e');
