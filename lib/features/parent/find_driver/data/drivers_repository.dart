@@ -104,24 +104,10 @@ class DriversRepository {
     if (userId == null) return;
 
     try {
-      // Check if exists
-      final existing = await _supabase
-          .from('saved_drivers')
-          .select()
-          .eq('parent_id', userId)
-          .eq('driver_id', driverId)
-          .maybeSingle();
-
-      if (existing != null) {
-        // DELETE
-        await _supabase.from('saved_drivers').delete().eq('id', existing['id']);
-      } else {
-        // INSERT
-        await _supabase.from('saved_drivers').insert({
-          'parent_id': userId,
-          'driver_id': driverId,
-        });
-      }
+      await _supabase.rpc(
+        'toggle_saved_driver',
+        params: {'target_driver_id': driverId},
+      );
     } catch (e) {
       throw Exception('Failed to toggle favorite: $e');
     }
