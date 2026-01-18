@@ -39,8 +39,19 @@ interface FCMMessage {
   };
 }
 
+// Global cache for access token
+let cachedAccessToken: string | null = null;
+let tokenExpiryTime: number = 0;
+
 // Get OAuth2 access token for FCM using service account
 async function getAccessToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+
+  // Return cached token if valid (with 5 minute buffer)
+  if (cachedAccessToken && now < tokenExpiryTime - 300) {
+    return cachedAccessToken;
+  }
+
   const serviceAccountKey = Deno.env.get("FIREBASE_SERVICE_ACCOUNT_KEY");
   if (!serviceAccountKey) {
     throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY not set");
@@ -49,7 +60,6 @@ async function getAccessToken(): Promise<string> {
   const serviceAccount = JSON.parse(serviceAccountKey);
 
   // Create JWT for Google OAuth2
-  const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
   const payload = {
     iss: serviceAccount.client_email,
@@ -96,6 +106,10 @@ async function getAccessToken(): Promise<string> {
   });
 
   const tokenData = await tokenResponse.json();
+
+  cachedAccessToken = tokenData.access_token;
+  tokenExpiryTime = now + (tokenData.expires_in || 3600);
+
   return tokenData.access_token;
 }
 
