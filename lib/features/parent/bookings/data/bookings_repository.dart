@@ -97,39 +97,21 @@ class BookingsRepository {
     await _supabase.from('bookings').delete().eq('id', bookingId);
   }
 
-  // Stream remains mostly the same, just fetching the new columns happens automatically via *
   Stream<List<Map<String, dynamic>>> getBookingsStream() {
     final userId = _supabase.auth.currentUser!.id;
+    // Note: Supabase Realtime doesn't directly support RPC calls.
+    // So, we're combining a Realtime stream on the 'bookings' table
+    // with an efficient initial data fetch and subsequent fetches using our RPC.
     return _supabase
         .from('bookings')
         .stream(primaryKey: ['id'])
         .eq('parent_id', userId)
-        .order('created_at', ascending: false)
-        .asyncMap((bookings) async {
-          final enrichedFutures = bookings.map((booking) async {
-            final driver = await _supabase
-                .from('users')
-                .select('full_name, photo_url')
-                .eq('id', booking['driver_id'])
-                .single();
-
-            final kidsCount = await _supabase
-                .from('booking_children')
-                .count(CountOption.exact)
-                .eq('booking_id', booking['id']);
-
-            return {
-              ...booking,
-              'driver_name': driver['full_name'],
-              'driver_photo': driver['photo_url'],
-              'kids_count': kidsCount,
-              // Map new columns to old keys for UI compatibility
-              'home_location': booking['hometxt_location'],
-              'school_location': booking['schooltxt_location'],
-            };
-          });
-
-          return Future.wait(enrichedFutures);
-        });
+        .asyncMap((_) {
+      // When the stream notifies of a change, we re-fetch the whole enriched list.
+      // This is more efficient than the N+1 problem.
+      return _supabase
+          .rpc('get_enriched_bookings')
+          .then((value) => (value as List).cast<Map<String, dynamic>>());
+    });
   }
 }
