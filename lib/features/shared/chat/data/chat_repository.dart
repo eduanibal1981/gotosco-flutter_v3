@@ -22,34 +22,32 @@ class ChatRepository {
   // Get Real-time Stream of Messages
   Stream<List<MessageModel>> getMessagesStream(String otherUserId) {
     final myId = _supabase.auth.currentUser!.id;
+    final conversationId = _getConversationId(myId, otherUserId);
 
     return _supabase
         .from('messages')
         .stream(primaryKey: ['id'])
+        .eq('conversation_id', conversationId)
         .order('created_at', ascending: true) // Oldest first
         .map((data) {
-          // Filter in Dart because Supabase Stream filtering is limited
-          // We want messages between ME and THE OTHER PERSON
-          return data
-              .where((msg) {
-                final sender = msg['sender_id'];
-                final receiver = msg['receiver_id'];
-                return (sender == myId && receiver == otherUserId) ||
-                    (sender == otherUserId && receiver == myId);
-              })
-              .map((e) => MessageModel.fromMap(e))
-              .toList();
+          return data.map((e) => MessageModel.fromMap(e)).toList();
         });
   }
 
   // Send Message
   Future<void> sendMessage(String receiverId, String content) async {
     final myId = _supabase.auth.currentUser!.id;
+    final conversationId = _getConversationId(myId, receiverId);
 
     await _supabase.from('messages').insert({
       'sender_id': myId,
       'receiver_id': receiverId,
+      'conversation_id': conversationId,
       'content': content,
     });
+  }
+
+  String _getConversationId(String id1, String id2) {
+    return id1.compareTo(id2) < 0 ? '${id1}_$id2' : '${id2}_$id1';
   }
 }
