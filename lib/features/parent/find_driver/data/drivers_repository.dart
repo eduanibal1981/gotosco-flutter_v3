@@ -68,11 +68,11 @@ class DriversRepository {
           .toList();
     } catch (e) {
       if (e is PostgrestException) {
-        print(
+        debugPrint(
           'Postgrest Error: ${e.message} code: ${e.code} details: ${e.details} hint: ${e.hint}',
         );
       }
-      print('Error searching drivers: $e');
+      debugPrint('Error searching drivers: $e');
       return [];
     }
   }
@@ -104,10 +104,24 @@ class DriversRepository {
     if (userId == null) return;
 
     try {
-      await _supabase.rpc(
-        'toggle_saved_driver',
-        params: {'p_driver_id': driverId},
-      );
+      // Check if exists
+      final existing = await _supabase
+          .from('saved_drivers')
+          .select()
+          .eq('parent_id', userId)
+          .eq('driver_id', driverId)
+          .maybeSingle();
+
+      if (existing != null) {
+        // DELETE
+        await _supabase.from('saved_drivers').delete().eq('id', existing['id']);
+      } else {
+        // INSERT
+        await _supabase.from('saved_drivers').insert({
+          'parent_id': userId,
+          'driver_id': driverId,
+        });
+      }
     } catch (e) {
       throw Exception('Failed to toggle favorite: $e');
     }
