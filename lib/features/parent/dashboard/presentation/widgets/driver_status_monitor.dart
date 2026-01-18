@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../dashboard_controller.dart';
 import '../../../tracking/presentation/tracking_controller.dart';
 import 'active_booking_card.dart';
 
@@ -63,7 +64,7 @@ class DriverStatusMonitor extends ConsumerWidget {
           badgeColor: badgeColor,
           isActive: isActive,
           onViewAll: () {
-            // TODO: Navigate to All Bookings or handle accordingly
+            ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
           },
           onTrack: () {
             context.push(
@@ -75,6 +76,7 @@ class DriverStatusMonitor extends ConsumerWidget {
       },
       error: (_, __) => _buildScheduledCard(
         context,
+        ref,
         driverName,
         driverPhoto,
         bookingId,
@@ -82,6 +84,7 @@ class DriverStatusMonitor extends ConsumerWidget {
       ),
       loading: () => _buildScheduledCard(
         context,
+        ref,
         driverName,
         driverPhoto,
         bookingId,
@@ -94,6 +97,7 @@ class DriverStatusMonitor extends ConsumerWidget {
   /// Builds the Blue "Scheduled" card when driver is offline or stream is initializing
   Widget _buildScheduledCard(
     BuildContext context,
+    WidgetRef ref,
     String driverName,
     String? driverPhoto,
     String bookingId,
@@ -109,7 +113,7 @@ class DriverStatusMonitor extends ConsumerWidget {
       badgeColor: Colors.blue,
       isActive: false,
       onViewAll: () {
-        // TODO: Navigate to All Bookings
+        ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
       },
       onTrack: () {
         // Allow opening map even if offline to show status

@@ -176,11 +176,24 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
       driverPhotoUrl: null,
       status: status,
       eta: eta,
-      onCallPressed: () {
-        // TODO: Implement call driver
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Calling driver...')));
+      onCallPressed: () async {
+        final phone = bookingLocations.driverPhone;
+        if (phone != null && phone.isNotEmpty) {
+          final uri = Uri(scheme: 'tel', path: phone);
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri);
+          } else {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Could not launch phone app')),
+              );
+            }
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Driver phone number not available')),
+          );
+        }
       },
       onCancelPressed: () => Navigator.pop(context),
     );

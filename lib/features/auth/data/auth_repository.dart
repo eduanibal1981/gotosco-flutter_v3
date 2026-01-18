@@ -5,6 +5,7 @@ import 'package:gotosco_v3/core/constants/enums.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 part 'auth_repository.g.dart';
 
@@ -135,16 +136,13 @@ class AuthRepository {
 
       // Create/Update public profile if this is a new user
       if (response.user != null) {
-        final existingProfile = await getUserProfile(response.user!.id);
-        if (existingProfile == null) {
-          await _createPublicProfile(
-            userId: response.user!.id,
-            email: googleUser.email,
-            fullName: googleUser.displayName ?? 'User',
-            phone: null, // Google users may not have phone
-            authProvider: 'google',
-          );
-        }
+        await _createPublicProfile(
+          userId: response.user!.id,
+          email: googleUser.email,
+          fullName: googleUser.displayName ?? 'User',
+          phone: null, // Google users may not have phone
+          authProvider: 'google',
+        );
       }
 
       return response;
@@ -177,7 +175,8 @@ class AuthRepository {
     };
 
     // 'upsert' means "Insert, or Update if it already exists"
-    await _supabase.from('users').upsert(userData);
+    // ignoreDuplicates: true means "Insert if not exists, otherwise do nothing"
+    await _supabase.from('users').upsert(userData, ignoreDuplicates: true);
   }
 
   /// Fetches the full profile from the database.
@@ -192,8 +191,55 @@ class AuthRepository {
 
       return UserModel.fromJson(response);
     } catch (e) {
-      // In C#, you might catch SqlException. Here we catch Supabase errors.
+      // In C#, you might catch Supabase errors. Here we catch Supabase errors.
       print('Error fetching profile: $e');
+      return null;
+    }
+  }
+
+  /// Updates the user's profile in 'public.users'.
+  Future<void> updateProfile({
+    required String userId,
+    String? fullName,
+    String? phone,
+    String? photoUrl,
+  }) async {
+    final updates = <String, dynamic>{
+      'updated_at': DateTime.now().toIso8601String(),
+    };
+    if (fullName != null) updates['full_name'] = fullName;
+    if (phone != null) updates['phone'] = phone;
+    if (photoUrl != null) updates['photo_url'] = photoUrl;
+
+    if (updates.length > 1) {
+      // > 1 because updated_at is always there
+      await _supabase.from('users').update(updates).eq('id', userId);
+    }
+  }
+
+  /// Uploads a profile image to Supabase Storage and returns the public URL.
+  Future<String?> uploadProfileImage(String userId, File imageFile) async {
+    try {
+      final fileExt = imageFile.path.split('.').last;
+      final fileName =
+          '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath =
+          fileName; // Root of bucket or folder? usage: 'avatars/$fileName'
+
+      // Check if 'avatars' bucket exists, if not this throws.
+      // We assume 'avatars' bucket exists and is public.
+      await _supabase.storage
+          .from('avatars')
+          .upload(
+            filePath,
+            imageFile,
+            fileOptions: const FileOptions(upsert: true),
+          );
+
+      final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
+      return imageUrl;
+    } catch (e) {
+      print('Error uploading image: $e');
       return null;
     }
   }

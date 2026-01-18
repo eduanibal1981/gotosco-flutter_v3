@@ -18,72 +18,85 @@ class BookingsRepository {
   final SupabaseClient _supabase;
   BookingsRepository(this._supabase);
 
-  // Updated Create Method
+  /// CREATE BOOKING (supports recurring + geo + children)
   Future<void> createBooking({
     required String driverId,
     required List<String> childIds,
     required String bookingType,
+
     String? homeLocation,
     String? schoolLocation,
-    // Add these params
+
     double? homeLat,
     double? homeLng,
     double? schoolLat,
     double? schoolLng,
+
     TimeOfDay? homePickupTime,
     TimeOfDay? schoolPickupTime,
+
     String? notes,
+
+    // 🔁 Recurring fields
+    required DateTime startDate,
+    required DateTime endDate,
+    bool isRecurring = false,
+    List<String>? recurringDays, // ["Mon","Tue"]
+    bool isMonthlySubscription = false,
   }) async {
     final userId = _supabase.auth.currentUser!.id;
 
-    // Helper to format TimeOfDay to "HH:mm" string
     String? formatTime(TimeOfDay? time) {
       if (time == null) return null;
-      final hour = time.hour.toString().padLeft(2, '0');
-      final minute = time.minute.toString().padLeft(2, '0');
-      return '$hour:$minute';
+      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
     }
 
-    // 1. Insert Booking
-    final bookingData = await _supabase
+    // 1️⃣ Insert booking
+    final booking = await _supabase
         .from('bookings')
         .insert({
           'parent_id': userId,
           'driver_id': driverId,
           'status': 'pending',
           'booking_type': bookingType,
+
           'hometxt_location': homeLocation,
           'schooltxt_location': schoolLocation,
-          // Use SRID 4326 for WGS 84
+
           if (homeLat != null && homeLng != null)
             'homegeo_location': 'SRID=4326;POINT($homeLng $homeLat)',
+
           if (schoolLat != null && schoolLng != null)
             'schoolgeo_location': 'SRID=4326;POINT($schoolLng $schoolLat)',
-          // 'home_lat': homeLat, // GENERATED COLUMN
-          // 'home_lng': homeLng, // GENERATED COLUMN
-          // 'school_lat': schoolLat, // GENERATED COLUMN
-          // 'school_lng': schoolLng, // GENERATED COLUMN
+
           'home_pickup_time': formatTime(homePickupTime),
           'school_pickup_time': formatTime(schoolPickupTime),
           'notes': notes,
-          // price is omitted, so it will be null
+
+          // 🔁 Recurring
+          'start_date': startDate.toIso8601String(),
+          'end_date': endDate.toIso8601String(),
+          'is_recurring': isRecurring,
+          'recurring_days': recurringDays,
+          'is_monthly_subscription': isMonthlySubscription,
         })
         .select()
         .single();
 
-    final bookingId = bookingData['id'] as String;
+    final bookingId = booking['id'] as String;
 
-    // 2. Link Children
+    // 2️⃣ Link children
     if (childIds.isNotEmpty) {
-      final childrenMap = childIds
-          .map((childId) => {'booking_id': bookingId, 'child_id': childId})
-          .toList();
-
-      await _supabase.from('booking_children').insert(childrenMap);
+      await _supabase.from('booking_children').insert(
+        childIds.map((id) => {
+          'booking_id': bookingId,
+          'child_id': id,
+        }).toList(),
+      );
     }
   }
 
-  /// Cancels a booking by updating its status to 'cancelled'.
+  /// Cancel booking
   Future<void> cancelBooking(String bookingId) async {
     await _supabase
         .from('bookings')
@@ -91,27 +104,22 @@ class BookingsRepository {
         .eq('id', bookingId);
   }
 
-  /// Permanently deletes a booking.
-  /// Note: This might fail if there are related payments or other constrained records.
+  /// Delete booking
   Future<void> deleteBooking(String bookingId) async {
     await _supabase.from('bookings').delete().eq('id', bookingId);
   }
 
+  /// ✅ REALTIME + NO N+1
   Stream<List<Map<String, dynamic>>> getBookingsStream() {
     final userId = _supabase.auth.currentUser!.id;
-    // Note: Supabase Realtime doesn't directly support RPC calls.
-    // So, we're combining a Realtime stream on the 'bookings' table
-    // with an efficient initial data fetch and subsequent fetches using our RPC.
+
     return _supabase
         .from('bookings')
         .stream(primaryKey: ['id'])
         .eq('parent_id', userId)
-        .asyncMap((_) {
-      // When the stream notifies of a change, we re-fetch the whole enriched list.
-      // This is more efficient than the N+1 problem.
-      return _supabase
-          .rpc('get_enriched_bookings')
-          .then((value) => (value as List).cast<Map<String, dynamic>>());
-    });
+        .asyncMap((_) async {
+          final data = await _supabase.rpc('get_enriched_bookings');
+          return (data as List).cast<Map<String, dynamic>>();
+        });
   }
 }
