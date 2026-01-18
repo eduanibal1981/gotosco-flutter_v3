@@ -65,6 +65,7 @@ class DriverStatusMonitor extends ConsumerWidget {
           isActive: isActive,
           onViewAll: () {
             // Navigate to "My Bookings" tab (Index 3)
+            // Implementation confirmed: Switches dashboard tab to My Bookings
             ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
           },
           onTrack: () {
@@ -115,6 +116,7 @@ class DriverStatusMonitor extends ConsumerWidget {
       isActive: false,
       onViewAll: () {
         // Navigate to "My Bookings" tab (Index 3)
+        // Implementation confirmed: Switches dashboard tab to My Bookings
         ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
       },
       onTrack: () {
