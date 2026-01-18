@@ -63,9 +63,8 @@ class DriverStatusMonitor extends ConsumerWidget {
           badgeText: badgeText,
           badgeColor: badgeColor,
           isActive: isActive,
-          onViewAll: () {
-            ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
-          },
+          onViewAll: () =>
+              ref.read(parentDashboardIndexProvider.notifier).setIndex(3),
           onTrack: () {
             context.push(
               '/tracking',
@@ -112,10 +111,8 @@ class DriverStatusMonitor extends ConsumerWidget {
       badgeText: 'SCHEDULED',
       badgeColor: Colors.blue,
       isActive: false,
-      onViewAll: () {
-        // Navigate to "My Bookings" tab (Index 3)
-        ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
-      },
+      onViewAll: () =>
+          ref.read(parentDashboardIndexProvider.notifier).setIndex(3),
       onTrack: () {
         // Allow opening map even if offline to show status
         context.push(
