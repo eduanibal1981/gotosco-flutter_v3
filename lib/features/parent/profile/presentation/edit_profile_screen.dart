@@ -1,3 +1,4 @@
+// lib/features/parent/profile/presentation/edit_profile_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -51,6 +52,14 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Name cannot be empty')));
+      return;
+    }
+
+    // Phone validation
+    if (_phoneController.text.isNotEmpty && _phoneController.text.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a valid phone number')),
+      );
       return;
     }
 
