@@ -64,6 +64,7 @@ class DriverStatusMonitor extends ConsumerWidget {
           badgeColor: badgeColor,
           isActive: isActive,
           onViewAll: () {
+            // Switch to My Bookings tab
             ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
           },
           onTrack: () {
@@ -113,7 +114,7 @@ class DriverStatusMonitor extends ConsumerWidget {
       badgeColor: Colors.blue,
       isActive: false,
       onViewAll: () {
-        // Navigate to "My Bookings" tab (Index 3)
+        // Switch to My Bookings tab
         ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
       },
       onTrack: () {
