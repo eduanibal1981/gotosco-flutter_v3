@@ -5,11 +5,27 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../data/driver_messages_repository.dart';
 
-class DriverMessagesScreen extends ConsumerWidget {
+class DriverMessagesScreen extends ConsumerStatefulWidget {
   const DriverMessagesScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DriverMessagesScreen> createState() =>
+      _DriverMessagesScreenState();
+}
+
+class _DriverMessagesScreenState extends ConsumerState<DriverMessagesScreen> {
+  bool _isSearching = false;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final conversationsAsync = ref.watch(driverConversationsStreamProvider);
 
     return Scaffold(
@@ -17,28 +33,80 @@ class DriverMessagesScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        title: const Text(
-          'Messages',
-          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
-        ),
+        leading: _isSearching
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.grey),
+                onPressed: () {
+                  setState(() {
+                    _isSearching = false;
+                    _searchQuery = '';
+                    _searchController.clear();
+                  });
+                },
+              )
+            : null, // Default back button
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                style: const TextStyle(color: Colors.black87),
+                decoration: const InputDecoration(
+                  hintText: 'Search messages...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.grey),
+                ),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              )
+            : const Text(
+                'Messages',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.search, color: Colors.grey.shade600),
-            onPressed: () {
-              // TODO: Implement search
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Search coming soon!')),
-              );
-            },
-          ),
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.grey),
+              onPressed: () {
+                setState(() {
+                  _searchQuery = '';
+                  _searchController.clear();
+                });
+              },
+            )
+          else
+            IconButton(
+              icon: Icon(Icons.search, color: Colors.grey.shade600),
+              onPressed: () {
+                setState(() {
+                  _isSearching = true;
+                });
+              },
+            ),
         ],
       ),
       body: conversationsAsync.when(
         data: (conversations) {
-          if (conversations.isEmpty) {
+          final filteredConversations = _searchQuery.isEmpty
+              ? conversations
+              : conversations.where((c) {
+                  final query = _searchQuery.toLowerCase();
+                  return c.parentName.toLowerCase().contains(query) ||
+                      c.lastMessage.toLowerCase().contains(query);
+                }).toList();
+
+          if (filteredConversations.isEmpty) {
+            if (_isSearching) {
+              return _buildNoSearchResults();
+            }
             return _buildEmptyState();
           }
-          return _buildConversationsList(context, ref, conversations);
+          return _buildConversationsList(context, ref, filteredConversations);
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, _) => Center(
@@ -103,6 +171,31 @@ class DriverMessagesScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildNoSearchResults() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.search_off, size: 64, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'No results found',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.grey.shade700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Try searching with a different keyword',
+            style: TextStyle(color: Colors.grey.shade500),
+          ),
+        ],
       ),
     );
   }
