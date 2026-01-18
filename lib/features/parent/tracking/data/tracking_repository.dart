@@ -17,8 +17,15 @@ class BookingLocations {
   final LatLng? school;
   final String? driverId;
   final String? driverName;
+  final String? driverPhone;
 
-  BookingLocations({this.home, this.school, this.driverId, this.driverName});
+  BookingLocations({
+    this.home,
+    this.school,
+    this.driverId,
+    this.driverName,
+    this.driverPhone,
+  });
 
   bool get hasLocations => home != null || school != null;
 }
@@ -66,7 +73,7 @@ class TrackingRepository {
         .select('''
           home_lat, home_lng, school_lat, school_lng, driver_id,
           drivers!bookings_driver_id_fkey(
-            users!drivers_user_id_fkey(full_name)
+            users!drivers_user_id_fkey(full_name, phone)
           )
         ''')
         .eq('id', bookingId)
@@ -82,7 +89,9 @@ class TrackingRepository {
     final schoolLng = response['school_lng'] as num?;
 
     // Navigate through the nested structure: drivers -> users -> full_name
-    final driverName = response['drivers']?['users']?['full_name'] as String?;
+    final driverData = response['drivers']?['users'];
+    final driverName = driverData?['full_name'] as String?;
+    final driverPhone = driverData?['phone'] as String?;
 
     return BookingLocations(
       home: (homeLat != null && homeLng != null)
@@ -93,6 +102,7 @@ class TrackingRepository {
           : null,
       driverId: response['driver_id'] as String?,
       driverName: driverName,
+      driverPhone: driverPhone,
     );
   }
 
