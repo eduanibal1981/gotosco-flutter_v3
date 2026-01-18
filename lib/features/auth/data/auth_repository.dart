@@ -136,6 +136,9 @@ class AuthRepository {
 
       // Create/Update public profile if this is a new user
       if (response.user != null) {
+        // OPTIMIZATION: We use upsert in _createPublicProfile with ignoreDuplicates: true
+        // to handle the existence check atomically. This avoids an extra round-trip
+        // to check if the user exists (getUserProfile) before creating them.
         await _createPublicProfile(
           userId: response.user!.id,
           email: googleUser.email,

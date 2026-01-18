@@ -24,6 +24,8 @@ import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages
 import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart';
+import 'package:gotosco_v3/features/parent/profile/presentation/edit_profile_screen.dart';
+import 'package:gotosco_v3/core/models/user_model.dart';
 
 part 'router.g.dart';
 
@@ -54,6 +56,13 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/parent-chats',
         builder: (context, state) => const ParentMessagesScreen(),
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        builder: (context, state) {
+          final user = state.extra as UserModel;
+          return EditProfileScreen(user: user);
+        },
       ),
 
       // DRIVER ROUTES

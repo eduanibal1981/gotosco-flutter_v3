@@ -8,8 +8,6 @@ import 'package:gotosco_v3/features/parent/children/data/children_repository.dar
 import 'package:gotosco_v3/features/parent/bookings/data/bookings_repository.dart';
 import 'package:gotosco_v3/core/providers/user_session_provider.dart';
 
-import 'edit_profile_screen.dart'; // Import the new screen
-
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
 
@@ -77,12 +75,7 @@ class ProfileTab extends ConsumerWidget {
                           IconButton(
                             icon: const Icon(Icons.edit, color: Colors.white),
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => EditProfileScreen(user: user),
-                                ),
-                              );
+                              context.push('/edit-profile', extra: user);
                             },
                           ),
                         ],
@@ -224,7 +217,14 @@ class ProfileTab extends ConsumerWidget {
                         title: 'Email',
                         subtitle: user.email,
                       ),
-                      // Removed old "Edit Profile" button
+                      _buildListTile(
+                        icon: Icons.edit_outlined,
+                        title: 'Edit Profile',
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () {
+                          context.push('/edit-profile', extra: user);
+                        },
+                      ),
                     ]),
 
                     const SizedBox(height: 20),
