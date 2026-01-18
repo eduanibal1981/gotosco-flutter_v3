@@ -68,11 +68,11 @@ class DriversRepository {
           .toList();
     } catch (e) {
       if (e is PostgrestException) {
-        print(
+        debugPrint(
           'Postgrest Error: ${e.message} code: ${e.code} details: ${e.details} hint: ${e.hint}',
         );
       }
-      print('Error searching drivers: $e');
+      debugPrint('Error searching drivers: $e');
       return [];
     }
   }
