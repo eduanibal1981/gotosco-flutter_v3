@@ -688,68 +688,24 @@ class MyBookingsTab extends ConsumerWidget {
     WidgetRef ref,
     Map<String, dynamic> booking,
   ) {
-    // We can't easily re-use the exact same booking object because prices might have changed.
-    // Best practice is to send them to the driver's profile to start fresh.
-    // We need to construct a minimal driver object or fetch it.
-    // Getting the driver object from the booking might be incomplete,
-    // but we have enough for the detailed screen usually.
+    final driverId = booking['driver_id'];
+    final driverName = booking['driver_name'] ?? 'Driver';
 
-    // Quick Hack: Construct a minimal driver object.
-    //Ideally, we should fetch the driver details, but `DriverAdModel` might be needed.
-    // Let's assume the DriverDetailScreen handles fetching or we check what it needs.
-    // The bookings `getBookingsStream` joins `users` table for `full_name` and `photo_url`.
-    // It DOES NOT fetch all driver ads stats (price etc).
-
-    // So, instead of pushing `/driver-detail`, we might stumble if it expects a full `DriverAdModel`.
-    // Let's safe-guard this by just navigating to the find-drivers page or show a "Go to Find Drivers"
-    // OR (Better), if we have the `driver_id`, we push to `/driver-detail` and make sure that screen can handle just an ID or fetch data.
-
-    // Looking at previous code, `/driver-detail` takes a `DriverAdModel` in `extra`.
-    // We DON'T have a `DriverAdModel` here, we just have a Map.
-    // Safer options:
-    // 1. Fetch the driver ad model first (slow)
-    // 2. Modify DriverDetailScreen to accept `driverId` parameter (best practice)
-    // 3. Just tell user to find driver.
-
-    // I will use a simple workaround: Show a snackbar directing them to Find Drivers for now,
-    // or (Cleaner) Try to navigate to the driver detail if I can construct a dummy model, but that's risky.
-
-    // Let's implement option 2 implication:
-    // Context: MyBookingsTab doesn't know about DriverAdModel easily without imports.
-
-    // Let's go with:
-    // "Navigating to this driver..." -> Find and open.
-    // Given the complexity constraints in this single file edit, I will navigate to
-    // the search tab with the driver's name? No.
-
-    // Let's just create a basic Map and pass it if the route accepts it?
-    // No, strict typing.
-
-    // I will modify `_rebookDriver` to just switch tab to Find Drivers for now if I can't easily fetch.
-    // WAIT! I can use `ref.read(driverRepositoryProvider).getDriver(id)` if available.
-    // But I don't want to import that here if not needed.
-
-    // DECISION: I'll use `context.push('/driver-detail', extra: ...)` but I need to know what `extra` is.
-    // In `driver_ad_card.dart` it was `DriverAdModel`.
-
-    // Let's just allow the user to go to the "Find Drivers" tab.
-    // Or, more intuitively, I will disable "Rebook" for now and just rely on Delete?
-    // User ASKED for Rebook.
-
-    // Let's do this:
-    // Since I can't easily form a `DriverAdModel` here without fetching,
-    // I will try to implement a quick fetch if I can import the model,
-    // or just link to the main list.
-
-    // Compromise: Navigate to Dashboard Index 1 (Find Drivers).
-    ref.read(parentDashboardIndexProvider.notifier).setIndex(1);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Please find ${booking['driver_name']} in the list to rebook.',
-        ),
-      ),
-    );
+    if (driverId != null) {
+      context.push(
+        '/booking',
+        extra: {
+          'driverId': driverId,
+          'driverName': driverName,
+          // Pass the existing booking to pre-fill the form
+          'initialData': booking,
+        },
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot rebook: Driver details missing')),
+      );
+    }
   }
 
   void _showCancelDialog(

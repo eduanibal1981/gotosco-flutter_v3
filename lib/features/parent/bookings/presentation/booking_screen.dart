@@ -9,11 +9,13 @@ import 'bookings_controller.dart';
 class BookingScreen extends ConsumerStatefulWidget {
   final String driverId;
   final String driverName;
+  final Map<String, dynamic>? initialData;
 
   const BookingScreen({
     super.key,
     required this.driverId,
     required this.driverName,
+    this.initialData,
   });
 
   @override
@@ -58,6 +60,73 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     'Thursday',
     'Sunday',
   ]; // Assuming Friday/Saturday is weekend in this region (e.g., Middle East) or standard Mon-Fri.
+
+  List<String>? _initialChildNames;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialData != null) {
+      _prefillData(widget.initialData!);
+    }
+  }
+
+  void _prefillData(Map<String, dynamic> data) {
+    _bookingType = data['booking_type'] ?? 'Two Way';
+    if (!_bookingTypes.contains(_bookingType)) {
+      _bookingType = _bookingTypes.first;
+    }
+
+    _homeLocController.text = data['home_location'] ?? '';
+    _schoolLocController.text = data['school_location'] ?? '';
+    _notesController.text = data['notes'] ?? '';
+
+    _homeLat = data['home_lat'] as double?;
+    _homeLng = data['home_lng'] as double?;
+    _schoolLat = data['school_lat'] as double?;
+    _schoolLng = data['school_lng'] as double?;
+
+    // Parse times
+    if (data['home_pickup_time'] != null) {
+      _homePickupTime = _parseTime(data['home_pickup_time']);
+    }
+    if (data['school_pickup_time'] != null) {
+      _schoolPickupTime = _parseTime(data['school_pickup_time']);
+    }
+
+    // Recurring
+    _isRecurring = data['is_recurring'] == true;
+    _isMonthlySubscription = data['is_monthly_subscription'] == true;
+
+    if (data['recurring_days'] != null) {
+      final days = data['recurring_days'];
+      if (days is List) {
+        _selectedDays.addAll(days.map((e) => e.toString()));
+      }
+    }
+
+    // Child Names to select later
+    if (data['child_names'] != null &&
+        (data['child_names'] as List).isNotEmpty) {
+      _initialChildNames =
+          (data['child_names'] as List).map((e) => e.toString()).toList();
+    }
+  }
+
+  TimeOfDay? _parseTime(String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      if (parts.length >= 2) {
+        return TimeOfDay(
+          hour: int.parse(parts[0]),
+          minute: int.parse(parts[1]),
+        );
+      }
+    } catch (e) {
+      // ignore
+    }
+    return null;
+  }
 
   @override
   void dispose() {
@@ -202,6 +271,30 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             ),
             child: myChildren.when(
               data: (children) {
+                // Auto-select children if initial data provided and not yet selected
+                if (_initialChildNames != null &&
+                    _initialChildNames!.isNotEmpty &&
+                    _selectedChildIds.isEmpty) {
+                  // Run after build
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted &&
+                        _selectedChildIds.isEmpty &&
+                        _initialChildNames != null) {
+                      final idsToSelect = children
+                          .where((c) => _initialChildNames!.contains(c.name))
+                          .map((c) => c.id)
+                          .toList();
+                      if (idsToSelect.isNotEmpty) {
+                        setState(() {
+                          _selectedChildIds.addAll(idsToSelect);
+                          // Clear so we don't re-select if user unchecks
+                          _initialChildNames = null;
+                        });
+                      }
+                    }
+                  });
+                }
+
                 if (children.isEmpty)
                   return const Padding(
                     padding: EdgeInsets.all(16),

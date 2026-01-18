@@ -105,6 +105,7 @@ GoRouter router(Ref ref) {
           return BookingScreen(
             driverId: args['driverId'],
             driverName: args['driverName'],
+            initialData: args['initialData'],
           );
         },
       ),
