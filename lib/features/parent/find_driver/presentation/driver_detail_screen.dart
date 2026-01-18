@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -341,10 +342,11 @@ class DriverDetailScreen extends ConsumerWidget {
       return Container(
         color: Colors.grey.shade200,
         child: driver.photoUrl != null
-            ? Image.network(
-                driver.photoUrl!,
+            ? CachedNetworkImage(
+                imageUrl: driver.photoUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Center(
+                placeholder: (context, url) => Container(color: Colors.grey.shade200),
+                errorWidget: (context, url, error) => const Center(
                   child: Icon(Icons.person, size: 64, color: Colors.grey),
                 ),
               )
@@ -357,10 +359,11 @@ class DriverDetailScreen extends ConsumerWidget {
     return PageView.builder(
       itemCount: driver.adPhotos.length,
       itemBuilder: (context, index) {
-        return Image.network(
-          driver.adPhotos[index],
+        return CachedNetworkImage(
+          imageUrl: driver.adPhotos[index],
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          placeholder: (context, url) => Container(color: Colors.grey.shade200),
+          errorWidget: (context, url, error) => Container(
             color: Colors.grey.shade100,
             child: const Icon(Icons.error),
           ),
