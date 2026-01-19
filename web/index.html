@@ -44,7 +44,9 @@
   <!-- Register Firebase Messaging Service Worker -->
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/firebase-messaging-sw.js')
+      const baseHref = document.querySelector('base')?.href || window.location.href;
+      const swUrl = new URL('firebase-messaging-sw.js', baseHref);
+      navigator.serviceWorker.register(swUrl.toString())
         .then((registration) => {
           console.log('Firebase SW registered:', registration.scope);
         })
