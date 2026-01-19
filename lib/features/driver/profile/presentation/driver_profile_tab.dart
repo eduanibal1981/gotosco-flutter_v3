@@ -1657,21 +1657,11 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
   }
 
   void _showEditProfileSheet(DriverProfileModel profile) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _EditProfileSheet(profile: profile),
-    );
+    context.push('/driver-profile-edit', extra: profile);
   }
 
   void _showCreateProfileSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const _CreateProfileSheet(),
-    );
+    context.push('/driver-profile-create');
   }
 
   void _showLogoutDialog() {
@@ -1707,16 +1697,22 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 }
 
 // Edit Profile Bottom Sheet
-class _EditProfileSheet extends ConsumerStatefulWidget {
+class DriverEditProfileSheet extends ConsumerStatefulWidget {
   final DriverProfileModel profile;
+  final bool fullScreen;
 
-  const _EditProfileSheet({required this.profile});
+  const DriverEditProfileSheet({
+    super.key,
+    required this.profile,
+    this.fullScreen = false,
+  });
 
   @override
-  ConsumerState<_EditProfileSheet> createState() => _EditProfileSheetState();
+  ConsumerState<DriverEditProfileSheet> createState() =>
+      _EditProfileSheetState();
 }
 
-class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
+class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
   late TextEditingController _experienceController;
   late TextEditingController _licenseNumberController;
   late TextEditingController _vehicleNumberController;
@@ -1775,10 +1771,14 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
+      height: widget.fullScreen
+          ? null
+          : MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: widget.fullScreen
+            ? BorderRadius.zero
+            : const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -2028,16 +2028,56 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   }
 }
 
-// Create Profile Bottom Sheet for new drivers
-class _CreateProfileSheet extends ConsumerStatefulWidget {
-  const _CreateProfileSheet();
+class DriverEditProfileScreen extends StatelessWidget {
+  final DriverProfileModel profile;
+
+  const DriverEditProfileScreen({super.key, required this.profile});
 
   @override
-  ConsumerState<_CreateProfileSheet> createState() =>
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Edit Profile'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      body: DriverEditProfileSheet(profile: profile, fullScreen: true),
+    );
+  }
+}
+
+class DriverCreateProfileScreen extends StatelessWidget {
+  const DriverCreateProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Create Profile'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
+      ),
+      body: const DriverCreateProfileSheet(fullScreen: true),
+    );
+  }
+}
+
+// Create Profile Bottom Sheet for new drivers
+class DriverCreateProfileSheet extends ConsumerStatefulWidget {
+  final bool fullScreen;
+
+  const DriverCreateProfileSheet({super.key, this.fullScreen = false});
+
+  @override
+  ConsumerState<DriverCreateProfileSheet> createState() =>
       _CreateProfileSheetState();
 }
 
-class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
+class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
   final _experienceController = TextEditingController(text: '0');
   final _licenseNumberController = TextEditingController();
   final _vehicleNumberController = TextEditingController();
@@ -2071,10 +2111,14 @@ class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
-      decoration: const BoxDecoration(
+      height: widget.fullScreen
+          ? null
+          : MediaQuery.of(context).size.height * 0.85,
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: widget.fullScreen
+            ? BorderRadius.zero
+            : const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
