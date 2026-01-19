@@ -5,6 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'web_notification.dart';
 
 /// Top-level function to handle background messages.
 /// This must be a top-level function (not a class method).
@@ -186,6 +187,14 @@ class NotificationService {
 
     final notification = message.notification;
     final android = message.notification?.android;
+
+    if (kIsWeb && notification != null) {
+      showWebNotification(
+        notification.title ?? 'GoToSco',
+        notification.body ?? 'You have a new notification',
+      );
+      return;
+    }
 
     // Show local notification on Android when in foreground
     if (notification != null && android != null) {

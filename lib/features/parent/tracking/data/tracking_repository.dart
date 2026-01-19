@@ -119,17 +119,22 @@ class TrackingRepository {
   }
 
   Future<ParentNextStopInfo?> getParentNextStopInfo(String bookingId) async {
-    final response = await _supabase.rpc(
-      'get_parent_next_stop_info',
-      params: {'booking_id_input': bookingId},
-    );
-
-    if (response is List && response.isNotEmpty) {
-      return ParentNextStopInfo.fromMap(
-        Map<String, dynamic>.from(response.first),
+    try {
+      final response = await _supabase.rpc(
+        'get_parent_next_stop_info',
+        params: {'booking_id_input': bookingId},
       );
+
+      if (response is List && response.isNotEmpty) {
+        return ParentNextStopInfo.fromMap(
+          Map<String, dynamic>.from(response.first),
+        );
+      }
+      return null;
+    } catch (_) {
+      // RPC missing or blocked; treat as no info to avoid console noise.
+      return null;
     }
-    return null;
   }
 
   /// Calculates estimated time of arrival in minutes.

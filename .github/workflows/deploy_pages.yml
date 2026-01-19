@@ -46,7 +46,7 @@ jobs:
 
       # 6️⃣ Build Flutter Web with hash strategy (prevents caching issues)
       - name: Build Flutter web
-        run: flutter build web --release --base-href="/gotosco-flutter_v3/"
+        run: flutter build web --release --pwa-strategy=none --base-href="/gotosco-flutter_v3/"
 
       - name: Copy Firebase messaging service worker
         run: |
