@@ -98,6 +98,32 @@ class DriversRepository {
     return (data as List).map((e) => e['driver_id'] as String).toList();
   }
 
+  // Get full details of favorite drivers
+  Future<List<DriverAdModel>> getFavoriteDrivers() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    try {
+      // Fetch saved_drivers and join with drivers table
+      // We assume the foreign key is set up correctly.
+      final data = await _supabase
+          .from('saved_drivers')
+          .select('driver_id, drivers(*)')
+          .eq('parent_id', userId);
+
+      return (data as List).map((e) {
+        final driverData = e['drivers'];
+        if (driverData == null) return null;
+        // Map the driver data to DriverAdModel
+        // Note: Aggregated fields like covered_schools might be missing if not in 'drivers' table
+        return DriverAdModel.fromMap(driverData as Map<String, dynamic>);
+      }).whereType<DriverAdModel>().toList();
+    } catch (e) {
+      debugPrint('Error fetching favorite drivers: $e');
+      return [];
+    }
+  }
+
   // Toggle Favorite (Add if missing, Remove if exists)
   Future<void> toggleFavorite(String driverId) async {
     final userId = _supabase.auth.currentUser?.id;

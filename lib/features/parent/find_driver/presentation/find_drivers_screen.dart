@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/filter_drivers_screen.dart';
+import 'package:gotosco_v3/features/parent/find_driver/presentation/favorites_screen.dart';
 import '../data/drivers_repository.dart';
 import 'widgets/driver_ad_card.dart';
 import 'drivers_controller.dart';
@@ -211,6 +212,37 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                           ),
                         ),
                     ],
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                // Favorites Button
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FavoritesScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.pink.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.pink.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.favorite, color: Colors.pink),
                   ),
                 ),
               ],
