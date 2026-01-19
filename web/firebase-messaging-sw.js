@@ -15,16 +15,18 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
+const scope = self.registration.scope;
 
 // Handle background messages
 messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Received background message:', payload);
 
     const notificationTitle = payload.notification?.title || 'GoToSco';
+    const iconUrl = `${scope}icons/Icon-192.png`;
     const notificationOptions = {
         body: payload.notification?.body || 'You have a new notification',
-        icon: '/icons/Icon-192.png',
-        badge: '/icons/Icon-192.png',
+        icon: iconUrl,
+        badge: iconUrl,
         data: payload.data,
     };
 
@@ -45,7 +47,7 @@ self.addEventListener('notificationclick', (event) => {
                 }
             }
             if (clients.openWindow) {
-                return clients.openWindow('/');
+                return clients.openWindow(scope);
             }
         })
     );
