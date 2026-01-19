@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/filter_drivers_screen.dart';
+import 'package:gotosco_v3/features/parent/find_driver/presentation/favorites_screen.dart';
 import '../data/drivers_repository.dart';
 import 'widgets/driver_ad_card.dart';
 import 'drivers_controller.dart';
@@ -16,7 +16,8 @@ class FindDriversScreen extends ConsumerStatefulWidget {
 
 class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   Position? _currentPosition;
-  Timer? _debounce;
+  bool _locationDenied = false;
+  bool _locationServiceDisabled = false;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -29,7 +30,6 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -53,20 +53,53 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
     LocationPermission permission;
 
     serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    if (!serviceEnabled) {
+      if (mounted) {
+        setState(() {
+          _locationServiceDisabled = true;
+        });
+      }
+      return;
+    }
 
     permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          setState(() {
+            _locationDenied = true;
+          });
+        }
+        return;
+      }
     }
 
-    if (permission == LocationPermission.deniedForever) return;
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        setState(() {
+          _locationDenied = true;
+        });
+      }
+      return;
+    }
 
     final position = await Geolocator.getCurrentPosition();
     if (mounted) {
-      setState(() => _currentPosition = position);
+      setState(() {
+        _currentPosition = position;
+        _locationDenied = false;
+        _locationServiceDisabled = false;
+      });
     }
+  }
+
+  void _openLocationSettings() {
+    Geolocator.openLocationSettings();
+  }
+
+  void _openAppSettings() {
+    Geolocator.openAppSettings();
   }
 
   void _openFilters() async {
@@ -134,13 +167,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                         contentPadding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       onChanged: (val) {
-                        if (_debounce?.isActive ?? false) _debounce!.cancel();
-                        _debounce =
-                            Timer(const Duration(milliseconds: 500), () {
-                          ref
-                              .read(driversFilterControllerProvider.notifier)
-                              .updateFilters({'searchQuery': val});
-                        });
+                        // Implement text search logic if needed
                       },
                     ),
                   ),
@@ -187,9 +214,48 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                     ],
                   ),
                 ),
+
+                const SizedBox(width: 12),
+
+                // Favorites Button
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const FavoritesScreen(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    height: 50,
+                    width: 50,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.pink.shade100),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.pink.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.favorite, color: Colors.pink),
+                  ),
+                ),
               ],
             ),
           ),
+
+          if (_locationServiceDisabled || _locationDenied)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: _buildLocationBanner(),
+              ),
+            ),
 
           // --- 4. NEW: Filter Summary Bar ---
           if (filterSummary != null)
@@ -342,6 +408,58 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
             ),
             error: (err, stack) =>
                 SliverFillRemaining(child: Center(child: Text("Error: $err"))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationBanner() {
+    final title = _locationServiceDisabled
+        ? 'Turn on Location Services'
+        : 'Enable Location Permission';
+    final body = _locationServiceDisabled
+        ? 'Location is off. Turn it on to find nearby drivers.'
+        : 'Allow location to improve driver search results.';
+    final actionLabel = _locationServiceDisabled ? 'Open Settings' : 'Grant Access';
+    final onTap = _locationServiceDisabled ? _openLocationSettings : _openAppSettings;
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_off, color: Colors.orange.shade600),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.orange.shade800,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  body,
+                  style: TextStyle(
+                    color: Colors.orange.shade700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: onTap,
+            child: Text(actionLabel),
           ),
         ],
       ),
