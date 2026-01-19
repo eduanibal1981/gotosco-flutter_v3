@@ -34,19 +34,29 @@ class DriverAds extends _$DriverAds {
     Map<String, dynamic> filters,
     int offset,
   ) async {
-    final results = await ref
-        .read(driversRepositoryProvider)
-        .searchDrivers(
-          filters,
-          limit: _limit,
-          offset: offset,
-          parentLat: lat,
-          parentLng: lng,
-        );
+    final searchQuery = filters['searchQuery'] as String?;
+    final isSearching = searchQuery != null && searchQuery.isNotEmpty;
 
-    // If we got fewer items than limit, we've reached the end.
-    if (results.length < _limit) {
+    // If searching, fetch all (limit 1000) and disable pagination.
+    // Otherwise use standard pagination.
+    final limit = isSearching ? 1000 : _limit;
+    final fetchOffset = isSearching ? 0 : offset;
+
+    final results = await ref.read(driversRepositoryProvider).searchDrivers(
+      filters,
+      limit: limit,
+      offset: fetchOffset,
+      parentLat: lat,
+      parentLng: lng,
+    );
+
+    // Update pagination state
+    if (isSearching) {
       _hasMore = false;
+    } else {
+      if (results.length < _limit) {
+        _hasMore = false;
+      }
     }
     return results;
   }
@@ -110,6 +120,7 @@ class DriversFilterController extends _$DriversFilterController {
     'cityId': null,
     'areaId': null,
     'schoolId': null,
+    'searchQuery': '',
   };
 
   /// Updates filters with new values.
@@ -126,12 +137,18 @@ class DriversFilterController extends _$DriversFilterController {
       'cityId': null,
       'areaId': null,
       'schoolId': null,
+      'searchQuery': '',
     };
   }
 
   /// Returns a summary of active filters, or null if no filters applied.
   String? get filterSummary {
     final List<String> active = [];
+
+    if (state['searchQuery'] != null &&
+        (state['searchQuery'] as String).isNotEmpty) {
+      active.add("Search: ${state['searchQuery']}");
+    }
 
     if (state['cityId'] != null || state['areaId'] != null) {
       active.add("Location");

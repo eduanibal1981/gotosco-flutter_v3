@@ -29,6 +29,9 @@ class DriversRepository {
     double? parentLng,
   }) async {
     try {
+      final searchQuery = filters['searchQuery'] as String?;
+      final isSearching = searchQuery != null && searchQuery.isNotEmpty;
+
       // Map Dart filters to SQL RPC parameters (v2)
       final params = {
         // Basic
@@ -63,9 +66,28 @@ class DriversRepository {
         params: params,
       );
 
-      return (response as List)
-          .map((data) => DriverAdModel.fromMap(data))
-          .toList();
+      var results =
+          (response as List).map((data) => DriverAdModel.fromMap(data)).toList();
+
+      // Perform client-side text filtering if search query exists
+      if (isSearching) {
+        final query = searchQuery!.toLowerCase();
+        results =
+            results.where((driver) {
+              final nameMatch = driver.name.toLowerCase().contains(query);
+              final bioMatch = driver.bio.toLowerCase().contains(query);
+              final schoolMatch = driver.coveredSchools.any(
+                (s) => s.toLowerCase().contains(query),
+              );
+              final areaMatch = driver.coveredAreas.any(
+                (a) => a.toLowerCase().contains(query),
+              );
+
+              return nameMatch || bioMatch || schoolMatch || areaMatch;
+            }).toList();
+      }
+
+      return results;
     } catch (e) {
       if (e is PostgrestException) {
         debugPrint(

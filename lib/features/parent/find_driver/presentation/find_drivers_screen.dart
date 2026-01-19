@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -15,6 +16,7 @@ class FindDriversScreen extends ConsumerStatefulWidget {
 
 class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   Position? _currentPosition;
+  Timer? _debounce;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -27,6 +29,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -131,7 +134,13 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                         contentPadding: EdgeInsets.symmetric(vertical: 14),
                       ),
                       onChanged: (val) {
-                        // Implement text search logic if needed
+                        if (_debounce?.isActive ?? false) _debounce!.cancel();
+                        _debounce =
+                            Timer(const Duration(milliseconds: 500), () {
+                          ref
+                              .read(driversFilterControllerProvider.notifier)
+                              .updateFilters({'searchQuery': val});
+                        });
                       },
                     ),
                   ),
