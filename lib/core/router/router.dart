@@ -1,4 +1,4 @@
-// lib/core/router/router.dart
+﻿// lib/core/router/router.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,6 +25,8 @@ import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart';
 import 'package:gotosco_v3/features/parent/profile/presentation/edit_profile_screen.dart';
+import 'package:gotosco_v3/features/parent/transport_requests/presentation/transport_request_screen.dart';
+import 'package:gotosco_v3/features/parent/notifications/presentation/notifications_screen.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 
 part 'router.g.dart';
@@ -56,6 +58,14 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/parent-chats',
         builder: (context, state) => const ParentMessagesScreen(),
+      ),
+      GoRoute(
+        path: '/transport-request',
+        builder: (context, state) => const TransportRequestScreen(),
+      ),
+      GoRoute(
+        path: '/notifications',
+        builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
         path: '/edit-profile',
@@ -205,3 +215,5 @@ GoRouter router(Ref ref) {
     },
   );
 }
+
+

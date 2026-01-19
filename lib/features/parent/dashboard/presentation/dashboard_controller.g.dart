@@ -9,17 +9,17 @@ part of 'dashboard_controller.dart';
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
 /// Controls the Bottom Navigation Index
-/// 0 = Find, 1 = Home (Default), 2 = Children, etc.
+/// 0 = Children, 1 = Find Driver, 2 = Home, 3 = Bookings, 4 = Profile
 
 @ProviderFor(ParentDashboardIndex)
 final parentDashboardIndexProvider = ParentDashboardIndexProvider._();
 
 /// Controls the Bottom Navigation Index
-/// 0 = Find, 1 = Home (Default), 2 = Children, etc.
+/// 0 = Children, 1 = Find Driver, 2 = Home, 3 = Bookings, 4 = Profile
 final class ParentDashboardIndexProvider
     extends $NotifierProvider<ParentDashboardIndex, int> {
   /// Controls the Bottom Navigation Index
-  /// 0 = Find, 1 = Home (Default), 2 = Children, etc.
+  /// 0 = Children, 1 = Find Driver, 2 = Home, 3 = Bookings, 4 = Profile
   ParentDashboardIndexProvider._()
     : super(
         from: null,
@@ -48,10 +48,10 @@ final class ParentDashboardIndexProvider
 }
 
 String _$parentDashboardIndexHash() =>
-    r'c766c6c6c64f3d3c1efd400d35ae82c6e337f252';
+    r'9386a0f8b2d531ebb4f9bdf923e3110fcd1f3fd4';
 
 /// Controls the Bottom Navigation Index
-/// 0 = Find, 1 = Home (Default), 2 = Children, etc.
+/// 0 = Children, 1 = Find Driver, 2 = Home, 3 = Bookings, 4 = Profile
 
 abstract class _$ParentDashboardIndex extends $Notifier<int> {
   int build();

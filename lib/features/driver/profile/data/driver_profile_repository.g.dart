@@ -102,7 +102,7 @@ final class CurrentDriverProfileProvider
 }
 
 String _$currentDriverProfileHash() =>
-    r'974dc8b39a821c8ee29d313b2d2278a28e2000ed';
+    r'02d9b4472ee22b4dff71062ab44e99ddabafc726';
 
 /// Provider for the current driver's schedules
 

@@ -106,6 +106,32 @@ class TrackingRepository {
     );
   }
 
+  Stream<Map<String, dynamic>?> streamLatestRideEvent(String bookingId) {
+    return _supabase
+        .from('ride_events')
+        .stream(primaryKey: ['id'])
+        .eq('booking_id', bookingId)
+        .order('created_at', ascending: false)
+        .map((events) {
+          if (events.isEmpty) return null;
+          return Map<String, dynamic>.from(events.first);
+        });
+  }
+
+  Future<ParentNextStopInfo?> getParentNextStopInfo(String bookingId) async {
+    final response = await _supabase.rpc(
+      'get_parent_next_stop_info',
+      params: {'booking_id_input': bookingId},
+    );
+
+    if (response is List && response.isNotEmpty) {
+      return ParentNextStopInfo.fromMap(
+        Map<String, dynamic>.from(response.first),
+      );
+    }
+    return null;
+  }
+
   /// Calculates estimated time of arrival in minutes.
   /// Uses Haversine distance and current speed.
   double? calculateEtaMinutes(DriverLocation driver, LatLng destination) {
@@ -121,5 +147,28 @@ class TrackingRepository {
     // ETA = distance / speed (in hours), convert to minutes
     final etaHours = distanceKm / driver.speed;
     return etaHours * 60;
+  }
+}
+
+class ParentNextStopInfo {
+  final bool nextStopIsParent;
+  final String? nextStopLabel;
+  final int? stopsUntilParent;
+  final int? etaMinutes;
+
+  ParentNextStopInfo({
+    required this.nextStopIsParent,
+    this.nextStopLabel,
+    this.stopsUntilParent,
+    this.etaMinutes,
+  });
+
+  factory ParentNextStopInfo.fromMap(Map<String, dynamic> map) {
+    return ParentNextStopInfo(
+      nextStopIsParent: map['next_stop_is_parent'] as bool? ?? false,
+      nextStopLabel: map['next_stop_label'] as String?,
+      stopsUntilParent: map['stops_until_parent'] as int?,
+      etaMinutes: map['eta_minutes'] as int?,
+    );
   }
 }

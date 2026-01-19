@@ -3,7 +3,7 @@ import 'dart:async';
 
 // Mock classes to simulate Supabase behavior
 class MockSupabaseClient {
-  final MockQueryBuilder from(String table) => MockQueryBuilder(table);
+  MockQueryBuilder from(String table) => MockQueryBuilder(table);
 }
 
 class MockQueryBuilder {

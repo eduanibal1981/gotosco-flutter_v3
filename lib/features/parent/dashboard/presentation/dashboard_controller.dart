@@ -7,7 +7,7 @@ part 'dashboard_controller.g.dart';
 @riverpod
 class ParentDashboardIndex extends _$ParentDashboardIndex {
   @override
-  int build() => 1;
+  int build() => 2;
 
   void setIndex(int index) => state = index;
 }

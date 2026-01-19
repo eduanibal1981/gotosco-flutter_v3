@@ -12,6 +12,7 @@ import '../widgets/featured_drivers.dart';
 import '../widgets/today_trip_list.dart';
 
 import '../../../bookings/data/bookings_repository.dart'; // Import repo
+import '../../data/parent_dashboard_repository.dart';
 
 class DashboardTab extends ConsumerWidget {
   const DashboardTab({super.key});
@@ -20,6 +21,7 @@ class DashboardTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // Watch real bookings stream
     final bookingsAsync = ref.watch(myBookingsProvider);
+    final todayTrips = ref.watch(parentTodayTripsProvider);
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -77,7 +79,7 @@ class DashboardTab extends ConsumerWidget {
                       }
                     } else if (bookings.isNotEmpty) {
                       // Has pending/cancelled but no approved contract
-                      return _buildAcceptedBookingsSummary();
+                      return _buildAcceptedBookingsSummary(todayTrips);
                     } else {
                       // No bookings at all
                       return const ActionableEmptyStateCard();
@@ -135,7 +137,7 @@ class DashboardTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildAcceptedBookingsSummary() {
+  Widget _buildAcceptedBookingsSummary(List<Map<String, dynamic>> trips) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -144,7 +146,7 @@ class DashboardTab extends ConsumerWidget {
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
-        const TodayTripList(),
+        TodayTripList(trips: trips),
       ],
     );
   }

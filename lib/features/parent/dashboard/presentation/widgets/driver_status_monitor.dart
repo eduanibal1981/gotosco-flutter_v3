@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../dashboard_controller.dart';
 import '../../../tracking/presentation/tracking_controller.dart';
+import '../../../tracking/data/tracking_repository.dart';
 import 'active_booking_card.dart';
 
 /// A widget that monitors the driver's online status and location
@@ -25,11 +26,16 @@ class DriverStatusMonitor extends ConsumerWidget {
 
     // Watch the real-time location stream for this driver
     final driverLocationAsync = ref.watch(driverLocationProvider(driverId));
+    final rideEventAsync = ref.watch(latestRideEventProvider(bookingId));
+    final nextStopAsync = ref.watch(parentNextStopInfoProvider(bookingId));
 
     return driverLocationAsync.when(
       data: (location) {
         // Driver is active and stream is working
         final bool isActive = location.isOnTrip;
+        final event = rideEventAsync.maybeWhen(data: (e) => e, orElse: () => null);
+        final nextStopInfo =
+            nextStopAsync.maybeWhen(data: (e) => e, orElse: () => null);
 
         String title = ''; // Empty to avoid redundancy with badge
         String subtitle = location.isOnline
@@ -40,7 +46,25 @@ class DriverStatusMonitor extends ConsumerWidget {
             : 'DRIVER OFFLINE';
         Color badgeColor = location.isOnline ? Colors.orange : Colors.grey;
 
-        if (isActive) {
+        if (event != null) {
+          final eventType = event['event_type'] as String? ?? '';
+          if (eventType == 'approaching') {
+            title = 'Driver Approaching';
+            subtitle = _buildEtaText(nextStopInfo);
+            badgeColor = Colors.orange;
+            badgeText = 'APPROACHING';
+          } else if (eventType == 'picked_up') {
+            title = 'Child Picked Up';
+            subtitle = _buildEtaText(nextStopInfo);
+            badgeColor = Colors.green;
+            badgeText = 'ON TRIP';
+          } else if (eventType == 'dropped_off') {
+            title = 'Child Dropped Off';
+            subtitle = 'Trip completed';
+            badgeColor = Colors.green;
+            badgeText = 'COMPLETED';
+          }
+        } else if (isActive) {
           badgeColor = Colors.green;
           badgeText = 'LIVE TRIP';
 
@@ -52,7 +76,7 @@ class DriverStatusMonitor extends ConsumerWidget {
             title = 'Trip in Progress';
           }
           // For now, simpler subtitle until we calc full ETA
-          subtitle = 'View on map';
+          subtitle = _buildEtaText(nextStopInfo);
         }
 
         return ActiveBookingCard(
@@ -63,6 +87,11 @@ class DriverStatusMonitor extends ConsumerWidget {
           badgeText: badgeText,
           badgeColor: badgeColor,
           isActive: isActive,
+          etaMinutes: nextStopInfo?.etaMinutes ?? location.etaMinutes,
+          stopsUntilParent: nextStopInfo?.stopsUntilParent,
+          nextStopLabel: nextStopInfo?.nextStopIsParent == true
+              ? nextStopInfo?.nextStopLabel
+              : null,
           onViewAll: () {
             // Navigate to My Bookings tab
             ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
@@ -113,6 +142,9 @@ class DriverStatusMonitor extends ConsumerWidget {
       badgeText: 'SCHEDULED',
       badgeColor: Colors.blue,
       isActive: false,
+      etaMinutes: null,
+      stopsUntilParent: null,
+      nextStopLabel: null,
       onViewAll: () {
         // Navigate to My Bookings tab
         ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
@@ -125,5 +157,21 @@ class DriverStatusMonitor extends ConsumerWidget {
         );
       },
     );
+  }
+
+  String _buildEtaText(ParentNextStopInfo? info) {
+    if (info == null) return 'View on map';
+    final eta = info.etaMinutes;
+    final stops = info.stopsUntilParent;
+    if (eta != null && stops != null) {
+      return '$eta min - $stops stops';
+    }
+    if (eta != null) {
+      return '$eta min';
+    }
+    if (stops != null) {
+      return '$stops stops';
+    }
+    return 'View on map';
   }
 }

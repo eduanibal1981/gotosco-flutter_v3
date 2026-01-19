@@ -7,6 +7,7 @@ import '../../earnings/presentation/earnings_tab.dart';
 import '../../profile/presentation/driver_profile_tab.dart';
 import '../../availability/presentation/driver_availability_controller.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
+import 'package:gotosco_v3/features/driver/transport_requests/data/transport_requests_repository.dart';
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
 
@@ -32,7 +33,7 @@ class DashboardIndexNotifier extends StateNotifier<int> {
 class BookingTabIndexNotifier extends StateNotifier<int> {
   BookingTabIndexNotifier() : super(0); // Default to Requests tab
 
-  void setIndex(int index) => state = index.clamp(0, 2);
+  void setIndex(int index) => state = index.clamp(0, 3);
 }
 
 class DriverDashboardScreen extends ConsumerStatefulWidget {
@@ -78,6 +79,7 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
           break;
         case 1: // Booking Tab
           ref.invalidate(driverBookingRequestsProvider);
+          ref.invalidate(transportRequestsProvider);
           break;
         case 2: // Home Tab
           ref.invalidate(driverDashboardStateProvider);

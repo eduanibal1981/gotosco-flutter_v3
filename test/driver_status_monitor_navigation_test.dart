@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:school_transport_app/features/parent/dashboard/presentation/dashboard_controller.dart';
-import 'package:school_transport_app/features/parent/dashboard/presentation/widgets/driver_status_monitor.dart';
+import 'package:gotosco_v3/features/parent/dashboard/presentation/dashboard_controller.dart';
+import 'package:gotosco_v3/features/parent/dashboard/presentation/widgets/driver_status_monitor.dart';
 
 // Mock the tracking provider or just test the interaction
 // Since we can't fully mock everything here without more setup,

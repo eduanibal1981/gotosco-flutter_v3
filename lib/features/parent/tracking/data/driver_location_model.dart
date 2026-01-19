@@ -9,6 +9,8 @@ class DriverLocation {
   final double speed; // km/h for ETA calculation
   final String? tripType; // 'pickup' | 'dropoff' | 'idle'
   final bool isOnline;
+  final int? etaMinutes;
+  final String? nextStopId;
   final DateTime updatedAt;
 
   DriverLocation({
@@ -19,6 +21,8 @@ class DriverLocation {
     this.speed = 0.0,
     this.tripType,
     this.isOnline = false,
+    this.etaMinutes,
+    this.nextStopId,
     required this.updatedAt,
   });
 
@@ -40,6 +44,8 @@ class DriverLocation {
       speed: (map['speed'] as num?)?.toDouble() ?? 0.0,
       tripType: map['trip_type'] as String?,
       isOnline: map['is_online'] as bool? ?? false,
+      etaMinutes: map['eta_minutes'] as int?,
+      nextStopId: map['next_stop_id'] as String?,
       updatedAt: DateTime.parse(map['updated_at'] as String),
     );
   }
@@ -53,6 +59,8 @@ class DriverLocation {
       'speed': speed,
       'trip_type': tripType,
       'is_online': isOnline,
+      'eta_minutes': etaMinutes,
+      'next_stop_id': nextStopId,
       'updated_at': updatedAt.toIso8601String(),
     };
   }

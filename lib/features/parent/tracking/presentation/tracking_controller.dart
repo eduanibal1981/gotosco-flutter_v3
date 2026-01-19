@@ -25,3 +25,13 @@ Stream<DriverLocation> driverLocation(Ref ref, String driverId) {
 Future<BookingLocations> bookingLocations(Ref ref, String bookingId) {
   return ref.watch(trackingRepositoryProvider).getBookingLocations(bookingId);
 }
+
+@riverpod
+Stream<Map<String, dynamic>?> latestRideEvent(Ref ref, String bookingId) {
+  return ref.watch(trackingRepositoryProvider).streamLatestRideEvent(bookingId);
+}
+
+@riverpod
+Future<ParentNextStopInfo?> parentNextStopInfo(Ref ref, String bookingId) {
+  return ref.watch(trackingRepositoryProvider).getParentNextStopInfo(bookingId);
+}

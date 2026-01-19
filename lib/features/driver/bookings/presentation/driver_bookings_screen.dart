@@ -5,6 +5,7 @@ import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_card.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_detail_sheet.dart';
+import 'package:gotosco_v3/features/driver/transport_requests/presentation/transport_requests_tab.dart';
 
 class DriverBookingsScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -24,9 +25,9 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 3,
+      length: 4,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 2),
+      initialIndex: widget.initialTabIndex.clamp(0, 3),
     );
   }
 
@@ -34,7 +35,7 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
   void didUpdateWidget(DriverBookingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTabIndex != oldWidget.initialTabIndex) {
-      _tabController.animateTo(widget.initialTabIndex.clamp(0, 2));
+      _tabController.animateTo(widget.initialTabIndex.clamp(0, 3));
     }
   }
 
@@ -64,6 +65,7 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
             Tab(text: 'Requests'),
             Tab(text: 'Active'),
             Tab(text: 'History'),
+            Tab(text: 'Transport'),
           ],
         ),
       ),
@@ -81,6 +83,7 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
               _buildBookingList(context, ref, pending, isPending: true),
               _buildBookingList(context, ref, active),
               _buildBookingList(context, ref, history, canDelete: true),
+              const TransportRequestsTab(),
             ],
           );
         },

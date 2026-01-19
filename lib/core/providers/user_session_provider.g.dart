@@ -46,7 +46,7 @@ final class UserSessionNotifierProvider
 }
 
 String _$userSessionNotifierHash() =>
-    r'e2fbd0c3d6547ed1b93245876fba86ad93742cc1';
+    r'43f30c0c17834269e4f770be0a5b7654b090169e';
 
 /// Provider for the current user session.
 ///

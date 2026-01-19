@@ -101,7 +101,7 @@ final class CitiesProvider
   }
 }
 
-String _$citiesHash() => r'01aa4e44fa6da43355d2fb7d20443d6ff381e89a';
+String _$citiesHash() => r'628272c9b2d856600fcf4a30d67eba46c3a03339';
 
 /// Fetch areas for a specific city
 
@@ -165,7 +165,7 @@ final class AreasProvider
   }
 }
 
-String _$areasHash() => r'27b580253887fe34325e1b338fa74d6f068c9b47';
+String _$areasHash() => r'30c1f1c5a97af5ae1241daa707b2e995d445b4fc';
 
 /// Fetch areas for a specific city
 
@@ -255,7 +255,7 @@ final class SchoolsProvider
   }
 }
 
-String _$schoolsHash() => r'df2d580a5ab2ee449e7369f9f6a0409aeccd30dd';
+String _$schoolsHash() => r'25481742ce91c9b7f737e60cebfa93b41c209ca9';
 
 /// Fetch schools for a specific area
 

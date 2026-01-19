@@ -10,6 +10,9 @@ class ActiveBookingCard extends StatelessWidget {
   final String badgeText;
   final Color badgeColor;
   final bool isActive;
+  final int? etaMinutes;
+  final int? stopsUntilParent;
+  final String? nextStopLabel;
   final VoidCallback onViewAll;
   final VoidCallback onTrack;
 
@@ -22,6 +25,9 @@ class ActiveBookingCard extends StatelessWidget {
     required this.badgeText,
     required this.badgeColor,
     required this.isActive,
+    this.etaMinutes,
+    this.stopsUntilParent,
+    this.nextStopLabel,
     required this.onViewAll,
     required this.onTrack,
   });
@@ -31,7 +37,7 @@ class ActiveBookingCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTrack,
       child: Container(
-        height: 180,
+        height: 200,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
@@ -131,6 +137,43 @@ class ActiveBookingCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 8),
+                    if (etaMinutes != null || stopsUntilParent != null)
+                      Row(
+                        children: [
+                          if (etaMinutes != null)
+                            _buildInfoChip(
+                              Icons.schedule,
+                              '${etaMinutes!} min',
+                            ),
+                          if (etaMinutes != null && stopsUntilParent != null)
+                            const SizedBox(width: 8),
+                          if (stopsUntilParent != null)
+                            _buildInfoChip(
+                              Icons.format_list_numbered,
+                              '${stopsUntilParent!} stops',
+                            ),
+                        ],
+                      ),
+                    if (nextStopLabel != null) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.place_outlined,
+                            size: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            nextStopLabel!,
+                            style: TextStyle(
+                              color: Colors.grey.shade700,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                     Row(
                       children: [
                         Icon(
@@ -188,6 +231,30 @@ class ActiveBookingCard extends StatelessWidget {
               color: badgeColor,
               fontWeight: FontWeight.bold,
               fontSize: 12,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: Colors.grey.shade700),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey.shade700,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],

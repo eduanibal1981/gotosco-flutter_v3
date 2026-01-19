@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
 import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
+import 'package:gotosco_v3/features/parent/notifications/data/notifications_repository.dart';
 
 class DashboardHeader extends ConsumerWidget {
   const DashboardHeader({super.key});
@@ -64,14 +65,9 @@ class DashboardHeader extends ConsumerWidget {
                 },
               ),
               // Notifications Icon
-              IconButton(
-                icon: const Icon(
-                  Icons.notifications_outlined,
-                  color: Colors.white,
-                  size: 22,
-                ),
-                onPressed: () {},
-                tooltip: 'Notifications',
+              _NotificationsIcon(
+                unreadCountStream: ref.watch(parentUnreadNotificationsCountProvider),
+                onPressed: () => context.push('/notifications'),
               ),
             ],
           ),
@@ -176,6 +172,59 @@ class DashboardHeader extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _NotificationsIcon extends ConsumerWidget {
+  final AsyncValue<int> unreadCountStream;
+  final VoidCallback onPressed;
+
+  const _NotificationsIcon({
+    required this.unreadCountStream,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final count = unreadCountStream.maybeWhen(
+      data: (value) => value,
+      orElse: () => 0,
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon: const Icon(
+            Icons.notifications_outlined,
+            color: Colors.white,
+            size: 22,
+          ),
+          onPressed: onPressed,
+          tooltip: 'Notifications',
+        ),
+        if (count > 0)
+          Positioned(
+            right: 6,
+            top: 6,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red.shade600,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                count > 99 ? '99+' : count.toString(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }

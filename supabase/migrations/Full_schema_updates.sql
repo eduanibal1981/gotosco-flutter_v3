@@ -1,4 +1,4 @@
-
+﻿
 
 
 SET statement_timeout = 0;
@@ -1085,6 +1085,41 @@ $$;
 ALTER FUNCTION "public"."sync_stop_latlng_to_geo"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."toggle_saved_driver"("p_driver_id" "uuid") RETURNS boolean
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    SET "search_path" TO 'public'
+    AS $$
+declare
+  v_user_id uuid;
+  v_deleted int;
+begin
+  v_user_id := auth.uid();
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  -- Try delete first (fast path). If row existed, it is now NOT saved.
+  delete from public.saved_drivers
+  where parent_id = v_user_id
+    and driver_id = p_driver_id
+  returning 1 into v_deleted;
+
+  if v_deleted = 1 then
+    return false; -- now NOT saved
+  end if;
+
+  -- Not found -> insert (now saved)
+  insert into public.saved_drivers (parent_id, driver_id)
+  values (v_user_id, p_driver_id);
+
+  return true; -- now saved
+end;
+$$;
+
+
+ALTER FUNCTION "public"."toggle_saved_driver"("p_driver_id" "uuid") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."update_driver_availability_settings"("p_auto_offline_after_trip" boolean DEFAULT NULL::boolean, "p_auto_online_before_trip" boolean DEFAULT NULL::boolean, "p_auto_online_minutes_before" integer DEFAULT NULL::integer, "p_availability_mode" "text" DEFAULT NULL::"text") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -1363,6 +1398,7 @@ CREATE TABLE IF NOT EXISTS "public"."ride_events" (
     "event_type" "text" NOT NULL,
     "event_data" "jsonb" DEFAULT '{}'::"jsonb",
     "created_at" timestamp with time zone DEFAULT "now"(),
+    "read_at" timestamp with time zone,
     CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'picked_up'::"text", 'dropped_off'::"text"])))
 );
 
@@ -1413,6 +1449,35 @@ CREATE TABLE IF NOT EXISTS "public"."schools" (
 
 
 ALTER TABLE "public"."schools" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."transport_requests" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "parent_id" "uuid" NOT NULL,
+    "child_id" "uuid",
+    "child_name" "text" NOT NULL,
+    "child_age" integer,
+    "child_gender" "text",
+    "child_grade" "text",
+    "school_name" "text",
+    "hometxt_location" "text",
+    "schooltxt_location" "text",
+    "homegeo_location" "public"."geography"(Point,4326),
+    "schoolgeo_location" "public"."geography"(Point,4326),
+    "home_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("homegeo_location")::"public"."geometry")) STORED,
+    "home_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("homegeo_location")::"public"."geometry")) STORED,
+    "school_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("schoolgeo_location")::"public"."geometry")) STORED,
+    "school_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("schoolgeo_location")::"public"."geometry")) STORED,
+    "booking_type" "text" DEFAULT 'Two Way'::"text",
+    "notes" "text",
+    "status" "text" DEFAULT 'open'::"text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "transport_requests_booking_type_check" CHECK (("booking_type" = ANY (ARRAY['Two Way'::"text", 'One Way to School'::"text", 'One Way Back Home'::"text", 'Other'::"text"]))),
+    CONSTRAINT "transport_requests_status_check" CHECK (("status" = ANY (ARRAY['open'::"text", 'closed'::"text", 'cancelled'::"text"])))
+);
+
+
+ALTER TABLE "public"."transport_requests" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."trips" (
@@ -1551,6 +1616,11 @@ ALTER TABLE ONLY "public"."schools"
 
 
 
+ALTER TABLE ONLY "public"."transport_requests"
+    ADD CONSTRAINT "transport_requests_pkey" PRIMARY KEY ("id");
+
+
+
 ALTER TABLE ONLY "public"."trips"
     ADD CONSTRAINT "trips_pkey" PRIMARY KEY ("id");
 
@@ -1571,11 +1641,27 @@ ALTER TABLE ONLY "public"."users"
 
 
 
+CREATE INDEX "idx_booking_children_booking_id" ON "public"."booking_children" USING "btree" ("booking_id");
+
+
+
 CREATE INDEX "idx_booking_children_child" ON "public"."booking_children" USING "btree" ("child_id");
 
 
 
+CREATE INDEX "idx_booking_children_child_id" ON "public"."booking_children" USING "btree" ("child_id");
+
+
+
+CREATE INDEX "idx_bookings_date_range" ON "public"."bookings" USING "btree" ("start_date", "end_date") WHERE ("is_recurring" = true);
+
+
+
 CREATE INDEX "idx_bookings_driver_status" ON "public"."bookings" USING "btree" ("driver_id", "status") WHERE ("status" = ANY (ARRAY['pending'::"text", 'accepted'::"text"]));
+
+
+
+CREATE INDEX "idx_bookings_driver_status_created" ON "public"."bookings" USING "btree" ("driver_id", "status", "created_at" DESC);
 
 
 
@@ -1584,6 +1670,22 @@ CREATE INDEX "idx_bookings_generator_lookup" ON "public"."bookings" USING "btree
 
 
 CREATE INDEX "idx_bookings_home_geo" ON "public"."bookings" USING "gist" ("homegeo_location");
+
+
+
+CREATE INDEX "idx_bookings_monthly_subscription_true" ON "public"."bookings" USING "btree" ("parent_id", "contract_start_date", "contract_end_date") WHERE ("is_monthly_subscription" = true);
+
+
+
+CREATE INDEX "idx_bookings_parent_created_at" ON "public"."bookings" USING "btree" ("parent_id", "created_at" DESC);
+
+
+
+CREATE INDEX "idx_bookings_recurring_days_gin" ON "public"."bookings" USING "gin" ("recurring_days") WHERE ("is_recurring" = true);
+
+
+
+CREATE INDEX "idx_bookings_recurring_true" ON "public"."bookings" USING "btree" ("parent_id", "created_at" DESC) WHERE ("is_recurring" = true);
 
 
 
@@ -1647,6 +1749,10 @@ CREATE INDEX "idx_ride_events_parent" ON "public"."ride_events" USING "btree" ("
 
 
 
+CREATE INDEX "idx_ride_events_read_at" ON "public"."ride_events" USING "btree" ("read_at");
+
+
+
 CREATE INDEX "idx_route_stops_geo" ON "public"."route_stops" USING "gist" ("location_geo");
 
 
@@ -1668,6 +1774,10 @@ CREATE INDEX "idx_users_email" ON "public"."users" USING "btree" ("email");
 
 
 CREATE INDEX "idx_users_roles" ON "public"."users" USING "gin" ("role");
+
+
+
+CREATE UNIQUE INDEX "saved_drivers_parent_driver_uniq" ON "public"."saved_drivers" USING "btree" ("parent_id", "driver_id");
 
 
 
@@ -1913,16 +2023,22 @@ CREATE POLICY "Drivers can view assigned bookings" ON "public"."bookings" FOR SE
 
 
 
-CREATE POLICY "Drivers can view assigned children" ON "public"."children" FOR SELECT USING ((EXISTS ( SELECT 1
+CREATE POLICY "Drivers can view assigned children" ON "public"."children" FOR SELECT TO "authenticated" USING ((EXISTS ( SELECT 1
    FROM ("public"."booking_children" "bc"
      JOIN "public"."bookings" "b" ON (("bc"."booking_id" = "b"."id")))
-  WHERE (("bc"."child_id" = "children"."id") AND ("b"."driver_id" = "auth"."uid"()) AND ("b"."subscription_status" = 'active'::"text")))));
+  WHERE (("bc"."child_id" = "children"."id") AND ("b"."driver_id" = "auth"."uid"())))));
 
 
 
 CREATE POLICY "Drivers can view booking links" ON "public"."booking_children" FOR SELECT USING ((EXISTS ( SELECT 1
    FROM "public"."bookings" "b"
   WHERE (("b"."id" = "booking_children"."booking_id") AND ("b"."driver_id" = "auth"."uid"())))));
+
+
+
+CREATE POLICY "Drivers can view transport requests" ON "public"."transport_requests" FOR SELECT USING ((EXISTS ( SELECT 1
+   FROM "public"."users" "u"
+  WHERE (("u"."id" = "auth"."uid"()) AND ('driver'::"text" = ANY ("u"."role"))))));
 
 
 
@@ -1977,6 +2093,14 @@ CREATE POLICY "Parents can manage own bookings" ON "public"."bookings" USING (("
 
 
 CREATE POLICY "Parents can manage own children" ON "public"."children" USING (("auth"."uid"() = "parent_id"));
+
+
+
+CREATE POLICY "Parents can manage own transport requests" ON "public"."transport_requests" USING (("auth"."uid"() = "parent_id")) WITH CHECK (("auth"."uid"() = "parent_id"));
+
+
+
+CREATE POLICY "Parents can update their ride events" ON "public"."ride_events" FOR UPDATE TO "authenticated" USING (("parent_id" = "auth"."uid"())) WITH CHECK (("parent_id" = "auth"."uid"()));
 
 
 
@@ -2074,6 +2198,9 @@ ALTER TABLE "public"."saved_drivers" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."schools" ENABLE ROW LEVEL SECURITY;
+
+
+ALTER TABLE "public"."transport_requests" ENABLE ROW LEVEL SECURITY;
 
 
 ALTER TABLE "public"."trips" ENABLE ROW LEVEL SECURITY;
@@ -2239,6 +2366,12 @@ GRANT ALL ON FUNCTION "public"."sync_stop_latlng_to_geo"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."toggle_saved_driver"("p_driver_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."toggle_saved_driver"("p_driver_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."toggle_saved_driver"("p_driver_id" "uuid") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."update_driver_availability_settings"("p_auto_offline_after_trip" boolean, "p_auto_online_before_trip" boolean, "p_auto_online_minutes_before" integer, "p_availability_mode" "text") TO "anon";
 GRANT ALL ON FUNCTION "public"."update_driver_availability_settings"("p_auto_offline_after_trip" boolean, "p_auto_online_before_trip" boolean, "p_auto_online_minutes_before" integer, "p_availability_mode" "text") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."update_driver_availability_settings"("p_auto_offline_after_trip" boolean, "p_auto_online_before_trip" boolean, "p_auto_online_minutes_before" integer, "p_availability_mode" "text") TO "service_role";
@@ -2350,6 +2483,12 @@ GRANT ALL ON TABLE "public"."saved_drivers" TO "service_role";
 GRANT ALL ON TABLE "public"."schools" TO "anon";
 GRANT ALL ON TABLE "public"."schools" TO "authenticated";
 GRANT ALL ON TABLE "public"."schools" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."transport_requests" TO "anon";
+GRANT ALL ON TABLE "public"."transport_requests" TO "authenticated";
+GRANT ALL ON TABLE "public"."transport_requests" TO "service_role";
 
 
 
