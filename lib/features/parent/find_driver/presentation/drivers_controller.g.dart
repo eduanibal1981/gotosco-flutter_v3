@@ -56,7 +56,7 @@ final class DriverAdsProvider
   }
 }
 
-String _$driverAdsHash() => r'5c1b122389bfce5e646783c62124a1e03dcf65ce';
+String _$driverAdsHash() => r'6463a2df14e09a727dbf8630b36b4f9f0f1a9cdf';
 
 /// Provider for searching driver ads with pagination support.
 /// Replaces the simple FutureProvider to handle infinite scrolling.
@@ -404,7 +404,7 @@ final class DriversFilterControllerProvider
 }
 
 String _$driversFilterControllerHash() =>
-    r'614775f8aac03c616544f87c1575c96cb3505c63';
+    r'b69bc5a037e1a20b1857ce5cf0f383f811af7b8f';
 
 /// Controller that manages driver filters state.
 /// Provides filter summary and clear functionality.

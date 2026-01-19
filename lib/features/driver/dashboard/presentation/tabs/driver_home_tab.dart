@@ -13,6 +13,7 @@ import '../../../profile/data/driver_profile_repository.dart';
 import '../../../availability/presentation/availability_control_sheet.dart';
 import '../../../availability/presentation/driver_availability_controller.dart';
 import '../widgets/booking_requests_card.dart';
+import '../../../transport_requests/data/transport_requests_repository.dart';
 
 class DriverHomeTab extends ConsumerStatefulWidget {
   const DriverHomeTab({super.key});
@@ -473,8 +474,8 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               const SizedBox(height: 24),
 
-              // Weekly Schedule Preview
-              _buildWeeklyScheduleCard(),
+              // Transport Requests Preview
+              _buildTransportRequestsPreview(),
             ]),
           ),
         ),
@@ -1116,8 +1117,8 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  Widget _buildWeeklyScheduleCard() {
-    final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  Widget _buildTransportRequestsPreview() {
+    final requestsAsync = ref.watch(transportRequestsProvider(status: 'open'));
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1131,36 +1132,112 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Weekly Schedule',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-          ),
-          const SizedBox(height: 12),
-          ...days.map(
-            (day) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  SizedBox(
-                    width: 40,
-                    child: Text(
-                      day,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.check_circle,
-                    size: 16,
-                    color: Colors.green.shade600,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Both',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                  ),
-                ],
+          Row(
+            children: [
+              const Text(
+                'Transport Requests',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
               ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => context.push('/driver-transport-requests'),
+                child: const Text('View All'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          requestsAsync.when(
+            data: (requests) {
+              if (requests.isEmpty) {
+                return Text(
+                  'No transport requests yet.',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                );
+              }
+              final items = requests.take(2).toList();
+              return Column(
+                children: items.map((request) {
+                  final childName =
+                      request['child_name'] as String? ?? 'Child';
+                  final schoolName =
+                      request['school_name'] as String? ?? 'School';
+                  final bookingType =
+                      request['booking_type'] as String? ?? '';
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.teal.shade50,
+                          child: Text(
+                            childName.isNotEmpty
+                                ? childName[0].toUpperCase()
+                                : 'C',
+                            style: TextStyle(color: Colors.teal.shade700),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                childName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                schoolName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (bookingType.isNotEmpty)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              bookingType,
+                              style: TextStyle(
+                                color: Colors.teal.shade700,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+            loading: () => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: LinearProgressIndicator(),
+            ),
+            error: (err, _) => Text(
+              'Failed to load requests',
+              style: TextStyle(color: Colors.red.shade300),
             ),
           ),
         ],

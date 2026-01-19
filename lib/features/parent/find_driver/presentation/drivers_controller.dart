@@ -110,7 +110,7 @@ Future<({double min, double max})> priceRange(Ref ref) {
 /// Provides filter summary and clear functionality.
 @riverpod
 class DriversFilterController extends _$DriversFilterController {
-  static const double defaultMaxPrice = 200.0;
+  static const double defaultMaxPrice = 5000.0;
 
   @override
   Map<String, dynamic> build() => {

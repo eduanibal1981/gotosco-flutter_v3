@@ -239,7 +239,15 @@ class MyBookingsTab extends ConsumerWidget {
         _buildSectionHeader('Active Bookings', Colors.green, accepted.length),
       );
       for (var booking in accepted) {
-        items.add(_buildBookingCard(context, ref, booking, showTrack: true));
+        items.add(
+          _buildBookingCard(
+            context,
+            ref,
+            booking,
+            showTrack: true,
+            showCancel: true,
+          ),
+        );
       }
       items.add(const SizedBox(height: 16));
     }
@@ -344,6 +352,9 @@ class MyBookingsTab extends ConsumerWidget {
     final bookingType = booking['booking_type'] as String? ?? '';
     final homeLocation = booking['home_location'] as String? ?? '';
     final schoolLocation = booking['school_location'] as String? ?? '';
+    final subscriptionStatus = booking['subscription_status'] as String?;
+    final pauseEndDate = booking['pause_end_date'] as String?;
+    final scheduledStopDate = booking['contract_end_date'] as String?;
     final createdAt = booking['created_at'] != null
         ? DateTime.tryParse(booking['created_at'])
         : null;
@@ -473,6 +484,33 @@ class MyBookingsTab extends ConsumerWidget {
                 ),
               ),
 
+            if (subscriptionStatus == 'paused')
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  pauseEndDate != null
+                      ? 'Paused until ${_formatDate(DateTime.parse(pauseEndDate))}'
+                      : 'Paused',
+                  style: TextStyle(
+                    color: Colors.orange.shade700,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            if (scheduledStopDate != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Scheduled stop on ${_formatDate(DateTime.parse(scheduledStopDate))}',
+                  style: TextStyle(
+                    color: Colors.orange.shade700,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+
             // Actions
             if (showTrack || showCancel || showDelete || showRebook) ...[
               const SizedBox(height: 16),
@@ -505,9 +543,9 @@ class MyBookingsTab extends ConsumerWidget {
                           size: 18,
                           color: Colors.red,
                         ),
-                        label: const Text(
-                          'Cancel',
-                          style: TextStyle(color: Colors.red),
+                        label: Text(
+                          status == 'accepted' ? 'Manage' : 'Cancel',
+                          style: const TextStyle(color: Colors.red),
                         ),
                         style: OutlinedButton.styleFrom(
                           side: const BorderSide(color: Colors.red),
@@ -713,6 +751,12 @@ class MyBookingsTab extends ConsumerWidget {
     WidgetRef ref,
     Map<String, dynamic> booking,
   ) {
+    final status = booking['status'] as String?;
+    if (status == 'accepted') {
+      _showManageBookingDialog(context, ref, booking);
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -734,7 +778,12 @@ class MyBookingsTab extends ConsumerWidget {
               try {
                 await ref
                     .read(bookingsRepositoryProvider)
-                    .cancelBooking(booking['id']);
+                    .cancelBooking(
+                      booking['id'],
+                      cancellationType: 'parent_cancel_grace',
+                      cancellationReason: 'parent_cancel_grace',
+                      cancelRequestedAt: DateTime.now(),
+                    );
 
                 // Force refresh the list
                 ref.invalidate(myBookingsProvider);
@@ -763,5 +812,373 @@ class MyBookingsTab extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _showManageBookingDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      useSafeArea: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            12,
+            16,
+            24 + MediaQuery.of(ctx).viewInsets.bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Manage Booking',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Choose the option that fits your situation.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+              ),
+              const SizedBox(height: 16),
+              if ((booking['subscription_status'] as String?) == 'paused')
+                _buildManageAction(
+                  title: 'Resume Service',
+                  subtitle: 'Continue pickups immediately',
+                  icon: Icons.play_circle_filled,
+                  iconColor: Colors.green,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _resumeBooking(context, ref, booking);
+                  },
+                ),
+              if (booking['contract_end_date'] != null)
+                _buildManageAction(
+                  title: 'Cancel Scheduled Stop',
+                  subtitle: 'Keep service active',
+                  icon: Icons.undo,
+                  iconColor: Colors.green,
+                  onTap: () async {
+                    Navigator.pop(ctx);
+                    await _clearScheduledStop(context, ref, booking);
+                  },
+                ),
+              _buildManageAction(
+                title: 'Schedule Stop',
+                subtitle: 'Set an end date for service',
+                icon: Icons.event_busy,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final date = await _pickDate(context);
+                  if (date == null) return;
+                  await _applyScheduleStop(context, ref, booking, date);
+                },
+              ),
+              _buildManageAction(
+                title: 'Pause Service',
+                subtitle: 'Temporarily pause pickups',
+                icon: Icons.pause_circle_filled,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  final date = await _pickDate(context);
+                  if (date == null) return;
+                  await _applyPause(context, ref, booking, date);
+                },
+              ),
+              _buildManageAction(
+                title: 'Stop Immediately',
+                subtitle: 'Ends now; fees may apply',
+                icon: Icons.cancel_schedule_send,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _confirmImmediateStop(context, ref, booking);
+                },
+              ),
+              _buildManageAction(
+                title: 'Safety Issue',
+                subtitle: 'Report a safety concern and stop',
+                icon: Icons.report_gmailerrorred,
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _confirmSafetyStop(context, ref, booking);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildManageAction({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    Color? iconColor,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: CircleAvatar(
+        backgroundColor: Colors.indigo.shade50,
+        child: Icon(icon, color: iconColor ?? Colors.indigo),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
+    );
+  }
+
+  Future<DateTime?> _pickDate(BuildContext context) {
+    final now = DateTime.now();
+    return showDatePicker(
+      context: context,
+      initialDate: now.add(const Duration(days: 1)),
+      firstDate: now.add(const Duration(days: 1)),
+      lastDate: now.add(const Duration(days: 365)),
+    );
+  }
+
+  Future<void> _applyScheduleStop(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+    DateTime date,
+  ) async {
+    try {
+      await ref.read(bookingsRepositoryProvider).cancelBooking(
+            booking['id'],
+            status: 'accepted',
+            cancellationType: 'scheduled_stop',
+            cancellationReason: 'parent_scheduled_stop',
+            contractEndDate: date,
+            cancelRequestedAt: DateTime.now(),
+          );
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Stop date scheduled')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to schedule stop: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _applyPause(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+    DateTime untilDate,
+  ) async {
+    try {
+      await ref.read(bookingsRepositoryProvider).cancelBooking(
+            booking['id'],
+            status: 'accepted',
+            cancellationType: 'pause',
+            cancellationReason: 'parent_pause',
+            pauseStartDate: DateTime.now(),
+            pauseEndDate: untilDate,
+            cancelRequestedAt: DateTime.now(),
+            subscriptionStatus: 'paused',
+          );
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking paused')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pause booking: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmImmediateStop(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Stop Immediately?'),
+        content: const Text(
+          'This will end the service now. Late cancellation fees may apply.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep Service'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Stop Now'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    try {
+      await ref.read(bookingsRepositoryProvider).cancelBooking(
+            booking['id'],
+            cancellationType: 'immediate_stop_fee',
+            cancellationReason: 'parent_immediate_stop_fee',
+            cancelRequestedAt: DateTime.now(),
+          );
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Booking stopped')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to stop booking: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmSafetyStop(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Report Safety Issue?'),
+        content: const Text(
+          'This will immediately stop service and alert support.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Stop & Report'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    try {
+      await ref.read(bookingsRepositoryProvider).cancelBooking(
+            booking['id'],
+            cancellationType: 'safety_stop',
+            cancellationReason: 'safety_stop_pending_review',
+            cancelRequestedAt: DateTime.now(),
+          );
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Safety stop requested')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to stop booking: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _resumeBooking(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+  ) async {
+    try {
+      await ref.read(bookingsRepositoryProvider).updateBookingFields(
+        booking['id'],
+        {
+          'subscription_status': 'active',
+          'pause_start_date': null,
+          'pause_end_date': null,
+          'cancellation_type': null,
+          'cancellation_reason': null,
+        },
+      );
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Service resumed')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to resume: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _clearScheduledStop(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> booking,
+  ) async {
+    try {
+      await ref.read(bookingsRepositoryProvider).updateBookingFields(
+        booking['id'],
+        {
+          'contract_end_date': null,
+          'cancellation_type': null,
+          'cancellation_reason': null,
+          'cancel_requested_at': null,
+        },
+      );
+      ref.invalidate(myBookingsProvider);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Scheduled stop removed')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update: $e')),
+        );
+      }
+    }
   }
 }

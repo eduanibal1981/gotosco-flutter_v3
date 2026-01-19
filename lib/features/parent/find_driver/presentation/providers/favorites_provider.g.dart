@@ -8,6 +8,52 @@ part of 'favorites_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
+/// Fetches the full details of favorite drivers.
+
+@ProviderFor(favoriteDrivers)
+final favoriteDriversProvider = FavoriteDriversProvider._();
+
+/// Fetches the full details of favorite drivers.
+
+final class FavoriteDriversProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<DriverAdModel>>,
+          List<DriverAdModel>,
+          FutureOr<List<DriverAdModel>>
+        >
+    with
+        $FutureModifier<List<DriverAdModel>>,
+        $FutureProvider<List<DriverAdModel>> {
+  /// Fetches the full details of favorite drivers.
+  FavoriteDriversProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'favoriteDriversProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$favoriteDriversHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<DriverAdModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<DriverAdModel>> create(Ref ref) {
+    return favoriteDrivers(ref);
+  }
+}
+
+String _$favoriteDriversHash() => r'efd2c448209c780eee8230bb7819eacf1e21f119';
+
 /// Manages the list of favorite driver IDs for the current user.
 /// Uses AsyncNotifier pattern for proper async state management.
 
@@ -39,7 +85,7 @@ final class FavoritesProvider
   Favorites create() => Favorites();
 }
 
-String _$favoritesHash() => r'4bf721f03e66e40819fa3211611f7cfe2ec5e2de';
+String _$favoritesHash() => r'b805137b1440a0c0758cb67ec10e49d8f0328904';
 
 /// Manages the list of favorite driver IDs for the current user.
 /// Uses AsyncNotifier pattern for proper async state management.

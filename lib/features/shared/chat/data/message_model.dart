@@ -5,6 +5,7 @@ class MessageModel {
   final String content;
   final DateTime createdAt;
   final bool isRead;
+  final String? conversationId;
 
   MessageModel({
     required this.id,
@@ -13,6 +14,7 @@ class MessageModel {
     required this.content,
     required this.createdAt,
     required this.isRead,
+    this.conversationId,
   });
 
   factory MessageModel.fromMap(Map<String, dynamic> map) {
@@ -23,6 +25,7 @@ class MessageModel {
       content: map['content'] ?? '',
       createdAt: DateTime.parse(map['created_at']),
       isRead: map['is_read'] ?? false,
+      conversationId: map['conversation_id'] as String?,
     );
   }
 
@@ -31,6 +34,7 @@ class MessageModel {
       'sender_id': senderId,
       'receiver_id': receiverId,
       'content': content,
+      if (conversationId != null) 'conversation_id': conversationId,
       // created_at is handled by DB default
     };
   }

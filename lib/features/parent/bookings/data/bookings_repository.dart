@@ -23,6 +23,8 @@ class BookingsRepository {
     required String driverId,
     required List<String> childIds,
     required String bookingType,
+    String? schoolId,
+    String? schoolName,
 
     String? homeLocation,
     String? schoolLocation,
@@ -59,6 +61,8 @@ class BookingsRepository {
           'driver_id': driverId,
           'status': 'pending',
           'booking_type': bookingType,
+          'school_id': schoolId,
+          'school_name': schoolName,
 
           'hometxt_location': homeLocation,
           'schooltxt_location': schoolLocation,
@@ -98,11 +102,59 @@ class BookingsRepository {
   }
 
   /// Cancel booking
-  Future<void> cancelBooking(String bookingId) async {
-    await _supabase
-        .from('bookings')
-        .update({'status': 'cancelled'})
-        .eq('id', bookingId);
+  Future<void> cancelBooking(
+    String bookingId, {
+    String status = 'cancelled',
+    String? cancellationType,
+    String? cancellationReason,
+    double? cancellationFee,
+    DateTime? contractEndDate,
+    DateTime? pauseStartDate,
+    DateTime? pauseEndDate,
+    DateTime? cancelRequestedAt,
+    String? subscriptionStatus,
+  }) async {
+    final update = <String, dynamic>{
+      'status': status,
+    };
+
+    if (status == 'cancelled') {
+      update['cancelled_at'] = DateTime.now().toIso8601String();
+    }
+    if (cancellationType != null) {
+      update['cancellation_type'] = cancellationType;
+    }
+    if (cancellationReason != null) {
+      update['cancellation_reason'] = cancellationReason;
+    }
+    if (cancellationFee != null) {
+      update['cancellation_fee'] = cancellationFee;
+    }
+    if (cancelRequestedAt != null) {
+      update['cancel_requested_at'] = cancelRequestedAt.toIso8601String();
+    }
+    if (contractEndDate != null) {
+      update['contract_end_date'] = contractEndDate.toIso8601String();
+    }
+    if (pauseStartDate != null) {
+      update['pause_start_date'] = pauseStartDate.toIso8601String();
+    }
+    if (pauseEndDate != null) {
+      update['pause_end_date'] = pauseEndDate.toIso8601String();
+    }
+    if (subscriptionStatus != null) {
+      update['subscription_status'] = subscriptionStatus;
+    }
+
+    await _supabase.from('bookings').update(update).eq('id', bookingId);
+  }
+
+  Future<void> updateBookingFields(
+    String bookingId,
+    Map<String, dynamic> fields,
+  ) async {
+    if (fields.isEmpty) return;
+    await _supabase.from('bookings').update(fields).eq('id', bookingId);
   }
 
   /// Delete booking
@@ -222,7 +274,7 @@ class BookingsRepository {
             newMap['driver_name'] = driverInfo?['name'];
             newMap['driver_photo'] = driverInfo?['photo'];
 
-            newMap['school_name'] = schoolInfo?['name'];
+            newMap['school_name'] = schoolInfo?['name'] ?? b['school_name'];
             newMap['school_address'] = schoolInfo?['address'];
 
             newMap['kids_count'] = childInfo?['count'] ?? 0;

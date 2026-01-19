@@ -32,7 +32,7 @@ class DashboardHeader extends ConsumerWidget {
       floating: true,
       pinned: true,
       elevation: 0,
-      backgroundColor: Colors.indigo.shade800,
+      backgroundColor: const Color(0xFF0B1E3B),
       // Status bar brightness
       systemOverlayStyle: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
@@ -101,44 +101,47 @@ class DashboardHeader extends ConsumerWidget {
             ),
           ],
         ),
-        background: Stack(
-          children: [
-            // 1. Gradient Background
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Colors.indigo.shade900, Colors.indigo.shade600],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+        background: ClipPath(
+          clipper: _HeaderWaveClipper(),
+          child: Stack(
+            children: [
+              // 1. Gradient Background
+              Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF0B1E3B), Color(0xFF1C3F6E)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
               ),
-            ),
-            // 2. Deco Circles (Professional Texture)
-            Positioned(
-              top: -50,
-              right: -50,
-              child: Container(
-                width: 200,
-                height: 200,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.05),
+              // 2. Deco Circles (Professional Texture)
+              Positioned(
+                top: -50,
+                right: -50,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.08),
+                  ),
                 ),
               ),
-            ),
-            Positioned(
-              top: 40,
-              right: 20,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.03),
+              Positioned(
+                top: 40,
+                right: 20,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.06),
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -174,6 +177,32 @@ class DashboardHeader extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _HeaderWaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height - 28);
+    path.quadraticBezierTo(
+      size.width * 0.25,
+      size.height,
+      size.width * 0.5,
+      size.height - 18,
+    );
+    path.quadraticBezierTo(
+      size.width * 0.75,
+      size.height - 36,
+      size.width,
+      size.height - 12,
+    );
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
 class _NotificationsIcon extends ConsumerWidget {

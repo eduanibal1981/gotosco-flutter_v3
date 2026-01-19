@@ -5,7 +5,6 @@ import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_card.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_detail_sheet.dart';
-import 'package:gotosco_v3/features/driver/transport_requests/presentation/transport_requests_tab.dart';
 
 class DriverBookingsScreen extends ConsumerStatefulWidget {
   final int initialTabIndex;
@@ -25,9 +24,9 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(
-      length: 4,
+      length: 3,
       vsync: this,
-      initialIndex: widget.initialTabIndex.clamp(0, 3),
+      initialIndex: widget.initialTabIndex.clamp(0, 2),
     );
   }
 
@@ -35,7 +34,7 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
   void didUpdateWidget(DriverBookingsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.initialTabIndex != oldWidget.initialTabIndex) {
-      _tabController.animateTo(widget.initialTabIndex.clamp(0, 3));
+      _tabController.animateTo(widget.initialTabIndex.clamp(0, 2));
     }
   }
 
@@ -65,30 +64,42 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
             Tab(text: 'Requests'),
             Tab(text: 'Active'),
             Tab(text: 'History'),
-            Tab(text: 'Transport'),
           ],
         ),
       ),
-      body: bookingsAsync.when(
-        data: (bookings) {
-          final pending = bookings.where((b) => b.status == 'pending').toList();
-          final active = bookings.where((b) => b.status == 'accepted').toList();
-          final history = bookings
-              .where((b) => b.status == 'rejected' || b.status == 'completed')
-              .toList(); // Adjust status based on real data
-
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              _buildBookingList(context, ref, pending, isPending: true),
-              _buildBookingList(context, ref, active),
-              _buildBookingList(context, ref, history, canDelete: true),
-              const TransportRequestsTab(),
-            ],
-          );
+      body: RefreshIndicator(
+        color: Colors.teal,
+        onRefresh: () async {
+          ref.invalidate(driverBookingsProvider);
+          await ref.read(driverBookingsProvider.future);
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, s) => Center(child: Text('Error: $e')),
+        child: bookingsAsync.when(
+          data: (bookings) {
+            final pending =
+                bookings.where((b) => b.status == 'pending').toList();
+            final active =
+                bookings.where((b) => b.status == 'accepted').toList();
+            final history = bookings
+                .where(
+                  (b) =>
+                      b.status == 'rejected' ||
+                      b.status == 'completed' ||
+                      b.status == 'cancelled',
+                )
+                .toList(); // Adjust status based on real data
+
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                _buildBookingList(context, ref, pending, isPending: true),
+                _buildBookingList(context, ref, active),
+                _buildBookingList(context, ref, history, canDelete: true),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, s) => _buildErrorState(context, ref, e.toString()),
+        ),
       ),
     );
   }
@@ -131,6 +142,48 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen>
           onTap: () => _showBookingDetails(context, ref, booking),
         );
       },
+    );
+  }
+
+  Widget _buildErrorState(
+    BuildContext context,
+    WidgetRef ref,
+    String message,
+  ) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 56, color: Colors.red.shade300),
+              const SizedBox(height: 12),
+              const Text(
+                'Unable to load bookings',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                onPressed: () => ref.refresh(driverBookingsProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

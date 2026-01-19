@@ -34,25 +34,28 @@ class ActiveBookingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTrack,
-      child: Container(
-        height: 200,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.indigo.withOpacity(0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Stack(
-            children: [
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTrack,
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.indigo.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Stack(
+              children: [
               // 1. Map Placeholder (Only if Active)
               if (isActive)
                 Positioned.fill(
@@ -93,26 +96,25 @@ class ActiveBookingCard extends StatelessWidget {
                       children: [
                         _buildStatusBadge(),
                         const Spacer(),
-                        GestureDetector(
-                          onTap: onViewAll,
-                          behavior: HitTestBehavior.opaque,
-                          child: Row(
-                            children: [
-                              Text(
-                                'View All',
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.arrow_forward_ios,
-                                size: 14,
-                                color: Colors.grey,
-                              ),
-                            ],
+                        TextButton.icon(
+                          onPressed: onViewAll,
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.grey[600],
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 14,
+                            color: Colors.grey,
+                          ),
+                          label: const Text(
+                            'View All',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
@@ -202,7 +204,7 @@ class ActiveBookingCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildStatusBadge() {

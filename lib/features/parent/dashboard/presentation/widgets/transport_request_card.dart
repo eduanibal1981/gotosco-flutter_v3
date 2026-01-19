@@ -15,14 +15,14 @@ class TransportRequestCard extends ConsumerWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.indigo.shade700, Colors.indigo.shade500],
+          colors: [Colors.indigo.shade500, Colors.indigo.shade300],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.indigo.withOpacity(0.3),
+            color: Colors.indigo.withOpacity(0.18),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),

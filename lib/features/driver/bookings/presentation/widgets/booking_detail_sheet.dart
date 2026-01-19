@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
+import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
+import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BookingDetailSheet extends ConsumerWidget {
@@ -198,6 +200,57 @@ class BookingDetailSheet extends ConsumerWidget {
                   ),
                 ],
               ),
+
+            if (booking.status == 'accepted') ...[
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        ref
+                            .read(driverDashboardIndexProvider.notifier)
+                            .setIndex(3);
+                      },
+                      icon: const Icon(Icons.route),
+                      label: const Text('Open Trips'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.teal,
+                        side: BorderSide(color: Colors.teal.shade300),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        context.push(
+                          '/chat',
+                          extra: {
+                            'userId': booking.parentId,
+                            'userName': booking.parentName ?? 'Parent',
+                          },
+                        );
+                      },
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: const Text('Message'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Use the Trips tab to mark pickup and drop-off for each stop.',
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              ),
+            ],
 
             if (booking.status == 'rejected' || booking.isExpired)
               SizedBox(

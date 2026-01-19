@@ -25,26 +25,59 @@ class DriverBookingsRepository {
   /// Get all bookings for the current driver
   Future<List<BookingModel>> getAllBookings() async {
     try {
-      // Get all bookings ordered by created_at (newest first) with related data
+      await _assertDriverProfile();
+
+      // 1) Fetch bookings without parent join to avoid RLS failure.
       final response = await _supabase
           .from('bookings')
-          .select(
-            '*, parent:users!parent_id(full_name, photo_url, phone), booking_children(children(id, name, school_name, grade))',
-          )
+          .select('*')
           .eq('driver_id', _driverId)
           .order('created_at', ascending: false);
 
-      final bookings = (response as List).map((data) {
-        final booking = data as Map<String, dynamic>;
-        final parent = booking['parent'] as Map<String, dynamic>?;
-        final childrenList =
-            booking['booking_children'] as List<dynamic>? ?? [];
+      final bookingsRaw = List<Map<String, dynamic>>.from(response as List);
+      if (bookingsRaw.isEmpty) return [];
 
-        final childrenData = childrenList
-            .map((e) => e['children'])
-            .where((c) => c != null)
-            .map((c) => c as Map<String, dynamic>)
-            .toList();
+      // 2) Fetch children for bookings in one query.
+      final bookingIds = bookingsRaw.map((b) => b['id'] as String).toList();
+      final childrenLinks = await _supabase
+          .from('booking_children')
+          .select('booking_id, children(id, name, school_name, grade)')
+          .inFilter('booking_id', bookingIds);
+
+      final childrenMap = <String, List<Map<String, dynamic>>>{};
+      for (final link in (childrenLinks as List)) {
+        final bookingId = link['booking_id'] as String?;
+        final child = link['children'] as Map<String, dynamic>?;
+        if (bookingId == null || child == null) continue;
+        childrenMap.putIfAbsent(bookingId, () => []).add(child);
+      }
+
+      // 3) Try fetching parent profiles; if RLS blocks, proceed without them.
+      final parentIds = bookingsRaw
+          .map((b) => b['parent_id'] as String?)
+          .whereType<String>()
+          .toSet()
+          .toList();
+      Map<String, Map<String, dynamic>> parentMap = {};
+      if (parentIds.isNotEmpty) {
+        try {
+          final parents = await _supabase
+              .from('users')
+              .select('id, full_name, photo_url, phone')
+              .inFilter('id', parentIds);
+          parentMap = {
+            for (final p in (parents as List))
+              p['id'] as String: p as Map<String, dynamic>,
+          };
+        } catch (_) {
+          // Ignore parent fetch errors to avoid empty bookings list.
+        }
+      }
+
+      final bookings = bookingsRaw.map((booking) {
+        final parentId = booking['parent_id'] as String?;
+        final parent = parentId != null ? parentMap[parentId] : null;
+        final childrenData = childrenMap[booking['id'] as String] ?? [];
 
         // Combine Data
         final fullData = <String, dynamic>{
@@ -61,7 +94,7 @@ class DriverBookingsRepository {
       return bookings;
     } catch (e) {
       print('Error fetching bookings: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -91,5 +124,18 @@ class DriverBookingsRepository {
 
   Future<void> deleteBooking(String bookingId) async {
     await _supabase.from('bookings').delete().eq('id', bookingId);
+  }
+
+  Future<void> _assertDriverProfile() async {
+    final profile = await _supabase
+        .from('drivers')
+        .select('user_id')
+        .eq('user_id', _driverId)
+        .maybeSingle();
+    if (profile == null) {
+      throw Exception(
+        'No driver profile found for this account. Please sign in with your driver account.',
+      );
+    }
   }
 }

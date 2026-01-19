@@ -1,4 +1,4 @@
-﻿// lib/core/router/router.dart
+// lib/core/router/router.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +20,7 @@ import 'package:gotosco_v3/features/parent/tracking/presentation/live_tracking_s
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 import 'package:gotosco_v3/features/driver/messages/presentation/driver_messages_screen.dart';
+import 'package:gotosco_v3/features/driver/transport_requests/presentation/driver_transport_requests_screen.dart';
 import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
@@ -27,6 +28,9 @@ import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart
 import 'package:gotosco_v3/features/parent/profile/presentation/edit_profile_screen.dart';
 import 'package:gotosco_v3/features/parent/transport_requests/presentation/transport_request_screen.dart';
 import 'package:gotosco_v3/features/parent/notifications/presentation/notifications_screen.dart';
+import 'package:gotosco_v3/features/parent/support/presentation/help_support_screen.dart';
+import 'package:gotosco_v3/features/parent/support/presentation/terms_conditions_screen.dart';
+import 'package:gotosco_v3/features/parent/support/presentation/privacy_policy_screen.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 
 part 'router.g.dart';
@@ -68,6 +72,18 @@ GoRouter router(Ref ref) {
         builder: (context, state) => const NotificationsScreen(),
       ),
       GoRoute(
+        path: '/help-support',
+        builder: (context, state) => const HelpSupportScreen(),
+      ),
+      GoRoute(
+        path: '/terms',
+        builder: (context, state) => const TermsConditionsScreen(),
+      ),
+      GoRoute(
+        path: '/privacy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
         path: '/edit-profile',
         builder: (context, state) {
           final user = state.extra as UserModel;
@@ -91,6 +107,10 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/driver-messages',
         builder: (context, state) => const DriverMessagesScreen(),
+      ),
+      GoRoute(
+        path: '/driver-transport-requests',
+        builder: (context, state) => const DriverTransportRequestsScreen(),
       ),
 
       // ... inside routes list

@@ -40,6 +40,10 @@ class DriversRepository {
             ? null
             : filters['vehicleType'],
         'filter_min_rating': filters['minRating'],
+        'search_term':
+            (filters['searchQuery'] as String?)?.trim().isEmpty == false
+                ? filters['searchQuery']
+                : null,
 
         // Pricing
         'max_price_monthly_two_way': filters['maxPrice'],
@@ -238,7 +242,9 @@ class DriversRepository {
 
   Future<List<Map<String, dynamic>>> getSchools({String? cityId}) async {
     try {
-      var query = _supabase.from('schools').select('id, name');
+      var query = _supabase
+          .from('schools')
+          .select('id, name, address, city_id, location, latitude, longitude');
       if (cityId != null) {
         query = query.eq('city_id', cityId);
       }

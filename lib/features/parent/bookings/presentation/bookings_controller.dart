@@ -18,6 +18,8 @@ class BookingsController extends _$BookingsController {
     required String driverId,
     required List<String> childIds,
     required String bookingType,
+    String? schoolId,
+    String? schoolName,
     String? homeLocation,
     String? schoolLocation,
     double? homeLat,
@@ -69,6 +71,8 @@ class BookingsController extends _$BookingsController {
             driverId: driverId,
             childIds: childIds,
             bookingType: bookingType,
+            schoolId: schoolId,
+            schoolName: schoolName,
             homeLocation: homeLocation ?? '',
             schoolLocation: schoolLocation ?? '',
             homeLat: homeLat,
@@ -90,11 +94,48 @@ class BookingsController extends _$BookingsController {
   }
 
   /// Cancels a booking by ID.
-  Future<bool> cancelBooking(String bookingId) async {
+  Future<bool> cancelBooking(
+    String bookingId, {
+    String status = 'cancelled',
+    String? cancellationType,
+    String? cancellationReason,
+    DateTime? contractEndDate,
+    DateTime? pauseStartDate,
+    DateTime? pauseEndDate,
+    double? cancellationFee,
+    DateTime? cancelRequestedAt,
+    String? subscriptionStatus,
+  }) async {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      await ref.read(bookingsRepositoryProvider).cancelBooking(bookingId);
+      await ref.read(bookingsRepositoryProvider).cancelBooking(
+            bookingId,
+            status: status,
+            cancellationType: cancellationType,
+            cancellationReason: cancellationReason,
+            contractEndDate: contractEndDate,
+            pauseStartDate: pauseStartDate,
+            pauseEndDate: pauseEndDate,
+            cancellationFee: cancellationFee,
+            cancelRequestedAt: cancelRequestedAt,
+            subscriptionStatus: subscriptionStatus,
+          );
+    });
+
+    return !state.hasError;
+  }
+
+  Future<bool> updateBookingFields(
+    String bookingId,
+    Map<String, dynamic> fields,
+  ) async {
+    state = const AsyncLoading();
+
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(bookingsRepositoryProvider)
+          .updateBookingFields(bookingId, fields);
     });
 
     return !state.hasError;

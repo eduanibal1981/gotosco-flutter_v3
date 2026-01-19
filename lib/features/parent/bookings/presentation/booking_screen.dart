@@ -1,8 +1,11 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/widgets/location_input_field.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/dashboard_controller.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../find_driver/presentation/drivers_controller.dart';
 import '../../children/data/children_repository.dart';
 import 'bookings_controller.dart';
 
@@ -30,12 +33,17 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   final _notesController = TextEditingController();
   final _homeLocController = TextEditingController();
   final _schoolLocController = TextEditingController();
+  final _schoolNameController = TextEditingController();
 
   // Form State
   String _bookingType = 'Two Way'; // Default
   TimeOfDay? _homePickupTime;
   TimeOfDay? _schoolPickupTime;
   final List<String> _selectedChildIds = [];
+  String? _selectedCityId;
+  String? _selectedSchoolId;
+  String? _selectedSchoolName;
+  bool _useManualSchool = false;
 
   // NEW: Recurring State
   DateTime _startDate = DateTime.now().add(const Duration(days: 1)); // Tomorrow
@@ -69,6 +77,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     if (widget.initialData != null) {
       _prefillData(widget.initialData!);
     }
+    if (_selectedSchoolId != null &&
+        (_schoolLat == null || _schoolLng == null)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _loadSchoolDetails(_selectedSchoolId!);
+      });
+    }
   }
 
   void _prefillData(Map<String, dynamic> data) {
@@ -79,6 +93,11 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
     _homeLocController.text = data['home_location'] ?? '';
     _schoolLocController.text = data['school_location'] ?? '';
+    _selectedSchoolId = data['school_id'];
+    _selectedSchoolName = data['school_name'];
+    _schoolNameController.text = data['school_name'] ?? '';
+    _useManualSchool =
+        _selectedSchoolId == null && _schoolLocController.text.isNotEmpty;
     _notesController.text = data['notes'] ?? '';
 
     _homeLat = data['home_lat'] as double?;
@@ -133,6 +152,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     _notesController.dispose();
     _homeLocController.dispose();
     _schoolLocController.dispose();
+    _schoolNameController.dispose();
     super.dispose();
   }
 
@@ -168,16 +188,112 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     }
   }
 
+  Future<void> _loadSchoolDetails(String schoolId) async {
+    try {
+      final data = await Supabase.instance.client
+          .from('schools')
+          .select('id, name, address, city_id, location')
+          .eq('id', schoolId)
+          .maybeSingle();
+      if (!mounted || data == null) return;
+      _applySchoolSelection(data, data['city_id'] as String?);
+    } catch (_) {
+      // Ignore load errors; user can switch to manual if needed.
+    }
+  }
+
+  void _applySchoolSelection(Map<String, dynamic> school, String? cityId) {
+    final coords =
+        _parseSchoolLocation(school['location']) ?? _coordsFromSchool(school);
+    final address = (school['address'] as String?)?.trim();
+
+    setState(() {
+      _selectedCityId = cityId;
+      _selectedSchoolId = school['id'] as String?;
+      _selectedSchoolName = school['name'] as String?;
+      _useManualSchool = false;
+      _schoolNameController.text = _selectedSchoolName ?? '';
+      _schoolLocController.text = address?.isNotEmpty == true ? address! : '';
+      _schoolLat = coords?['lat'];
+      _schoolLng = coords?['lng'];
+    });
+  }
+
+  Map<String, double>? _parseSchoolLocation(dynamic location) {
+    if (location == null) return null;
+    if (location is Map) {
+      final coords = location['coordinates'];
+      if (coords is List && coords.length >= 2) {
+        final lng = (coords[0] as num).toDouble();
+        final lat = (coords[1] as num).toDouble();
+        return {'lat': lat, 'lng': lng};
+      }
+    }
+    if (location is String) {
+      final text = location.trim();
+      try {
+        if (text.startsWith('{')) {
+          final decoded = json.decode(text);
+          final coords = decoded['coordinates'];
+          if (coords is List && coords.length >= 2) {
+            final lng = (coords[0] as num).toDouble();
+            final lat = (coords[1] as num).toDouble();
+            return {'lat': lat, 'lng': lng};
+          }
+        }
+      } catch (_) {
+        // fallthrough
+      }
+      final pointMatch = RegExp(r'POINT\\(([-\\d\\.]+) ([-\\d\\.]+)\\)')
+          .firstMatch(text);
+      if (pointMatch != null) {
+        final lng = double.tryParse(pointMatch.group(1)!);
+        final lat = double.tryParse(pointMatch.group(2)!);
+        if (lat != null && lng != null) {
+          return {'lat': lat, 'lng': lng};
+        }
+      }
+    }
+    return null;
+  }
+
+  Map<String, double>? _coordsFromSchool(Map<String, dynamic> school) {
+    final lat = school['latitude'];
+    final lng = school['longitude'];
+    if (lat is num && lng is num) {
+      return {'lat': lat.toDouble(), 'lng': lng.toDouble()};
+    }
+    return null;
+  }
+
   Future<void> _submitRequest() async {
     try {
+      if (_useManualSchool && _schoolNameController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please enter the school name'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       final success = await ref
           .read(bookingsControllerProvider.notifier)
           .submitBooking(
             driverId: widget.driverId,
             childIds: _selectedChildIds,
             bookingType: _bookingType,
+            schoolId: _useManualSchool ? null : _selectedSchoolId,
+            schoolName: _useManualSchool
+                ? _schoolNameController.text.trim()
+                : _selectedSchoolName,
             homeLocation: _homeLocController.text.trim(),
-            schoolLocation: _schoolLocController.text.trim(),
+            schoolLocation: _useManualSchool
+                ? _schoolLocController.text.trim()
+                : (_schoolLocController.text.trim().isEmpty
+                    ? null
+                    : _schoolLocController.text.trim()),
             homeLat: _homeLat,
             homeLng: _homeLng,
             schoolLat: _schoolLat,
@@ -208,8 +324,13 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           _notesController.clear();
           _homeLocController.clear();
           _schoolLocController.clear();
+          _schoolNameController.clear();
           _homePickupTime = null;
           _schoolPickupTime = null;
+          _selectedCityId = null;
+          _selectedSchoolId = null;
+          _selectedSchoolName = null;
+          _useManualSchool = false;
           _isRecurring = false;
           _isMonthlySubscription = false;
           _selectedDays.clear();
@@ -480,16 +601,55 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
           const SizedBox(height: 16),
 
-          LocationInputField(
-            label: "School Location",
-            controller: _schoolLocController,
-            onLocationSelected: (lat, lng) {
-              setState(() {
-                _schoolLat = lat;
-                _schoolLng = lng;
-              });
-            },
+          const Text(
+            "School",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
+          const SizedBox(height: 8),
+          _buildSchoolSelector(context),
+          if (!_useManualSchool) ...[
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _schoolLocController,
+              readOnly: true,
+              decoration: InputDecoration(
+                labelText: 'School Location',
+                hintText: _selectedSchoolId == null
+                    ? 'Select a school to set the location'
+                    : 'Location set from school',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Location is pulled from the school record.',
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ] else ...[
+            const SizedBox(height: 12),
+            TextField(
+              controller: _schoolNameController,
+              decoration: InputDecoration(
+                labelText: 'School Name',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            LocationInputField(
+              label: "School Location",
+              controller: _schoolLocController,
+              onLocationSelected: (lat, lng) {
+                setState(() {
+                  _schoolLat = lat;
+                  _schoolLng = lng;
+                });
+              },
+            ),
+          ],
 
           const SizedBox(height: 20),
 
@@ -628,6 +788,272 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildSchoolSelector(BuildContext context) {
+    final label = _selectedSchoolName ?? 'Select School';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () async {
+            if (_useManualSchool) return;
+            final result =
+                await showModalBottomSheet<Map<String, dynamic>>(
+              context: context,
+              isScrollControlled: true,
+              useSafeArea: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (context) => _SchoolSelectionSheet(
+                initialCityId: _selectedCityId,
+                initialSchoolId: _selectedSchoolId,
+              ),
+            );
+            if (result == null) return;
+            final school = result['school'] as Map<String, dynamic>?;
+            if (school == null) return;
+            _applySchoolSelection(school, result['cityId'] as String?);
+          },
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade400),
+              borderRadius: BorderRadius.circular(12),
+              color: _useManualSchool ? Colors.grey.shade100 : Colors.white,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontSize: 16, color: Colors.black87),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const Icon(Icons.arrow_drop_down, color: Colors.grey),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: () {
+              setState(() {
+                _useManualSchool = !_useManualSchool;
+                _selectedSchoolId = null;
+                _selectedSchoolName = null;
+                _selectedCityId = null;
+                _schoolLocController.clear();
+                if (_useManualSchool) {
+                  _schoolNameController.clear();
+                }
+                _schoolLat = null;
+                _schoolLng = null;
+              });
+            },
+            child: Text(
+              _useManualSchool ? 'Use school list' : 'School not listed?',
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _SchoolSelectionSheet extends ConsumerStatefulWidget {
+  final String? initialCityId;
+  final String? initialSchoolId;
+
+  const _SchoolSelectionSheet({
+    required this.initialCityId,
+    required this.initialSchoolId,
+  });
+
+  @override
+  ConsumerState<_SchoolSelectionSheet> createState() =>
+      _SchoolSelectionSheetState();
+}
+
+class _SchoolSelectionSheetState extends ConsumerState<_SchoolSelectionSheet> {
+  late TextEditingController _searchController;
+  String? _selectedCityId;
+  String? _selectedSchoolId;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+    _selectedCityId = widget.initialCityId;
+    _selectedSchoolId = widget.initialSchoolId;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final citiesAsync = ref.watch(citiesProvider);
+    final schoolsAsync = ref.watch(schoolsProvider(cityId: _selectedCityId));
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.9,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, controller) {
+        return Column(
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Select School',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: citiesAsync.when(
+                data: (cities) => DropdownButtonFormField<String>(
+                  value: _selectedCityId,
+                  decoration: InputDecoration(
+                    labelText: 'Select City',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  items: [
+                    const DropdownMenuItem(
+                      value: null,
+                      child: Text('All Cities'),
+                    ),
+                    ...cities.map(
+                      (c) => DropdownMenuItem(
+                        value: c['id'] as String,
+                        child: Text(c['name'] as String),
+                      ),
+                    ),
+                  ],
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedCityId = val;
+                      _selectedSchoolId = null;
+                    });
+                  },
+                ),
+                loading: () => const LinearProgressIndicator(),
+                error: (err, _) => const SizedBox(),
+              ),
+            ),
+            if (_selectedCityId == null)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  'Please select a city to see available schools',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              ),
+            if (_selectedCityId != null) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search school...',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: schoolsAsync.when(
+                  data: (schools) {
+                    final filtered = schools.where((school) {
+                      final name = (school['name'] as String?) ?? '';
+                      return name.toLowerCase().contains(
+                        _searchQuery.toLowerCase(),
+                      );
+                    }).toList();
+
+                    if (filtered.isEmpty) {
+                      return const Center(child: Text('No schools found'));
+                    }
+
+                    return ListView.separated(
+                      controller: controller,
+                      itemCount: filtered.length,
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final school = filtered[index];
+                        final isSelected =
+                            school['id'] == _selectedSchoolId;
+                        return ListTile(
+                          title: Text(school['name'] as String? ?? 'School'),
+                          subtitle: school['address'] != null
+                              ? Text(
+                                  school['address'] as String,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                )
+                              : null,
+                          trailing: isSelected
+                              ? const Icon(Icons.check, color: Colors.indigo)
+                              : null,
+                          onTap: () {
+                            Navigator.pop(context, {
+                              'cityId': _selectedCityId,
+                              'school': school,
+                            });
+                          },
+                        );
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (err, _) => Center(child: Text('Error: $err')),
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

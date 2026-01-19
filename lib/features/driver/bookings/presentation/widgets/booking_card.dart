@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
+import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 
 class BookingCard extends ConsumerWidget {
   final BookingModel booking;
@@ -24,6 +25,17 @@ class BookingCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final dateFormatter = DateFormat('MMM d, yyyy');
     final createdDate = DateTime.tryParse(booking.createdAt);
+    final startDate = booking.startDate != null
+        ? DateTime.tryParse(booking.startDate!)
+        : null;
+    final endDate =
+        booking.endDate != null ? DateTime.tryParse(booking.endDate!) : null;
+    final pauseUntil = booking.pauseEndDate != null
+        ? DateTime.tryParse(booking.pauseEndDate!)
+        : null;
+    final scheduledStop = booking.contractEndDate != null
+        ? DateTime.tryParse(booking.contractEndDate!)
+        : null;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -130,6 +142,88 @@ class BookingCard extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
+              if (startDate != null || endDate != null) ...[
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today,
+                        size: 16, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatDateRange(dateFormatter, startDate, endDate),
+                      style: const TextStyle(color: Colors.black87),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+              if (booking.isRecurring)
+                Row(
+                  children: [
+                    const Icon(Icons.repeat, size: 16, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        booking.recurringDays.isNotEmpty
+                            ? 'Recurring: ${booking.recurringDays.join(', ')}'
+                            : 'Recurring schedule',
+                        style: const TextStyle(color: Colors.black87),
+                      ),
+                    ),
+                  ],
+                ),
+
+              if (booking.isRecurring) const SizedBox(height: 16),
+
+              if (booking.subscriptionStatus == 'paused')
+                _buildNoticeRow(
+                  Icons.pause_circle_filled,
+                  pauseUntil != null
+                      ? 'Paused until ${dateFormatter.format(pauseUntil)}'
+                      : 'Paused',
+                  Colors.orange,
+                ),
+              if (booking.contractEndDate != null)
+                _buildNoticeRow(
+                  Icons.event_busy,
+                  scheduledStop != null
+                      ? 'Scheduled stop on ${dateFormatter.format(scheduledStop)}'
+                      : 'Scheduled stop set',
+                  Colors.orange,
+                ),
+              if (booking.cancellationType != null &&
+                  booking.status == 'accepted' &&
+                  booking.subscriptionStatus != 'paused' &&
+                  booking.contractEndDate == null)
+                _buildNoticeRow(
+                  Icons.info_outline,
+                  'Cancellation requested',
+                  Colors.redAccent,
+                ),
+
+              if (booking.status == 'accepted')
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          ref
+                              .read(driverDashboardIndexProvider.notifier)
+                              .setIndex(3);
+                        },
+                        icon: const Icon(Icons.route, size: 18),
+                        label: const Text('Open Trips'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.teal,
+                          side: BorderSide(color: Colors.teal.shade300),
+                          visualDensity: VisualDensity.compact,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+              if (booking.status == 'accepted') const SizedBox(height: 12),
+
               // Action Buttons
               if (isPending) _BookingActions(booking: booking),
 
@@ -233,6 +327,41 @@ class BookingCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildNoticeRow(IconData icon, String text, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(color: color, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDateRange(
+    DateFormat formatter,
+    DateTime? start,
+    DateTime? end,
+  ) {
+    if (start != null && end != null) {
+      return 'Schedule: ${formatter.format(start)} - ${formatter.format(end)}';
+    }
+    if (start != null) {
+      return 'Starts: ${formatter.format(start)}';
+    }
+    if (end != null) {
+      return 'Ends: ${formatter.format(end)}';
+    }
+    return 'Schedule: Not set';
   }
 }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -18,6 +20,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   Position? _currentPosition;
   bool _locationDenied = false;
   bool _locationServiceDisabled = false;
+  Timer? _searchDebounce;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -30,6 +33,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -122,6 +126,21 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
     ref.read(driversFilterControllerProvider.notifier).clearFilters();
   }
 
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 300), () {
+      ref
+          .read(driversFilterControllerProvider.notifier)
+          .updateFilters({'searchQuery': value.trim()});
+      ref.invalidate(
+        driverAdsProvider(
+          lat: _currentPosition?.latitude,
+          lng: _currentPosition?.longitude,
+        ),
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final filterController = ref.watch(
@@ -161,14 +180,12 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                     ),
                     child: TextField(
                       decoration: const InputDecoration(
-                        hintText: "Search area, school...",
+                        hintText: "Search by driver name, area, school...",
                         prefixIcon: Icon(Icons.search, color: Colors.grey),
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.symmetric(vertical: 14),
                       ),
-                      onChanged: (val) {
-                        // Implement text search logic if needed
-                      },
+                      onChanged: _onSearchChanged,
                     ),
                   ),
                 ),

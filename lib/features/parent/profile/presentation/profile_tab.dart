@@ -333,11 +333,7 @@ class ProfileTab extends ConsumerWidget {
                         title: 'Help & Support',
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Help & Support coming soon"),
-                            ),
-                          );
+                          context.push('/help-support');
                         },
                       ),
                       _buildListTile(
@@ -345,11 +341,7 @@ class ProfileTab extends ConsumerWidget {
                         title: 'Terms & Conditions',
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Terms & Conditions coming soon"),
-                            ),
-                          );
+                          context.push('/terms');
                         },
                       ),
                       _buildListTile(
@@ -357,11 +349,7 @@ class ProfileTab extends ConsumerWidget {
                         title: 'Privacy Policy',
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text("Privacy Policy coming soon"),
-                            ),
-                          );
+                          context.push('/privacy');
                         },
                       ),
                     ]),
