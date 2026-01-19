@@ -2444,7 +2444,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
 
     try {
       // Create driver profile
-      await Supabase.instance.client.from('drivers').insert({
+      final payload = <String, dynamic>{
         'user_id': userId,
         'vehicle_type': _selectedVehicleType,
         'vehicle_number': _vehicleNumberController.text,
@@ -2458,11 +2458,16 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
             double.tryParse(_priceOneWayController.text) ?? 0,
         'price_daily': double.tryParse(_priceDailyController.text) ?? 0,
         'location_text': _locationTextController.text,
-        'location_lat': _locationLat,
-        'location_lng': _locationLng,
         'bio': _bioController.text,
         'is_verified': false,
-      });
+      };
+
+      if (_locationLat != null && _locationLng != null) {
+        payload['location_geo'] =
+            'SRID=4326;POINT(${_locationLng} ${_locationLat})';
+      }
+
+      await Supabase.instance.client.from('drivers').insert(payload);
 
       setState(() => _isLoading = false);
 
