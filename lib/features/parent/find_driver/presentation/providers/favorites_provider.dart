@@ -1,7 +1,14 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../../data/driver_ad_model.dart';
 import '../../data/drivers_repository.dart';
 
 part 'favorites_provider.g.dart';
+
+/// Fetches the full details of favorite drivers.
+@riverpod
+Future<List<DriverAdModel>> favoriteDrivers(Ref ref) async {
+  return ref.watch(driversRepositoryProvider).getFavoriteDrivers();
+}
 
 /// Manages the list of favorite driver IDs for the current user.
 /// Uses AsyncNotifier pattern for proper async state management.
@@ -27,6 +34,8 @@ class Favorites extends _$Favorites {
     // Call API
     try {
       await ref.read(driversRepositoryProvider).toggleFavorite(driverId);
+      // Refresh the full list of favorites
+      ref.invalidate(favoriteDriversProvider);
     } catch (e) {
       // Revert if API fails by re-fetching
       ref.invalidateSelf();
