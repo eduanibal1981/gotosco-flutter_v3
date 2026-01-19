@@ -2042,10 +2042,16 @@ class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
   final _licenseNumberController = TextEditingController();
   final _vehicleNumberController = TextEditingController();
   final _vehicleCapacityController = TextEditingController(text: '8');
+  final _priceTwoWayController = TextEditingController();
+  final _priceOneWayController = TextEditingController();
+  final _priceDailyController = TextEditingController();
+  final _locationTextController = TextEditingController();
   final _bioController = TextEditingController();
 
   String _selectedVehicleType = 'Van';
   DateTime? _licenseExpiry;
+  double? _locationLat;
+  double? _locationLng;
   bool _isLoading = false;
 
   @override
@@ -2054,6 +2060,10 @@ class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
     _licenseNumberController.dispose();
     _vehicleNumberController.dispose();
     _vehicleCapacityController.dispose();
+    _priceTwoWayController.dispose();
+    _priceOneWayController.dispose();
+    _priceDailyController.dispose();
+    _locationTextController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -2136,6 +2146,26 @@ class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
                     label: 'License Number',
                   ),
                   _buildDateField(),
+                  const SizedBox(height: 24),
+                  _buildSectionLabel('Pricing'),
+                  _buildTextField(
+                    controller: _priceTwoWayController,
+                    label: 'Monthly Two-way (OMR)',
+                    keyboardType: TextInputType.number,
+                  ),
+                  _buildTextField(
+                    controller: _priceOneWayController,
+                    label: 'Monthly One-way (OMR)',
+                    keyboardType: TextInputType.number,
+                  ),
+                  _buildTextField(
+                    controller: _priceDailyController,
+                    label: 'Daily Rate (OMR)',
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSectionLabel('Location'),
+                  _buildLocationPicker(),
                   const SizedBox(height: 24),
                   _buildSectionLabel('About You'),
                   _buildTextField(
@@ -2241,6 +2271,116 @@ class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
     );
   }
 
+  Widget _buildLocationPicker() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _locationTextController,
+          readOnly: true,
+          decoration: InputDecoration(
+            labelText: 'Location',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            suffixIcon: const Icon(Icons.map_outlined),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _useCurrentLocation,
+                icon: const Icon(Icons.my_location, size: 18),
+                label: const Text('Use Current Location'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _openMapPicker,
+                icon: const Icon(Icons.place_outlined, size: 18),
+                label: const Text('Pick on Map'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openMapPicker() async {
+    final result = await Navigator.push<dynamic>(
+      context,
+      MaterialPageRoute(builder: (context) => const MapPickerScreen()),
+    );
+
+    if (result != null && mounted) {
+      await _setLocationFromCoords(result.latitude, result.longitude);
+    }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      await _setLocationFromCoords(position.latitude, position.longitude);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to get location: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _setLocationFromCoords(double lat, double lng) async {
+    final text = await _reverseGeocode(lat, lng);
+    if (!mounted) return;
+    setState(() {
+      _locationLat = lat;
+      _locationLng = lng;
+      _locationTextController.text = text;
+    });
+  }
+
+  Future<String> _reverseGeocode(double lat, double lng) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'com.example.gotosco_v3'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final addressObj = data['address'];
+        if (addressObj != null) {
+          List<String?> parts = [
+            addressObj['building'],
+            addressObj['road'],
+            addressObj['suburb'] ?? addressObj['neighbourhood'],
+            addressObj['city'] ?? addressObj['town'],
+          ];
+          final displayName = parts
+              .where((e) => e != null && e.isNotEmpty)
+              .toSet()
+              .join(', ');
+          if (displayName.isNotEmpty) return displayName;
+        }
+        final fallback = data['display_name']?.split(',').take(3).join(',');
+        if (fallback != null && fallback.isNotEmpty) {
+          return fallback.trim();
+        }
+      }
+    } catch (e) {
+      debugPrint('Geocoding Error: $e');
+    }
+    return 'Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+  }
+
   Future<void> _createProfile() async {
     setState(() => _isLoading = true);
 
@@ -2268,6 +2408,14 @@ class _CreateProfileSheetState extends ConsumerState<_CreateProfileSheet> {
         'experience_years': int.tryParse(_experienceController.text) ?? 0,
         'license_number': _licenseNumberController.text,
         'license_expiry': _licenseExpiry?.toIso8601String().split('T').first,
+        'price_monthly_two_way':
+            double.tryParse(_priceTwoWayController.text) ?? 0,
+        'price_monthly_one_way':
+            double.tryParse(_priceOneWayController.text) ?? 0,
+        'price_daily': double.tryParse(_priceDailyController.text) ?? 0,
+        'location_text': _locationTextController.text,
+        'location_lat': _locationLat,
+        'location_lng': _locationLng,
         'bio': _bioController.text,
         'is_verified': false,
       });
