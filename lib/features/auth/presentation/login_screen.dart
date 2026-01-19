@@ -13,6 +13,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   // State to toggle between Login and Sign Up views
   bool _isLogin = true;
+  // State to toggle password visibility
+  bool _isPasswordVisible = false;
 
   // Controllers (Mocking them for UI purposes)
   final _emailController = TextEditingController();
@@ -362,12 +364,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }) {
     return TextFormField(
       controller: controller,
-      obscureText: isPassword,
+      obscureText: isPassword && !_isPasswordVisible,
       keyboardType: keyboardType,
       style: const TextStyle(fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.grey.shade500),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: Colors.grey.shade500,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _isPasswordVisible = !_isPasswordVisible;
+                  });
+                },
+                tooltip: _isPasswordVisible ? 'Hide password' : 'Show password',
+              )
+            : null,
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 20,
