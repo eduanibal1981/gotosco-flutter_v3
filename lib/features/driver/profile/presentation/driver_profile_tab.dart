@@ -2235,7 +2235,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w600,
-          color: Colors.grey.shade700,
+          color: Colors.grey.shade800,
         ),
       ),
     );
