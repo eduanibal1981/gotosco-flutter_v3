@@ -305,6 +305,8 @@ class _ChildCard extends StatelessWidget {
                           child: Image.network(
                             child.photoUrl!,
                             fit: BoxFit.cover,
+                            cacheWidth: 112,
+                            cacheHeight: 112,
                             errorBuilder: (_, __, ___) => Center(
                               child: Text(
                                 child.name[0].toUpperCase(),
