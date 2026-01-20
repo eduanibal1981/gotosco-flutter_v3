@@ -107,7 +107,7 @@ class MyBookingsTab extends ConsumerWidget {
         const SizedBox(width: 12),
         _buildStatCard(
           icon: Icons.history,
-          title: 'Total',
+          title: 'All',
           subtitle: 'Show',
           value: bookings.length.toString(),
           color: Colors.white,
