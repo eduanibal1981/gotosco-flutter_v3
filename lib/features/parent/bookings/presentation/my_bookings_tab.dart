@@ -6,11 +6,18 @@ import 'package:latlong2/latlong.dart';
 import '../data/bookings_repository.dart';
 import '../../dashboard/presentation/dashboard_controller.dart';
 
-class MyBookingsTab extends ConsumerWidget {
+class MyBookingsTab extends ConsumerStatefulWidget {
   const MyBookingsTab({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyBookingsTab> createState() => _MyBookingsTabState();
+}
+
+class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
+  String _selectedFilter = 'all';
+
+  @override
+  Widget build(BuildContext context) {
     final bookingsAsync = ref.watch(myBookingsProvider);
 
     return Scaffold(
@@ -95,6 +102,8 @@ class MyBookingsTab extends ConsumerWidget {
           subtitle: 'Show',
           value: active.toString(),
           color: Colors.green,
+          isSelected: _selectedFilter == 'active',
+          onTap: () => setState(() => _selectedFilter = 'active'),
         ),
         const SizedBox(width: 12),
         _buildStatCard(
@@ -103,6 +112,8 @@ class MyBookingsTab extends ConsumerWidget {
           subtitle: 'Show',
           value: pending.toString(),
           color: Colors.orange,
+          isSelected: _selectedFilter == 'pending',
+          onTap: () => setState(() => _selectedFilter = 'pending'),
         ),
         const SizedBox(width: 12),
         _buildStatCard(
@@ -111,6 +122,8 @@ class MyBookingsTab extends ConsumerWidget {
           subtitle: 'Show',
           value: bookings.length.toString(),
           color: Colors.white,
+          isSelected: _selectedFilter == 'all',
+          onTap: () => setState(() => _selectedFilter = 'all'),
         ),
       ],
     );
@@ -122,42 +135,53 @@ class MyBookingsTab extends ConsumerWidget {
     required String subtitle,
     required String value,
     required Color color,
+    required bool isSelected,
+    required VoidCallback onTap,
   }) {
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 22),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Colors.white.withOpacity(0.25)
+                : Colors.white.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: isSelected
+                ? Border.all(color: Colors.white60, width: 1.5)
+                : null,
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 11,
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 11,
+                ),
               ),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.8),
-                fontSize: 11,
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 11,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -246,7 +270,8 @@ class MyBookingsTab extends ConsumerWidget {
     final List<Widget> items = [];
 
     // Active bookings
-    if (accepted.isNotEmpty) {
+    if (accepted.isNotEmpty &&
+        (_selectedFilter == 'all' || _selectedFilter == 'active')) {
       items.add(
         _buildSectionHeader('Active Bookings', Colors.green, accepted.length),
       );
@@ -265,7 +290,8 @@ class MyBookingsTab extends ConsumerWidget {
     }
 
     // Pending bookings
-    if (pending.isNotEmpty) {
+    if (pending.isNotEmpty &&
+        (_selectedFilter == 'all' || _selectedFilter == 'pending')) {
       items.add(
         _buildSectionHeader('Pending Approval', Colors.orange, pending.length),
       );
@@ -276,7 +302,7 @@ class MyBookingsTab extends ConsumerWidget {
     }
 
     // Completed bookings
-    if (completed.isNotEmpty) {
+    if (completed.isNotEmpty && _selectedFilter == 'all') {
       items.add(
         _buildSectionHeader('Completed', Colors.grey, completed.length),
       );
@@ -287,7 +313,7 @@ class MyBookingsTab extends ConsumerWidget {
     }
 
     // Rejected/Cancelled
-    if (rejected.isNotEmpty) {
+    if (rejected.isNotEmpty && _selectedFilter == 'all') {
       items.add(_buildSectionHeader('Cancelled', Colors.red, rejected.length));
       for (var booking in rejected) {
         items.add(
