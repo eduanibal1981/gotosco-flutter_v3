@@ -21,6 +21,10 @@ sealed class UserModel with _$UserModel {
     // We map it to a List<String> here.
     @JsonKey(name: 'role') @Default([]) List<String> roles,
     @JsonKey(name: 'photo_url') String? photoUrl,
+    // Add these lines:
+    @JsonKey(name: 'location_text') String? locationText,
+    @JsonKey(name: 'location_lat') double? locationLat,
+    @JsonKey(name: 'location_lng') double? locationLng,
   }) = _UserModel;
 
   // This line is needed to generate the JSON conversion method

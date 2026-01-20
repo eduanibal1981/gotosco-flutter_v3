@@ -200,13 +200,13 @@ class DriverProfileRepository {
       final geoPoint = 'SRID=4326;POINT($lng $lat)';
 
       await _supabase
-          .from('drivers')
+          .from('users')
           .update({
             'location_text': locationText,
             'location_geo': geoPoint,
             'last_location_update': DateTime.now().toIso8601String(),
           })
-          .eq('user_id', driverId);
+          .eq('id', driverId);
 
       return true;
     } catch (e) {
@@ -245,21 +245,21 @@ class DriverProfileRepository {
   Future<bool> copyLocationToStartPoint(String driverId) async {
     try {
       // Fetch current location
-      final driver = await _supabase
-          .from('drivers')
+      final user = await _supabase
+          .from('users')
           .select('location_text, location_geo')
-          .eq('user_id', driverId)
+          .eq('id', driverId)
           .maybeSingle();
 
-      if (driver == null || driver['location_geo'] == null) {
+      if (user == null || user['location_geo'] == null) {
         return false;
       }
 
       await _supabase
           .from('drivers')
           .update({
-            'start_location_text': driver['location_text'],
-            'start_location_geo': driver['location_geo'],
+            'start_location_text': user['location_text'],
+            'start_location_geo': user['location_geo'],
           })
           .eq('user_id', driverId);
 
@@ -372,7 +372,9 @@ class DriverProfileRepository {
   Future<String?> createSchedule(DriverScheduleModel schedule) async {
     try {
       final mapData = schedule.toMap();
-      debugPrint('DEBUG createSchedule: Inserting schedule with data: $mapData');
+      debugPrint(
+        'DEBUG createSchedule: Inserting schedule with data: $mapData',
+      );
 
       final response = await _supabase
           .from('driver_schedules')

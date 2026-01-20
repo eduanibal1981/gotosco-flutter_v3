@@ -124,9 +124,10 @@ class DriverProfileModel {
       serviceAreas: serviceAreas,
       schools: schools,
       // Location fields
-      locationText: map['location_text'],
-      locationLat: (map['location_lat'] as num?)?.toDouble(),
-      locationLng: (map['location_lng'] as num?)?.toDouble(),
+      // CHANGED: Prioritize userData (users table) for location info
+      locationText: userData?['location_text'] ?? map['location_text'],
+      locationLat: (userData?['location_lat'] ?? map['location_lat'] as num?)?.toDouble(),
+      locationLng: (userData?['location_lng'] ?? map['location_lng'] as num?)?.toDouble(),
       startLocationText: map['start_location_text'],
       startLocationLat: (map['start_location_lat'] as num?)?.toDouble(),
       startLocationLng: (map['start_location_lng'] as num?)?.toDouble(),
