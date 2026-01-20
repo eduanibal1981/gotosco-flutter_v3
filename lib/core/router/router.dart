@@ -1,6 +1,5 @@
 // lib/core/router/router.dart
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/booking_screen.dart';
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
@@ -35,11 +34,17 @@ import 'package:gotosco_v3/features/parent/support/presentation/help_support_scr
 import 'package:gotosco_v3/features/parent/support/presentation/terms_conditions_screen.dart';
 import 'package:gotosco_v3/features/parent/support/presentation/privacy_policy_screen.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
+import 'package:gotosco_v3/core/providers/user_session_provider.dart';
 
 part 'router.g.dart';
 
 @riverpod
 GoRouter router(Ref ref) {
+  // Watch the user session state.
+  // This ensures the router rebuilds and re-evaluates redirects whenever
+  // the session state changes (login, logout, role switch, etc.).
+  final userSessionState = ref.watch(userSessionProvider);
+
   return GoRouter(
     initialLocation: '/',
     routes: [
@@ -115,17 +120,17 @@ GoRouter router(Ref ref) {
         path: '/driver-profile-create',
         builder: (context, state) => const DriverCreateProfileScreen(),
       ),
-        GoRoute(
-          path: '/driver-profile-edit',
-          builder: (context, state) {
-            final profile = state.extra as DriverProfileModel;
-            return DriverEditProfileScreen(profile: profile);
-          },
-        ),
-        GoRoute(
-          path: '/driver-coverage',
-          builder: (context, state) => const DriverCoverageScreen(),
-        ),
+      GoRoute(
+        path: '/driver-profile-edit',
+        builder: (context, state) {
+          final profile = state.extra as DriverProfileModel;
+          return DriverEditProfileScreen(profile: profile);
+        },
+      ),
+      GoRoute(
+        path: '/driver-coverage',
+        builder: (context, state) => const DriverCoverageScreen(),
+      ),
       GoRoute(
         path: '/driver-transport-requests',
         builder: (context, state) => const DriverTransportRequestsScreen(),
@@ -210,48 +215,50 @@ GoRouter router(Ref ref) {
     ],
 
     // REDIRECT LOGIC
-    redirect: (context, state) async {
-      final session = Supabase.instance.client.auth.currentSession;
+    redirect: (context, state) {
+      final authSession = Supabase.instance.client.auth.currentSession;
       final isLoggingIn = state.uri.toString() == '/login';
       final isSplash = state.uri.toString() == '/';
       final isRoleSelection = state.uri.toString() == '/role-selection';
 
-      // 1. No Session? Go to Login
-      if (session == null) {
+      // 1. No Auth Session? Go to Login
+      if (authSession == null) {
         return isLoggingIn || isSplash ? null : '/login';
       }
 
-      // 2. Has Session but on Login/Splash? Check roles in database
-      if (isLoggingIn || isSplash) {
-        try {
-          final userData = await Supabase.instance.client
-              .from('users')
-              .select('role')
-              .eq('id', session.user.id)
-              .single();
+      // 2. Auth Session Exists
 
-          final roles = List<String>.from(userData['role'] ?? []);
+      // If we are still loading user data, stay put (or show splash if on root)
+      // This prevents premature redirection before we know the roles
+      if (userSessionState.isLoading) {
+        if (isSplash) return null; // Show splash while loading
+        return null; // Don't interrupt other flows?
+      }
 
-          // No roles? Go to role selection
-          if (roles.isEmpty) {
-            return '/role-selection';
-          }
+      // If we have an error or null value after loading, it likely means
+      // user profile is missing or has no roles.
+      final userSession = userSessionState.asData?.value;
 
-          // Has roles? Go to first role's dashboard
-          if (roles.contains('driver')) {
-            return '/driver-home';
-          } else {
-            return '/parent-home';
-          }
-        } catch (e) {
-          // If user not in DB, go to role selection
-          return '/role-selection';
+      if (userSession == null) {
+        // Required: Select a role
+        if (isRoleSelection) return null;
+        return '/role-selection';
+      }
+
+      // 3. User is Fully Authenticated with Roles
+
+      // If user is trying to access login, splash, or role selection (when they already have one),
+      // redirect them to their active dashboard.
+      if (isLoggingIn || isSplash || isRoleSelection) {
+        if (userSession.activeRole == 'driver') {
+          return '/driver-home';
+        } else {
+          return '/parent-home';
         }
       }
 
+      // Otherwise, let them go where they are going
       return null;
     },
   );
 }
-
-

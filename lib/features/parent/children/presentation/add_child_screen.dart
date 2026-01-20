@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:gotosco_v3/features/shared/schools/data/school_model.dart';
+import 'package:gotosco_v3/features/shared/schools/presentation/school_selection_field.dart';
+import 'package:gotosco_v3/features/driver/profile/data/city_model.dart';
+import 'package:gotosco_v3/features/shared/schools/data/schools_repository.dart';
 import 'children_controller.dart';
 
 class AddChildScreen extends ConsumerStatefulWidget {
@@ -16,10 +20,43 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
 
   // Controllers
   final _nameController = TextEditingController();
-  final _schoolController = TextEditingController();
+  // final _schoolController = TextEditingController(); // Replaced by _selectedSchool
   final _gradeController = TextEditingController();
   final _medicalController = TextEditingController();
   final _notesController = TextEditingController();
+
+  SchoolModel? _selectedSchool;
+
+  // City
+  CityModel? _selectedCity;
+  List<CityModel> _cities = [];
+  bool _isLoadingCities = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCities();
+  }
+
+  Future<void> _loadCities() async {
+    setState(() => _isLoadingCities = true);
+    try {
+      // Fetch cities
+      // Note: we need schoolsRepositoryProvider but AddChildScreen might not have easy access if not imported.
+      // We should add import 'package:gotosco_v3/features/shared/schools/data/schools_repository.dart';
+      // and use ref.read
+
+      final cities = await ref.read(schoolsRepositoryProvider).getCities();
+      if (mounted) {
+        setState(() {
+          _cities = cities;
+          _isLoadingCities = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingCities = false);
+    }
+  }
 
   // State
   String _selectedGender = 'male'; // Default
@@ -28,7 +65,6 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _schoolController.dispose();
     _gradeController.dispose();
     _medicalController.dispose();
     _notesController.dispose();
@@ -43,13 +79,45 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
       );
       return;
     }
+    // Note: School validation handled by form field validator locally,
+    // but we check _selectedSchool if we enforce strict selection.
+    // The field allows typing a name, but if we require a valid ID, we check:
+    /*
+    if (_selectedSchool == null) {
+       // Logic to auto-create or force selection?
+       // Current SchoolSelectionField allows picking or adding.
+       // If user typed but didn't pick/add, _selectedSchool is null but text has value.
+       // We might want to force adding.
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select or add a valid school')),
+      );
+      return;
+    }
+    */
+    // For now, let's assume if they typed a name but selected nothing, we fail or pass name?
+    // User wants "select... or upsert".
+    // SchoolSelectionField has "Add" button in dropdown.
+    // If they just type "My School" and hit save without adding it properly?
+    // We should probably enforce selection.
+
+    if (_selectedSchool == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please select a school from the list or add a new one',
+          ),
+        ),
+      );
+      return;
+    }
 
     try {
       final success = await ref
           .read(childrenControllerProvider.notifier)
           .addChild(
             name: _nameController.text.trim(),
-            school: _schoolController.text.trim(),
+            school: _selectedSchool!.name,
+            schoolId: _selectedSchool!.id,
             grade: _gradeController.text.trim(),
             gender: _selectedGender,
             dob: _selectedDate!,
@@ -224,12 +292,20 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
 
               // --- 3. SCHOOL INFO ---
               _buildSectionTitle("School Details"),
-              _buildTextField(
-                controller: _schoolController,
-                label: "School Name",
-                icon: Icons.school_outlined,
-                validator: (v) => v!.isEmpty ? 'School is required' : null,
+
+              // City Selection (New)
+              _buildCityDropdown(),
+              const SizedBox(height: 16),
+
+              SchoolSelectionField(
+                cityId:
+                    _selectedCity?.id, // Pass selected city to filter schools
+                onSchoolSelected: (school) {
+                  setState(() => _selectedSchool = school);
+                },
               ),
+
+              // Removed old text field
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _gradeController,
@@ -299,6 +375,37 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
   }
 
   // --- HELPERS ---
+
+  Widget _buildCityDropdown() {
+    if (_isLoadingCities) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(8),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+    return DropdownButtonFormField<CityModel>(
+      value: _selectedCity,
+      decoration: InputDecoration(
+        labelText: 'Select City',
+        prefixIcon: const Icon(Icons.location_city, color: Colors.grey),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      items: _cities.map((city) {
+        return DropdownMenuItem(value: city, child: Text(city.name));
+      }).toList(),
+      onChanged: (val) {
+        setState(() {
+          _selectedCity = val;
+          _selectedSchool = null; // Reset school if city changes
+        });
+      },
+      validator: (val) => val == null ? 'Please select a city first' : null,
+    );
+  }
 
   Widget _buildSectionTitle(String title) {
     return Padding(

@@ -361,7 +361,9 @@ class _ChildCard extends StatelessWidget {
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              child.schoolName,
+                              child.cityName != null
+                                  ? '${child.schoolName}, ${child.cityName}'
+                                  : child.schoolName,
                               style: TextStyle(
                                 fontSize: 13,
                                 color: Colors.grey.shade600,

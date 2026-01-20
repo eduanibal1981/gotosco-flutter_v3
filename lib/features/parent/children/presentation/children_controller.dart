@@ -22,6 +22,7 @@ class ChildrenController extends _$ChildrenController {
   Future<bool> addChild({
     required String name,
     required String school,
+    String? schoolId, // NEW
     required String grade,
     required String gender,
     required DateTime dob,
@@ -32,7 +33,7 @@ class ChildrenController extends _$ChildrenController {
     if (name.trim().isEmpty) {
       throw Exception('Name is required');
     }
-    if (school.trim().isEmpty) {
+    if (school.trim().isEmpty && schoolId == null) {
       throw Exception('School is required');
     }
     if (grade.trim().isEmpty) {
@@ -47,6 +48,7 @@ class ChildrenController extends _$ChildrenController {
           .addChild(
             name: name.trim(),
             school: school.trim(),
+            schoolId: schoolId,
             grade: grade.trim(),
             gender: gender,
             dob: dob,

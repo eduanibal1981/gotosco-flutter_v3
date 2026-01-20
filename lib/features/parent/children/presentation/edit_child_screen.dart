@@ -3,6 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
+import 'package:gotosco_v3/features/shared/schools/data/school_model.dart';
+import 'package:gotosco_v3/features/shared/schools/presentation/school_selection_field.dart';
+import 'package:gotosco_v3/features/driver/profile/data/city_model.dart';
+import 'package:gotosco_v3/features/shared/schools/data/schools_repository.dart';
 
 class EditChildScreen extends ConsumerStatefulWidget {
   final ChildModel child; // Receive the child data to edit
@@ -16,7 +20,6 @@ class EditChildScreen extends ConsumerStatefulWidget {
 class _EditChildScreenState extends ConsumerState<EditChildScreen> {
   final _formKey = GlobalKey<FormState>();
   late TextEditingController _nameController;
-  late TextEditingController _schoolController;
   late TextEditingController _gradeController;
   late TextEditingController _medicalController;
   late TextEditingController _notesController;
@@ -25,14 +28,17 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
   DateTime? _selectedDate;
   bool _isLoading = false;
 
+  // School & City State
+  SchoolModel? _selectedSchool;
+  CityModel? _selectedCity;
+  List<CityModel> _cities = [];
+  bool _isLoadingData = true;
+
   @override
   void initState() {
     super.initState();
-    // Pre-fill data
     _nameController = TextEditingController(text: widget.child.name);
-    _schoolController = TextEditingController(text: widget.child.schoolName);
     _gradeController = TextEditingController(text: widget.child.grade);
-    // Note: You might need to add medical/notes to your ChildModel if you want to edit them
     _medicalController = TextEditingController(
       text: widget.child.medicalConditions,
     );
@@ -41,12 +47,49 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
     _selectedDate =
         widget.child.dob ??
         DateTime.now().subtract(const Duration(days: 365 * 6));
+
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      // 1. Fetch Cities
+      final cities = await ref.read(schoolsRepositoryProvider).getCities();
+
+      // 2. Fetch existing school details if ID exists
+      SchoolModel? existingSchool;
+      if (widget.child.schoolId != null) {
+        existingSchool = await ref
+            .read(schoolsRepositoryProvider)
+            .getSchoolById(widget.child.schoolId!);
+      }
+
+      if (mounted) {
+        setState(() {
+          _cities = cities;
+          _selectedSchool = existingSchool; // Set initial school model
+
+          // Pre-select city based on school
+          if (existingSchool != null) {
+            try {
+              _selectedCity = cities.firstWhere(
+                (c) => c.id == existingSchool!.cityId,
+              );
+            } catch (_) {}
+          }
+
+          _isLoadingData = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingData = false);
+      print('Error loading initial data: $e');
+    }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _schoolController.dispose();
     _gradeController.dispose();
     _medicalController.dispose();
     _notesController.dispose();
@@ -55,6 +98,17 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
 
   Future<void> _update() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Validation: ensure school is selected or at least name preserved
+    // Logic: If _selectedSchool is null, it means we didn't fetch it successfully AND user didn't pick one.
+    // If widget.child.schoolName exists, we could fallback, but better to force selection if we want IDs.
+    if (_selectedSchool == null && widget.child.schoolName.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a school')));
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -63,7 +117,12 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
           .updateChild(
             childId: widget.child.id,
             name: _nameController.text.trim(),
-            school: _schoolController.text.trim(),
+            school:
+                _selectedSchool?.name ??
+                widget
+                    .child
+                    .schoolName, // Fallback to old name if not changed/fetched
+            schoolId: _selectedSchool?.id, // Can be null if using legacy name
             grade: _gradeController.text.trim(),
             gender: _selectedGender,
             dob: _selectedDate!,
@@ -72,8 +131,8 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
           );
 
       if (!mounted) return;
-      ref.invalidate(myChildrenProvider); // Refresh the list
-      context.pop(); // Go back
+      ref.invalidate(myChildrenProvider);
+      context.pop();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Child profile updated!'),
@@ -90,6 +149,8 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
       if (mounted) setState(() => _isLoading = false);
     }
   }
+
+  // ... delete method remains same ...
 
   Future<void> _delete() async {
     final confirm = await showDialog<bool>(
@@ -124,6 +185,10 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoadingData) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Edit Profile"),
@@ -139,6 +204,7 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTextField(
                 controller: _nameController,
@@ -146,11 +212,28 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
                 icon: Icons.person,
               ),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: _schoolController,
-                label: "School",
-                icon: Icons.school,
+
+              // --- School Section ---
+              const Text(
+                "School Details",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.indigo,
+                ),
               ),
+              const SizedBox(height: 8),
+
+              _buildCityDropdown(),
+              const SizedBox(height: 16),
+
+              SchoolSelectionField(
+                initialValue: _selectedSchool?.name ?? widget.child.schoolName,
+                cityId: _selectedCity?.id,
+                onSchoolSelected: (school) {
+                  setState(() => _selectedSchool = school);
+                },
+              ),
+
               const SizedBox(height: 16),
               _buildTextField(
                 controller: _gradeController,
@@ -160,6 +243,25 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
               const SizedBox(height: 24),
 
               // ... (Include Gender and Date pickers similar to Add Screen) ...
+              // For brevity assuming helper methods or re-implementing them minimally
+              _buildGenderRes(),
+              const SizedBox(height: 16),
+              _buildDateRes(),
+
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: _medicalController,
+                label: "Medical Conditions",
+                icon: Icons.medical_services,
+              ),
+              const SizedBox(height: 16),
+              _buildTextField(
+                controller: _notesController,
+                label: "Notes",
+                icon: Icons.note,
+              ),
+
+              const SizedBox(height: 32),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -169,6 +271,104 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCityDropdown() {
+    return DropdownButtonFormField<CityModel>(
+      value: _selectedCity,
+      decoration: InputDecoration(
+        labelText: 'Select City',
+        prefixIcon: const Icon(Icons.location_city, color: Colors.grey),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      items: _cities.map((city) {
+        return DropdownMenuItem(value: city, child: Text(city.name));
+      }).toList(),
+      onChanged: (val) {
+        setState(() {
+          _selectedCity = val;
+          // Note: we don't clear selected school name immediately to avoid jarring UX,
+          // but the ID logic handles filters.
+          _selectedSchool = null;
+        });
+      },
+      validator: (val) => val == null ? 'Please select a city' : null,
+    );
+  }
+
+  Widget _buildGenderRes() {
+    return Row(
+      children: [
+        Expanded(child: _buildGenderCard('male', Icons.male, Colors.blue)),
+        const SizedBox(width: 12),
+        Expanded(child: _buildGenderCard('female', Icons.female, Colors.pink)),
+      ],
+    );
+  }
+
+  Widget _buildGenderCard(String value, IconData icon, Color color) {
+    final isSelected = _selectedGender == value;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedGender = value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withOpacity(0.1) : Colors.white,
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? color : Colors.grey, size: 28),
+            const SizedBox(height: 4),
+            Text(
+              value[0].toUpperCase() + value.substring(1),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: isSelected ? color : Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDateRes() {
+    return InkWell(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _selectedDate ?? DateTime.now(),
+          firstDate: DateTime(2000),
+          lastDate: DateTime.now(),
+        );
+        if (picked != null) setState(() => _selectedDate = picked);
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.calendar_today),
+            const SizedBox(width: 10),
+            Text(
+              _selectedDate != null
+                  ? _selectedDate.toString().split(' ')[0]
+                  : "DOB",
+            ),
+          ],
         ),
       ),
     );
@@ -186,7 +386,10 @@ class _EditChildScreenState extends ConsumerState<EditChildScreen> {
         prefixIcon: Icon(icon),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      validator: (v) => v!.isEmpty ? "$label is required" : null,
+      validator: (v) =>
+          v!.isEmpty && label != "Medical Conditions" && label != "Notes"
+          ? "$label is required"
+          : null,
     );
   }
 }

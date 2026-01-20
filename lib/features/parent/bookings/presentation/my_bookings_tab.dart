@@ -91,21 +91,24 @@ class MyBookingsTab extends ConsumerWidget {
       children: [
         _buildStatCard(
           icon: Icons.check_circle,
-          label: 'Active',
+          title: 'Active',
+          subtitle: 'Show',
           value: active.toString(),
           color: Colors.green,
         ),
         const SizedBox(width: 12),
         _buildStatCard(
           icon: Icons.hourglass_empty,
-          label: 'Pending',
+          title: 'Pending',
+          subtitle: 'Show',
           value: pending.toString(),
           color: Colors.orange,
         ),
         const SizedBox(width: 12),
         _buildStatCard(
           icon: Icons.history,
-          label: 'Total',
+          title: 'Total',
+          subtitle: 'Show',
           value: bookings.length.toString(),
           color: Colors.white,
         ),
@@ -115,7 +118,8 @@ class MyBookingsTab extends ConsumerWidget {
 
   Widget _buildStatCard({
     required IconData icon,
-    required String label,
+    required String title,
+    required String subtitle,
     required String value,
     required Color color,
   }) {
@@ -138,8 +142,16 @@ class MyBookingsTab extends ConsumerWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
+            const SizedBox(height: 8),
             Text(
-              label,
+              title,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 11,
+              ),
+            ),
+            Text(
+              subtitle,
               style: TextStyle(
                 color: Colors.white.withOpacity(0.8),
                 fontSize: 11,
@@ -962,7 +974,9 @@ class MyBookingsTab extends ConsumerWidget {
     DateTime date,
   ) async {
     try {
-      await ref.read(bookingsRepositoryProvider).cancelBooking(
+      await ref
+          .read(bookingsRepositoryProvider)
+          .cancelBooking(
             booking['id'],
             status: 'accepted',
             cancellationType: 'scheduled_stop',
@@ -972,15 +986,15 @@ class MyBookingsTab extends ConsumerWidget {
           );
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Stop date scheduled')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Stop date scheduled')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to schedule stop: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to schedule stop: $e')));
       }
     }
   }
@@ -992,7 +1006,9 @@ class MyBookingsTab extends ConsumerWidget {
     DateTime untilDate,
   ) async {
     try {
-      await ref.read(bookingsRepositoryProvider).cancelBooking(
+      await ref
+          .read(bookingsRepositoryProvider)
+          .cancelBooking(
             booking['id'],
             status: 'accepted',
             cancellationType: 'pause',
@@ -1004,15 +1020,15 @@ class MyBookingsTab extends ConsumerWidget {
           );
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking paused')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Booking paused')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pause booking: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to pause booking: $e')));
       }
     }
   }
@@ -1048,7 +1064,9 @@ class MyBookingsTab extends ConsumerWidget {
 
     if (confirmed != true) return;
     try {
-      await ref.read(bookingsRepositoryProvider).cancelBooking(
+      await ref
+          .read(bookingsRepositoryProvider)
+          .cancelBooking(
             booking['id'],
             cancellationType: 'immediate_stop_fee',
             cancellationReason: 'parent_immediate_stop_fee',
@@ -1056,15 +1074,15 @@ class MyBookingsTab extends ConsumerWidget {
           );
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking stopped')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Booking stopped')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to stop booking: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to stop booking: $e')));
       }
     }
   }
@@ -1100,7 +1118,9 @@ class MyBookingsTab extends ConsumerWidget {
 
     if (confirmed != true) return;
     try {
-      await ref.read(bookingsRepositoryProvider).cancelBooking(
+      await ref
+          .read(bookingsRepositoryProvider)
+          .cancelBooking(
             booking['id'],
             cancellationType: 'safety_stop',
             cancellationReason: 'safety_stop_pending_review',
@@ -1108,15 +1128,15 @@ class MyBookingsTab extends ConsumerWidget {
           );
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Safety stop requested')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Safety stop requested')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to stop booking: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to stop booking: $e')));
       }
     }
   }
@@ -1127,27 +1147,26 @@ class MyBookingsTab extends ConsumerWidget {
     Map<String, dynamic> booking,
   ) async {
     try {
-      await ref.read(bookingsRepositoryProvider).updateBookingFields(
-        booking['id'],
-        {
-          'subscription_status': 'active',
-          'pause_start_date': null,
-          'pause_end_date': null,
-          'cancellation_type': null,
-          'cancellation_reason': null,
-        },
-      );
+      await ref
+          .read(bookingsRepositoryProvider)
+          .updateBookingFields(booking['id'], {
+            'subscription_status': 'active',
+            'pause_start_date': null,
+            'pause_end_date': null,
+            'cancellation_type': null,
+            'cancellation_reason': null,
+          });
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Service resumed')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Service resumed')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to resume: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to resume: $e')));
       }
     }
   }
@@ -1158,26 +1177,25 @@ class MyBookingsTab extends ConsumerWidget {
     Map<String, dynamic> booking,
   ) async {
     try {
-      await ref.read(bookingsRepositoryProvider).updateBookingFields(
-        booking['id'],
-        {
-          'contract_end_date': null,
-          'cancellation_type': null,
-          'cancellation_reason': null,
-          'cancel_requested_at': null,
-        },
-      );
+      await ref
+          .read(bookingsRepositoryProvider)
+          .updateBookingFields(booking['id'], {
+            'contract_end_date': null,
+            'cancellation_type': null,
+            'cancellation_reason': null,
+            'cancel_requested_at': null,
+          });
       ref.invalidate(myBookingsProvider);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Scheduled stop removed')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Scheduled stop removed')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
       }
     }
   }

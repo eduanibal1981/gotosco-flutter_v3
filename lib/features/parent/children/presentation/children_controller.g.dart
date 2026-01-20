@@ -126,7 +126,7 @@ final class ChildrenControllerProvider
 }
 
 String _$childrenControllerHash() =>
-    r'6dd0f59b1838ec59aa0db8cc232d70b5b4ce5cff';
+    r'07a13910afc2db6c0cacb6ec67595ec5c0d791a1';
 
 /// Controller that encapsulates all children management business logic.
 /// Handles validation, CRUD operations, and state management.

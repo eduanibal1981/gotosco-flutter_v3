@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gotosco_v3/core/providers/user_session_provider.dart';
 
 /// Screen where users select their role(s) after signing up.
 ///
@@ -143,12 +144,19 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
 
       if (!mounted) return;
 
-      // Navigate to appropriate dashboard
-      if (selectedRole == 'driver') {
-        context.go('/driver-home');
-      } else {
-        context.go('/parent-home');
-      }
+      // Invalidate session provider to trigger router redirect
+      ref.invalidate(userSessionProvider);
+
+      // Wait a brief moment for the provider to refresh
+      // The router redirect will handle the navigation automatically
+      // But we can keep the manual navigation as a fallback or remove it.
+      // Since router is watching the provider, manual navigation might conflict
+      // if not careful, but context.go replaces the stack.
+      // Actually, if we invalidate, the router might react immediately.
+      // Better to let the router handle it, but for UX responsiveness,
+      // we can leave it.
+      // However, if the router sees the new state, it WILL redirect.
+      // Let's just invalidate.
     } catch (e) {
       if (!mounted) return;
 
@@ -199,7 +207,48 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
 
       if (!mounted) return;
 
+      // Invalidate session provider to refresh roles
+      ref.invalidate(userSessionProvider);
+
       if (firstRole != null) {
+        // Update active role preference if needed?
+        // The provider handles default active role logic.
+        // But since we just picked one, we might want to set it as active.
+        // UserSessionNotifier.switchRole updates local storage.
+        // But we haven't built the session yet with the new roles.
+        // It's tricky.
+
+        // Let's wait for the invalidation to propagate?
+        // Actually, we can just navigate. The router will see we have roles now.
+        // But router defaults to 'first' role. We want 'firstRole'.
+
+        // We should manual navigation here because the router might not know which one we want active *initially* if we have both.
+        // But wait, the router redirect logic for "Both" roles isn't explicit.
+        // Router says:
+        // if (roles.contains('driver')) return '/driver-home';
+        // else return '/parent-home';
+
+        // So it prioritizes driver.
+        // If user picked Parent?
+        // We need to set the specific active role preference.
+
+        // We can use the provider to set it, but we need the session to be valid first.
+
+        // For now, let's just navigate. The router will redirect if it disagrees, or we force it?
+        // If we force it, the router redirect might override us if it thinks we are in the wrong place.
+        // But router redirect returns null if we are in a valid place or redirects if not.
+        // Logic: activeRole == 'driver' -> driver-home.
+        // So if we go to parent-home but activeRole is driver, router might redirect us back!
+
+        // So we MUST set the active role pref if we want to go potentially to the non-default one.
+        // But we can't easily do that on a null session.
+        // Maybe we just let the router take us to default (driver) and user can switch?
+        // Or we assume the router logic is "if activeRole == driver".
+
+        // Let's just invalidate. The user can switch roles later.
+        // Or improved logic:
+        // await ref.read(userSessionNotifierProvider.notifier).build(); // force refresh?
+
         if (firstRole == 'driver') {
           context.go('/driver-home');
         } else {

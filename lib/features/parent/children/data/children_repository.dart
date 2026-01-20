@@ -28,7 +28,9 @@ class ChildrenRepository {
     try {
       final response = await _supabase
           .from('children')
-          .select()
+          .select(
+            '*, schools(name, cities(name))',
+          ) // Join to get school and city name
           .eq('parent_id', parentId)
           .order('name', ascending: true);
 
@@ -44,7 +46,9 @@ class ChildrenRepository {
   // --- ADD CHILD FUNCTION ---
   Future<void> addChild({
     required String name,
-    required String school,
+    required String
+    school, // Kept for backward compat or manual entry if needed
+    String? schoolId, // NEW
     required String grade,
     required String gender,
     required DateTime dob,
@@ -57,7 +61,8 @@ class ChildrenRepository {
     await _supabase.from('children').insert({
       'parent_id': user.id,
       'name': name,
-      'school_name': school,
+      'school_name': school, // Still saving name as fallback
+      'school_id': schoolId,
       'grade': grade,
       'gender': gender, // 'male' or 'female'
       'date_of_birth': dob.toIso8601String(),
@@ -72,6 +77,7 @@ class ChildrenRepository {
     required String childId,
     required String name,
     required String school,
+    String? schoolId,
     required String grade,
     required String gender,
     required DateTime dob,
@@ -83,6 +89,7 @@ class ChildrenRepository {
         .update({
           'name': name,
           'school_name': school,
+          if (schoolId != null) 'school_id': schoolId,
           'grade': grade,
           'gender': gender,
           'date_of_birth': dob.toIso8601String(),

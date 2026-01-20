@@ -8,6 +8,8 @@ class ChildModel {
   final DateTime? dob;
   final String? medicalConditions;
   final String? notes;
+  final String? schoolId;
+  final String? cityName;
 
   ChildModel({
     required this.id,
@@ -19,13 +21,30 @@ class ChildModel {
     this.dob,
     this.medicalConditions,
     this.notes,
+    this.schoolId,
+    this.cityName,
   });
 
   factory ChildModel.fromMap(Map<String, dynamic> map) {
+    // Handle join: school: { name: ... }
+    String fetchedSchoolName = map['school_name'] ?? '';
+    String? fetchedCityName;
+
+    if (map['schools'] != null) {
+      if (map['schools']['name'] != null) {
+        fetchedSchoolName = map['schools']['name'];
+      }
+      // Check for nested city
+      if (map['schools']['cities'] != null &&
+          map['schools']['cities']['name'] != null) {
+        fetchedCityName = map['schools']['cities']['name'];
+      }
+    }
+
     return ChildModel(
       id: map['id'] ?? '',
       name: map['name'] ?? 'Unknown',
-      schoolName: map['school_name'] ?? '',
+      schoolName: fetchedSchoolName,
       grade: map['grade'] ?? '',
       photoUrl: map['photo_url'],
       gender: map['gender'],
@@ -34,6 +53,8 @@ class ChildModel {
           : null,
       medicalConditions: map['medical_conditions'],
       notes: map['notes'],
+      schoolId: map['school_id'],
+      cityName: fetchedCityName,
     );
   }
 }
