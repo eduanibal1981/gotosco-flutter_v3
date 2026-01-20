@@ -175,63 +175,72 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            _isLogin ? 'Welcome Back' : 'Create Account',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: _primaryDark,
+                      child: AutofillGroup(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              _isLogin ? 'Welcome Back' : 'Create Account',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: _primaryDark,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 24),
+                            const SizedBox(height: 24),
 
-                          // Fields
-                          if (!_isLogin) ...[
+                            // Fields
+                            if (!_isLogin) ...[
+                              _buildTextField(
+                                controller: _nameController,
+                                label: 'Full Name',
+                                icon: Icons.person_outline,
+                                autofillHints: [AutofillHints.name],
+                                textInputAction: TextInputAction.next,
+                              ),
+                              const SizedBox(height: 16),
+                            ],
                             _buildTextField(
-                              controller: _nameController,
-                              label: 'Full Name',
-                              icon: Icons.person_outline,
+                              controller: _emailController,
+                              label: 'Email Address',
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: [AutofillHints.email],
+                              textInputAction: TextInputAction.next,
                             ),
                             const SizedBox(height: 16),
-                          ],
-                          _buildTextField(
-                            controller: _emailController,
-                            label: 'Email Address',
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _passwordController,
-                            label: 'Password',
-                            icon: Icons.lock_outline,
-                            isPassword: true,
-                          ),
+                            _buildTextField(
+                              controller: _passwordController,
+                              label: 'Password',
+                              icon: Icons.lock_outline,
+                              isPassword: true,
+                              autofillHints: [AutofillHints.password],
+                              textInputAction: TextInputAction.done,
+                              onFieldSubmitted: (_) => _handleEmailAuth(),
+                            ),
 
-                          if (_isLogin) ...[
-                            const SizedBox(height: 8),
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: TextButton(
-                                onPressed: () {}, // Mock action
-                                child: Text(
-                                  'Forgot Password?',
-                                  style: TextStyle(color: _primaryLight),
+                            if (_isLogin) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {}, // Mock action
+                                  child: Text(
+                                    'Forgot Password?',
+                                    style: TextStyle(color: _primaryLight),
+                                  ),
                                 ),
                               ),
-                            ),
-                          ] else ...[
-                            const SizedBox(height: 24),
-                          ],
+                            ] else ...[
+                              const SizedBox(height: 24),
+                            ],
 
-                          // Main Action Button
-                          const SizedBox(height: 8),
-                          _buildMainButton(),
-                        ],
+                            // Main Action Button
+                            const SizedBox(height: 8),
+                            _buildMainButton(),
+                          ],
+                        ),
                       ),
                     ),
 
@@ -361,11 +370,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     required IconData icon,
     bool isPassword = false,
     TextInputType? keyboardType,
+    Iterable<String>? autofillHints,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onFieldSubmitted,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword && !_isPasswordVisible,
       keyboardType: keyboardType,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       style: const TextStyle(fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
