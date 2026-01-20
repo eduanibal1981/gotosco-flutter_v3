@@ -27,25 +27,39 @@ class ChatRepository {
     final conversationId = _getConversationId(myId, otherUserId);
 
     final hasConversationId = await _hasConversationIdColumn();
-    final baseStream = _supabase
-        .from('messages')
-        .stream(primaryKey: ['id'])
-        .order('created_at', ascending: true)
-        .map((data) => data.map((e) => MessageModel.fromMap(e)).toList());
 
-    await for (final messages in baseStream) {
-      final filtered = hasConversationId
-          ? messages
-              .where((m) => m.conversationId == conversationId)
-              .toList()
-          : messages
-              .where(
-                (m) =>
-                    (m.senderId == myId && m.receiverId == otherUserId) ||
-                    (m.senderId == otherUserId && m.receiverId == myId),
-              )
-              .toList();
-      yield filtered;
+    Stream<List<Map<String, dynamic>>> rawStream;
+
+    if (hasConversationId) {
+      // Optimize: Filter server-side if conversation_id exists
+      rawStream = _supabase
+          .from('messages')
+          .stream(primaryKey: ['id'])
+          .eq('conversation_id', conversationId)
+          .order('created_at', ascending: true);
+    } else {
+      // Fallback: Download full table and filter client-side
+      rawStream = _supabase
+          .from('messages')
+          .stream(primaryKey: ['id'])
+          .order('created_at', ascending: true);
+    }
+
+    final mappedStream = rawStream.map((data) => data.map((e) => MessageModel.fromMap(e)).toList());
+
+    await for (final messages in mappedStream) {
+      if (hasConversationId) {
+        yield messages;
+      } else {
+        final filtered = messages
+            .where(
+              (m) =>
+                  (m.senderId == myId && m.receiverId == otherUserId) ||
+                  (m.senderId == otherUserId && m.receiverId == myId),
+            )
+            .toList();
+        yield filtered;
+      }
     }
   }
 
