@@ -1,7 +1,6 @@
 // lib/features/driver/profile/presentation/driver_profile_tab.dart
 import 'dart:convert';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -17,6 +16,7 @@ import '../data/driver_profile_repository.dart';
 import '../data/driver_profile_model.dart';
 import '../data/driver_schedule_model.dart';
 import '../../dashboard/data/driver_dashboard_repository.dart';
+import 'controllers/driver_profile_scroll_controller.dart';
 
 class DriverProfileTab extends ConsumerStatefulWidget {
   const DriverProfileTab({super.key});
@@ -26,9 +26,32 @@ class DriverProfileTab extends ConsumerStatefulWidget {
 }
 
 class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
+  final _scrollController = ScrollController();
+  final _serviceAreasKey = GlobalKey();
+  final _locationSettingsKey = GlobalKey();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(currentDriverProfileProvider);
+
+    ref.listen<DriverProfileScrollTarget?>(
+      driverProfileScrollTargetControllerProvider,
+      (previous, next) {
+        if (next == null) return;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToTarget(next);
+        });
+        ref
+            .read(driverProfileScrollTargetControllerProvider.notifier)
+            .setTarget(null);
+      },
+    );
 
     return profileAsync.when(
       data: (profile) {
@@ -48,6 +71,21 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
         backgroundColor: Colors.grey.shade50,
         body: Center(child: Text('Error: $err')),
       ),
+    );
+  }
+
+  void _scrollToTarget(DriverProfileScrollTarget target) {
+    final contextToScroll = switch (target) {
+      DriverProfileScrollTarget.serviceAreas => _serviceAreasKey.currentContext,
+      DriverProfileScrollTarget.locationSettings =>
+        _locationSettingsKey.currentContext,
+    };
+    if (contextToScroll == null) return;
+    Scrollable.ensureVisible(
+      contextToScroll,
+      duration: const Duration(milliseconds: 350),
+      curve: Curves.easeOutCubic,
+      alignment: 0.1,
     );
   }
 
@@ -252,6 +290,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
   Widget _buildProfileContent(DriverProfileModel profile) {
     return CustomScrollView(
+      controller: _scrollController,
       physics: const BouncingScrollPhysics(),
       slivers: [
         // Header with profile photo and name
@@ -358,8 +397,11 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
               const SizedBox(height: 16),
 
-              // Location Settings Section
-              _buildLocationSettingsSection(profile),
+                // Location Settings Section
+                KeyedSubtree(
+                  key: _locationSettingsKey,
+                  child: _buildLocationSettingsSection(profile),
+                ),
 
               const SizedBox(height: 16),
 
@@ -368,68 +410,80 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
               const SizedBox(height: 16),
 
-              // Service Areas Section
-              _buildSection(
-                icon: Icons.location_on,
-                title: 'Service Areas & Schools',
-                children: [
-                  if (profile.serviceAreas.isEmpty && profile.schools.isEmpty)
-                    Text(
-                      'No service areas or schools added yet.',
-                      style: TextStyle(
-                        color: Colors.grey.shade500,
-                        fontStyle: FontStyle.italic,
-                      ),
-                    )
-                  else ...[
-                    if (profile.serviceAreas.isNotEmpty) ...[
-                      Text(
-                        'Areas:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
+                // Service Areas Section
+                KeyedSubtree(
+                  key: _serviceAreasKey,
+                  child: _buildSection(
+                    icon: Icons.location_on,
+                    title: 'Service Areas & Schools',
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () => context.push('/driver-coverage'),
+                          icon: const Icon(Icons.tune, size: 18),
+                          label: const Text('Manage Coverage'),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: profile.serviceAreas
-                            .map(
-                              (area) => Chip(
-                                label: Text(area),
-                                backgroundColor: Colors.teal.shade50,
-                              ),
-                            )
-                            .toList(),
-                      ),
+                      if (profile.serviceAreas.isEmpty &&
+                          profile.schools.isEmpty)
+                        Text(
+                          'No service areas or schools added yet.',
+                          style: TextStyle(
+                            color: Colors.grey.shade500,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        )
+                      else ...[
+                        if (profile.serviceAreas.isNotEmpty) ...[
+                          Text(
+                            'Areas:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: profile.serviceAreas
+                                .map(
+                                  (area) => Chip(
+                                    label: Text(area),
+                                    backgroundColor: Colors.teal.shade50,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                        if (profile.schools.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            'Schools:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: profile.schools
+                                .map(
+                                  (school) => Chip(
+                                    label: Text(school),
+                                    backgroundColor: Colors.blue.shade50,
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                        ],
+                      ],
                     ],
-                    if (profile.schools.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      Text(
-                        'Schools:',
-                        style: TextStyle(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: profile.schools
-                            .map(
-                              (school) => Chip(
-                                label: Text(school),
-                                backgroundColor: Colors.blue.shade50,
-                              ),
-                            )
-                            .toList(),
-                      ),
-                    ],
-                  ],
-                ],
-              ),
+                  ),
+                ),
 
               const SizedBox(height: 16),
 
@@ -1720,10 +1774,13 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
   late TextEditingController _priceTwoWayController;
   late TextEditingController _priceOneWayController;
   late TextEditingController _priceDailyController;
+  late TextEditingController _locationTextController;
   late TextEditingController _bioController;
 
   String _selectedVehicleType = 'Bus';
   DateTime? _licenseExpiry;
+  double? _locationLat;
+  double? _locationLng;
   bool _isLoading = false;
 
   @override
@@ -1750,9 +1807,14 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
     _priceDailyController = TextEditingController(
       text: widget.profile.priceDaily.toString(),
     );
+    _locationTextController = TextEditingController(
+      text: widget.profile.locationText ?? '',
+    );
     _bioController = TextEditingController(text: widget.profile.bio);
     _selectedVehicleType = widget.profile.vehicleType;
     _licenseExpiry = widget.profile.licenseExpiry;
+    _locationLat = widget.profile.locationLat;
+    _locationLng = widget.profile.locationLng;
   }
 
   @override
@@ -1764,6 +1826,7 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
     _priceTwoWayController.dispose();
     _priceOneWayController.dispose();
     _priceDailyController.dispose();
+    _locationTextController.dispose();
     _bioController.dispose();
     super.dispose();
   }
@@ -1779,6 +1842,9 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         borderRadius: widget.fullScreen
             ? BorderRadius.zero
             : const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(color: Colors.green.shade500, width: 3),
+        ),
       ),
       child: Column(
         children: [
@@ -1800,6 +1866,7 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
                   child: const Text('Cancel'),
                 ),
                 const Text(
@@ -1871,6 +1938,10 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
                   ),
 
                   const SizedBox(height: 24),
+                  _buildSectionLabel('Location'),
+                  _buildLocationPicker(),
+
+                  const SizedBox(height: 24),
                   _buildSectionLabel('Bio'),
                   _buildTextField(
                     controller: _bioController,
@@ -1908,6 +1979,7 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
+    final hasValue = controller.text.trim().isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
@@ -1916,6 +1988,8 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
+          filled: true,
+          fillColor: hasValue ? Colors.green.shade50 : Colors.red.shade50,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -1945,6 +2019,11 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: 'License Expiry Date',
+            filled: true,
+            fillColor:
+                _licenseExpiry != null
+                    ? Colors.green.shade50
+                    : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.calendar_today),
           ),
@@ -1965,6 +2044,10 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         value: _selectedVehicleType,
         decoration: InputDecoration(
           labelText: 'Vehicle Type',
+          filled: true,
+          fillColor: _selectedVehicleType.isNotEmpty
+              ? Colors.green.shade50
+              : Colors.red.shade50,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         items: ['Bus', 'Van', 'SUV', 'Sedan']
@@ -1979,7 +2062,155 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
     );
   }
 
+  Widget _buildLocationPicker() {
+    final hasLocation = _locationTextController.text.trim().isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _locationTextController,
+          readOnly: true,
+          decoration: InputDecoration(
+            labelText: 'Location',
+            filled: true,
+            fillColor: hasLocation
+                ? Colors.green.shade50
+                : Colors.red.shade50,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            suffixIcon: const Icon(Icons.map_outlined),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _useCurrentLocation,
+                icon: const Icon(Icons.my_location, size: 18),
+                label: const Text('Use Current Location'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: _openMapPicker,
+                icon: const Icon(Icons.place_outlined, size: 18),
+                label: const Text('Pick on Map'),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openMapPicker() async {
+    final result = await Navigator.push<dynamic>(
+      context,
+      MaterialPageRoute(builder: (context) => const MapPickerScreen()),
+    );
+
+    if (result != null && mounted) {
+      await _setLocationFromCoords(result.latitude, result.longitude);
+    }
+  }
+
+  Future<void> _useCurrentLocation() async {
+    try {
+      final position = await Geolocator.getCurrentPosition();
+      if (!mounted) return;
+      await _setLocationFromCoords(position.latitude, position.longitude);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to get location: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _setLocationFromCoords(double lat, double lng) async {
+    final text = await _reverseGeocode(lat, lng);
+    if (!mounted) return;
+    setState(() {
+      _locationLat = lat;
+      _locationLng = lng;
+      _locationTextController.text = text;
+    });
+  }
+
+  Future<String> _reverseGeocode(double lat, double lng) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
+      );
+      final response = await http.get(
+        url,
+        headers: {'User-Agent': 'com.example.gotosco_v3'},
+      );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final addressObj = data['address'];
+        if (addressObj != null) {
+          List<String?> parts = [
+            addressObj['building'],
+            addressObj['road'],
+            addressObj['suburb'] ?? addressObj['neighbourhood'],
+            addressObj['city'] ?? addressObj['town'],
+          ];
+          final displayName = parts
+              .where((e) => e != null && e.isNotEmpty)
+              .toSet()
+              .join(', ');
+          if (displayName.isNotEmpty) return displayName;
+        }
+        final fallback = data['display_name']?.split(',').take(3).join(',');
+        if (fallback != null && fallback.isNotEmpty) {
+          return fallback.trim();
+        }
+      }
+    } catch (e) {
+      debugPrint('Geocoding Error: $e');
+    }
+    return 'Location (${lat.toStringAsFixed(4)}, ${lng.toStringAsFixed(4)})';
+  }
+
+  bool _validateRequiredFields() {
+    if (_vehicleNumberController.text.trim().isEmpty) {
+      _showValidationError('Vehicle number is required.');
+      return false;
+    }
+    if (_licenseNumberController.text.trim().isEmpty) {
+      _showValidationError('License number is required.');
+      return false;
+    }
+    final capacity = int.tryParse(_vehicleCapacityController.text) ?? 0;
+    if (capacity <= 0) {
+      _showValidationError('Vehicle capacity must be greater than 0.');
+      return false;
+    }
+    if (_locationTextController.text.trim().isEmpty ||
+        _locationLat == null ||
+        _locationLng == null) {
+      _showValidationError('Location is required.');
+      return false;
+    }
+    return true;
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
+  }
+
   Future<void> _saveProfile() async {
+    if (!_validateRequiredFields()) {
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     final updates = {
@@ -1994,8 +2225,14 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
       'price_monthly_one_way':
           double.tryParse(_priceOneWayController.text) ?? 0,
       'price_daily': double.tryParse(_priceDailyController.text) ?? 0,
+      'location_text': _locationTextController.text,
       'bio': _bioController.text,
     };
+
+    if (_locationLat != null && _locationLng != null) {
+      updates['location_geo'] =
+          'SRID=4326;POINT(${_locationLng} ${_locationLat})';
+    }
 
     final success = await ref
         .read(driverProfileRepositoryProvider)
@@ -2119,6 +2356,9 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         borderRadius: widget.fullScreen
             ? BorderRadius.zero
             : const BorderRadius.vertical(top: Radius.circular(24)),
+        border: Border(
+          top: BorderSide(color: Colors.green.shade500, width: 3),
+        ),
       ),
       child: Column(
         children: [
@@ -2140,6 +2380,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(foregroundColor: Colors.red),
                   child: const Text('Cancel'),
                 ),
                 const Text(
@@ -2154,7 +2395,13 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Create'),
+                      : Text(
+                          'Create',
+                          style: TextStyle(
+                            color: Colors.green.shade600,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ],
             ),
@@ -2247,6 +2494,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
     TextInputType? keyboardType,
     int maxLines = 1,
   }) {
+    final hasValue = controller.text.trim().isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: TextField(
@@ -2255,6 +2503,8 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         maxLines: maxLines,
         decoration: InputDecoration(
           labelText: label,
+          filled: true,
+          fillColor: hasValue ? Colors.green.shade50 : Colors.red.shade50,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -2283,6 +2533,11 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: 'License Expiry Date',
+            filled: true,
+            fillColor:
+                _licenseExpiry != null
+                    ? Colors.green.shade50
+                    : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.calendar_today),
           ),
@@ -2303,6 +2558,10 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         value: _selectedVehicleType,
         decoration: InputDecoration(
           labelText: 'Vehicle Type',
+          filled: true,
+          fillColor: _selectedVehicleType.isNotEmpty
+              ? Colors.green.shade50
+              : Colors.red.shade50,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
         ),
         items: ['Bus', 'Van', 'SUV', 'Sedan']
@@ -2316,6 +2575,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
   }
 
   Widget _buildLocationPicker() {
+    final hasLocation = _locationTextController.text.trim().isNotEmpty;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2324,6 +2584,10 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
           readOnly: true,
           decoration: InputDecoration(
             labelText: 'Location',
+            filled: true,
+            fillColor: hasLocation
+                ? Colors.green.shade50
+                : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.map_outlined),
           ),
@@ -2442,6 +2706,30 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
       return;
     }
 
+    if (_vehicleNumberController.text.trim().isEmpty) {
+      _showValidationError('Vehicle number is required.');
+      setState(() => _isLoading = false);
+      return;
+    }
+    if (_licenseNumberController.text.trim().isEmpty) {
+      _showValidationError('License number is required.');
+      setState(() => _isLoading = false);
+      return;
+    }
+    final capacity = int.tryParse(_vehicleCapacityController.text) ?? 0;
+    if (capacity <= 0) {
+      _showValidationError('Vehicle capacity must be greater than 0.');
+      setState(() => _isLoading = false);
+      return;
+    }
+    if (_locationTextController.text.trim().isEmpty ||
+        _locationLat == null ||
+        _locationLng == null) {
+      _showValidationError('Location is required.');
+      setState(() => _isLoading = false);
+      return;
+    }
+
     try {
       // Create driver profile
       final payload = <String, dynamic>{
@@ -2495,6 +2783,12 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         );
       }
     }
+  }
+
+  void _showValidationError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 }
 

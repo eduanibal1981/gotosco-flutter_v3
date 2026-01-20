@@ -10,6 +10,7 @@ import '../../data/driver_dashboard_repository.dart';
 import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
 import '../../../profile/data/driver_profile_repository.dart';
+import '../../../profile/presentation/controllers/driver_profile_scroll_controller.dart';
 import '../../../availability/presentation/availability_control_sheet.dart';
 import '../../../availability/presentation/driver_availability_controller.dart';
 import '../widgets/booking_requests_card.dart';
@@ -36,6 +37,27 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
     // Wait for the state to reload
     await ref.read(driverDashboardStateProvider.future);
+  }
+
+  Future<void> _openEditProfile(BuildContext context) async {
+    final profile = await ref.read(currentDriverProfileProvider.future);
+    if (!context.mounted) {
+      return;
+    }
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile not found. Please try again.')),
+      );
+      return;
+    }
+    context.push('/driver-profile-edit', extra: profile);
+  }
+
+  void _openProfileSection(DriverProfileScrollTarget target) {
+    ref
+        .read(driverProfileScrollTargetControllerProvider.notifier)
+        .setTarget(target);
+    ref.read(driverDashboardIndexProvider.notifier).setIndex(4);
   }
 
   @override
@@ -161,7 +183,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       icon: Icons.person_add,
                       label: 'Create Profile',
                       color: Colors.teal,
-                      onTap: () => context.push('/driver-profile-setup'),
+                      onTap: () => context.push('/driver-profile-create'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -170,7 +192,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       icon: Icons.play_circle_outline,
                       label: 'View Tutorial',
                       color: Colors.blue,
-                      onTap: () {},
+                      onTap: () => context.push('/help-support'),
                     ),
                   ),
                 ],
@@ -328,11 +350,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                   Expanded(
                     child: _buildActionButton(
                       icon: Icons.edit,
-                      label: 'Complete Profile',
+                      label: 'Edit Profile',
                       color: Colors.teal,
-                      onTap: () => ref
-                          .read(driverDashboardIndexProvider.notifier)
-                          .setIndex(3), // Navigate to Profile tab
+                      onTap: () => _openEditProfile(context),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -341,7 +361,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       icon: Icons.help_outline,
                       label: 'Get Help',
                       color: Colors.blue,
-                      onTap: () {},
+                      onTap: () => context.push('/help-support'),
                     ),
                   ),
                 ],
@@ -439,7 +459,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                   _buildSmallAction(
                     Icons.edit,
                     'Edit Profile',
-                    () => context.push('/driver-profile-setup'),
+                    () => _openEditProfile(context),
                   ),
                   _buildSmallAction(Icons.schedule, 'Edit Schedule', () {}),
                   _buildSmallAction(
@@ -555,17 +575,19 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               const SizedBox(height: 12),
 
               // Capacity Card
-              statsAsync.when(
-                data: (stats) =>
-                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ]),
+                statsAsync.when(
+                  data: (stats) =>
+                      _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 24),
+                _buildTransportRequestsPreview(),
+              ]),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -643,17 +665,19 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               const SizedBox(height: 12),
 
               // Capacity
-              statsAsync.when(
-                data: (stats) =>
-                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
-                loading: () => const SizedBox.shrink(),
-                error: (_, __) => const SizedBox.shrink(),
-              ),
-            ]),
+                statsAsync.when(
+                  data: (stats) =>
+                      _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 24),
+                _buildTransportRequestsPreview(),
+              ]),
+            ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -1082,6 +1106,21 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
   Widget _buildProfileStatusCard(Map<String, dynamic>? profile) {
     if (profile == null) return const SizedBox.shrink();
 
+    final serviceAreas =
+        (profile['service_areas'] as List?)?.whereType<String>().toList() ?? [];
+    final schools =
+        (profile['schools'] as List?)?.whereType<String>().toList() ?? [];
+    final startPointText = profile['start_location_text'] as String?;
+    final hasStartPoint =
+        (startPointText != null && startPointText.trim().isNotEmpty) ||
+        profile['start_location_geo'] != null;
+
+    final missingAreas = serviceAreas.isEmpty;
+    final missingSchools = schools.isEmpty;
+    final missingStartPoint = !hasStartPoint;
+    final hasMissingCoverage =
+        missingAreas || missingSchools || missingStartPoint;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1112,7 +1151,76 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               ),
             ],
           ),
+          if (hasMissingCoverage) ...[
+            const SizedBox(height: 12),
+            Divider(color: Colors.green.shade200),
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Complete coverage setup',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green.shade800,
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (missingAreas)
+              _buildCoverageAction(
+                icon: Icons.map_outlined,
+                label: 'Select your covered parent areas',
+                onTap: () =>
+                    _openProfileSection(DriverProfileScrollTarget.serviceAreas),
+              ),
+            if (missingSchools)
+              _buildCoverageAction(
+                icon: Icons.school_outlined,
+                label: 'Select your covered schools',
+                onTap: () =>
+                    _openProfileSection(DriverProfileScrollTarget.serviceAreas),
+              ),
+            if (missingStartPoint)
+              _buildCoverageAction(
+                icon: Icons.my_location,
+                label: 'Set your start point (use your location)',
+                onTap: () => _openProfileSection(
+                  DriverProfileScrollTarget.locationSettings,
+                ),
+              ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildCoverageAction({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Icon(icon, size: 18, color: Colors.green.shade700),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.green.shade800,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Icon(Icons.chevron_right, color: Colors.green.shade400),
+          ],
+        ),
       ),
     );
   }
@@ -1157,6 +1265,8 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               final items = requests.take(2).toList();
               return Column(
                 children: items.map((request) {
+                  final parentName =
+                      request['parent_name'] as String? ?? 'Parent';
                   final childName =
                       request['child_name'] as String? ?? 'Child';
                   final schoolName =
@@ -1172,33 +1282,33 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 18,
-                          backgroundColor: Colors.teal.shade50,
-                          child: Text(
-                            childName.isNotEmpty
-                                ? childName[0].toUpperCase()
-                                : 'C',
-                            style: TextStyle(color: Colors.teal.shade700),
+                        children: [
+                          CircleAvatar(
+                            radius: 18,
+                            backgroundColor: Colors.teal.shade50,
+                            child: Text(
+                              parentName.isNotEmpty
+                                  ? parentName[0].toUpperCase()
+                                  : 'P',
+                              style: TextStyle(color: Colors.teal.shade700),
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                childName,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  parentName,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                schoolName,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
+                                Text(
+                                  '$childName · $schoolName',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontSize: 12,
                                 ),

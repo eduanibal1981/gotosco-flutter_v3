@@ -84,6 +84,13 @@ class DriverProfileModel {
   factory DriverProfileModel.fromMap(Map<String, dynamic> map) {
     // Handle nested user data from join
     final userData = map['users'] as Map<String, dynamic>?;
+    final serviceAreas = (map['service_areas'] as List?)
+            ?.whereType<String>()
+            .toList() ??
+        const <String>[];
+    final schools =
+        (map['schools'] as List?)?.whereType<String>().toList() ??
+            const <String>[];
 
     return DriverProfileModel(
       // Note: drivers table uses user_id as primary key, there's no separate 'id' column
@@ -114,9 +121,8 @@ class DriverProfileModel {
       licenseVerified: map['license_verified'] ?? false,
       insuranceVerified: map['insurance_verified'] ?? false,
       backgroundCheckVerified: map['background_check_verified'] ?? false,
-      // Note: service_areas and schools columns don't exist in schema
-      serviceAreas: const [],
-      schools: const [],
+      serviceAreas: serviceAreas,
+      schools: schools,
       // Location fields
       locationText: map['location_text'],
       locationLat: (map['location_lat'] as num?)?.toDouble(),

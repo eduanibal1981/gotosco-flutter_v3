@@ -22,6 +22,7 @@ import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings
 import 'package:gotosco_v3/features/driver/messages/presentation/driver_messages_screen.dart';
 import 'package:gotosco_v3/features/driver/transport_requests/presentation/driver_transport_requests_screen.dart';
 import 'package:gotosco_v3/features/driver/profile/presentation/driver_profile_tab.dart';
+import 'package:gotosco_v3/features/driver/profile/presentation/driver_coverage_screen.dart';
 import 'package:gotosco_v3/features/driver/profile/data/driver_profile_model.dart';
 import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
@@ -114,13 +115,17 @@ GoRouter router(Ref ref) {
         path: '/driver-profile-create',
         builder: (context, state) => const DriverCreateProfileScreen(),
       ),
-      GoRoute(
-        path: '/driver-profile-edit',
-        builder: (context, state) {
-          final profile = state.extra as DriverProfileModel;
-          return DriverEditProfileScreen(profile: profile);
-        },
-      ),
+        GoRoute(
+          path: '/driver-profile-edit',
+          builder: (context, state) {
+            final profile = state.extra as DriverProfileModel;
+            return DriverEditProfileScreen(profile: profile);
+          },
+        ),
+        GoRoute(
+          path: '/driver-coverage',
+          builder: (context, state) => const DriverCoverageScreen(),
+        ),
       GoRoute(
         path: '/driver-transport-requests',
         builder: (context, state) => const DriverTransportRequestsScreen(),

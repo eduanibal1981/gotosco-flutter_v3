@@ -101,10 +101,55 @@ class DriverDashboardRepository {
           .select()
           .eq('user_id', _driverId)
           .maybeSingle();
-      return response;
+      if (response == null) return null;
+      final coverage = await _getCoverageNames();
+      return {
+        ...response,
+        'service_areas': coverage['areas'],
+        'schools': coverage['schools'],
+      };
     } catch (e) {
       return null;
     }
+  }
+
+  Future<Map<String, List<String>>> _getCoverageNames() async {
+    final serviceAreas = <String>[];
+    final schools = <String>[];
+
+    try {
+      final areaRows = await _supabase
+          .from('driver_service_areas')
+          .select('area:areas(name)')
+          .eq('driver_id', _driverId);
+      for (final row in areaRows as List) {
+        final area = row['area'] as Map<String, dynamic>?;
+        final name = area?['name'] as String?;
+        if (name != null && name.trim().isNotEmpty) {
+          serviceAreas.add(name);
+        }
+      }
+    } catch (e) {
+      print('Error loading driver service areas: $e');
+    }
+
+    try {
+      final schoolRows = await _supabase
+          .from('driver_covered_schools')
+          .select('school:schools(name)')
+          .eq('driver_id', _driverId);
+      for (final row in schoolRows as List) {
+        final school = row['school'] as Map<String, dynamic>?;
+        final name = school?['name'] as String?;
+        if (name != null && name.trim().isNotEmpty) {
+          schools.add(name);
+        }
+      }
+    } catch (e) {
+      print('Error loading driver covered schools: $e');
+    }
+
+    return {'areas': serviceAreas, 'schools': schools};
   }
 
   /// Check if driver has at least one active schedule
