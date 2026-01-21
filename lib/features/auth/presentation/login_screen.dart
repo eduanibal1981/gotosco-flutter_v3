@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'package:go_router/go_router.dart';
 import 'auth_controller.dart';
 
@@ -25,6 +26,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final Color _primaryDark = Colors.indigo.shade900;
   final Color _primaryLight = Colors.indigo.shade500;
   final Color _bgColor = Colors.grey.shade50;
+
+  // TEST DATA - REMOVE FOR RELEASE
+  // Add your actual test users here
+  final List<Map<String, String>> _testUsers = [
+    {'role': 'Driver', 'email': 'driver@test.com', 'password': 'password123'},
+    {'role': 'Parent', 'email': 'parent@test.com', 'password': 'password123'},
+  ];
 
   @override
   void dispose() {
@@ -211,6 +219,52 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             icon: Icons.lock_outline,
                             isPassword: true,
                           ),
+
+                          // DEBUG: Test User Selector -> REMOVE FOR RELEASE
+                          if (kDebugMode && _isLogin) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade50,
+                                border: Border.all(
+                                  color: Colors.amber.shade300,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: DropdownButtonHideUnderline(
+                                child: DropdownButton<Map<String, String>>(
+                                  isExpanded: true,
+                                  hint: const Text(
+                                    'Select Test User (Debug Only)',
+                                    style: TextStyle(
+                                      color: Colors.brown,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  items: _testUsers.map((user) {
+                                    return DropdownMenuItem(
+                                      value: user,
+                                      child: Text(
+                                        '${user['role']}: ${user['email']}',
+                                        style: const TextStyle(fontSize: 14),
+                                      ),
+                                    );
+                                  }).toList(),
+                                  onChanged: (user) {
+                                    if (user != null) {
+                                      _emailController.text = user['email']!;
+                                      _passwordController.text =
+                                          user['password']!;
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
 
                           if (_isLogin) ...[
                             const SizedBox(height: 8),
