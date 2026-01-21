@@ -92,10 +92,13 @@ class AuthRepository {
   Future<AuthResponse?> signInWithGoogle() async {
     if (kIsWeb) {
       // WEB: Use Supabase OAuth
-      // Uses the current origin (e.g. http://localhost:1234 or https://mydomain.com)
+      // Uses the current URL but strips the hash (e.g. https://domain.com/path/)
+      // effectively preserving subdirectories like /gotosco-flutter_v3/
+      final redirectTo = kIsWeb ? Uri.base.toString().split('#').first : null;
+
       final result = await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: kIsWeb ? Uri.base.origin : null,
+        redirectTo: redirectTo,
       );
 
       if (!result) {
@@ -222,7 +225,7 @@ class AuthRepository {
       // PostGIS format: POINT(lng lat)
       updates['location_geo'] = 'POINT($locationLng $locationLat)';
     }
-    
+
     if (updates.length > 1) {
       // > 1 because updated_at is always there
       await _supabase.from('users').update(updates).eq('id', userId);
