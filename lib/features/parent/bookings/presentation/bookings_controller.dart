@@ -90,6 +90,10 @@ class BookingsController extends _$BookingsController {
           );
     });
 
+    if (!state.hasError) {
+      ref.invalidate(myBookingsProvider);
+    }
+
     return !state.hasError;
   }
 
@@ -109,7 +113,9 @@ class BookingsController extends _$BookingsController {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      await ref.read(bookingsRepositoryProvider).cancelBooking(
+      await ref
+          .read(bookingsRepositoryProvider)
+          .cancelBooking(
             bookingId,
             status: status,
             cancellationType: cancellationType,
@@ -122,6 +128,10 @@ class BookingsController extends _$BookingsController {
             subscriptionStatus: subscriptionStatus,
           );
     });
+
+    if (!state.hasError) {
+      ref.invalidate(myBookingsProvider);
+    }
 
     return !state.hasError;
   }

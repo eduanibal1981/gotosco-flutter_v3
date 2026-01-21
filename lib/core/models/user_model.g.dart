@@ -15,6 +15,9 @@ _UserModel _$UserModelFromJson(Map<String, dynamic> json) => _UserModel(
       (json['role'] as List<dynamic>?)?.map((e) => e as String).toList() ??
       const [],
   photoUrl: json['photo_url'] as String?,
+  locationText: json['location_text'] as String?,
+  locationLat: (json['location_lat'] as num?)?.toDouble(),
+  locationLng: (json['location_lng'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
@@ -25,4 +28,7 @@ Map<String, dynamic> _$UserModelToJson(_UserModel instance) =>
       'phone': instance.phone,
       'role': instance.roles,
       'photo_url': instance.photoUrl,
+      'location_text': instance.locationText,
+      'location_lat': instance.locationLat,
+      'location_lng': instance.locationLng,
     };

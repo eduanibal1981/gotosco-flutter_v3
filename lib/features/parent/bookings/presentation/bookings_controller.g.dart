@@ -40,7 +40,7 @@ final class BookingsControllerProvider
 }
 
 String _$bookingsControllerHash() =>
-    r'63c24a8eb81cc85b778f5e3d020ccc7d1959f09e';
+    r'b600d747999db56fb66dfb15089b7f3185953df5';
 
 /// Controller that encapsulates all booking business logic.
 /// Handles validation and submission of booking requests.

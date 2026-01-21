@@ -18,7 +18,8 @@ mixin _$UserModel {
  String get id; String get email;// @JsonKey helps match incoming snake_case fields from Supabase
 @JsonKey(name: 'full_name') String get fullName; String? get phone;// The DB stores 'role' as a jsonb/array (e.g. ["driver", "parent"])
 // We map it to a List<String> here.
-@JsonKey(name: 'role') List<String> get roles;@JsonKey(name: 'photo_url') String? get photoUrl;
+@JsonKey(name: 'role') List<String> get roles;@JsonKey(name: 'photo_url') String? get photoUrl;// Add these lines:
+@JsonKey(name: 'location_text') String? get locationText;@JsonKey(name: 'location_lat') double? get locationLat;@JsonKey(name: 'location_lng') double? get locationLng;
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -31,16 +32,16 @@ $UserModelCopyWith<UserModel> get copyWith => _$UserModelCopyWithImpl<UserModel>
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&const DeepCollectionEquality().equals(other.roles, roles)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&const DeepCollectionEquality().equals(other.roles, roles)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.locationText, locationText) || other.locationText == locationText)&&(identical(other.locationLat, locationLat) || other.locationLat == locationLat)&&(identical(other.locationLng, locationLng) || other.locationLng == locationLng));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,fullName,phone,const DeepCollectionEquality().hash(roles),photoUrl);
+int get hashCode => Object.hash(runtimeType,id,email,fullName,phone,const DeepCollectionEquality().hash(roles),photoUrl,locationText,locationLat,locationLng);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, email: $email, fullName: $fullName, phone: $phone, roles: $roles, photoUrl: $photoUrl)';
+  return 'UserModel(id: $id, email: $email, fullName: $fullName, phone: $phone, roles: $roles, photoUrl: $photoUrl, locationText: $locationText, locationLat: $locationLat, locationLng: $locationLng)';
 }
 
 
@@ -51,7 +52,7 @@ abstract mixin class $UserModelCopyWith<$Res>  {
   factory $UserModelCopyWith(UserModel value, $Res Function(UserModel) _then) = _$UserModelCopyWithImpl;
 @useResult
 $Res call({
- String id, String email,@JsonKey(name: 'full_name') String fullName, String? phone,@JsonKey(name: 'role') List<String> roles,@JsonKey(name: 'photo_url') String? photoUrl
+ String id, String email,@JsonKey(name: 'full_name') String fullName, String? phone,@JsonKey(name: 'role') List<String> roles,@JsonKey(name: 'photo_url') String? photoUrl,@JsonKey(name: 'location_text') String? locationText,@JsonKey(name: 'location_lat') double? locationLat,@JsonKey(name: 'location_lng') double? locationLng
 });
 
 
@@ -68,7 +69,7 @@ class _$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? fullName = null,Object? phone = freezed,Object? roles = null,Object? photoUrl = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? email = null,Object? fullName = null,Object? phone = freezed,Object? roles = null,Object? photoUrl = freezed,Object? locationText = freezed,Object? locationLat = freezed,Object? locationLng = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
@@ -76,7 +77,10 @@ as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast
 as String,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String?,roles: null == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
 as List<String>,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,locationText: freezed == locationText ? _self.locationText : locationText // ignore: cast_nullable_to_non_nullable
+as String?,locationLat: freezed == locationLat ? _self.locationLat : locationLat // ignore: cast_nullable_to_non_nullable
+as double?,locationLng: freezed == locationLng ? _self.locationLng : locationLng // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -158,10 +162,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'full_name')  String fullName,  String? phone, @JsonKey(name: 'role')  List<String> roles, @JsonKey(name: 'photo_url')  String? photoUrl)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'full_name')  String fullName,  String? phone, @JsonKey(name: 'role')  List<String> roles, @JsonKey(name: 'photo_url')  String? photoUrl, @JsonKey(name: 'location_text')  String? locationText, @JsonKey(name: 'location_lat')  double? locationLat, @JsonKey(name: 'location_lng')  double? locationLng)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_that.photoUrl);case _:
+return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_that.photoUrl,_that.locationText,_that.locationLat,_that.locationLng);case _:
   return orElse();
 
 }
@@ -179,10 +183,10 @@ return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'full_name')  String fullName,  String? phone, @JsonKey(name: 'role')  List<String> roles, @JsonKey(name: 'photo_url')  String? photoUrl)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String id,  String email, @JsonKey(name: 'full_name')  String fullName,  String? phone, @JsonKey(name: 'role')  List<String> roles, @JsonKey(name: 'photo_url')  String? photoUrl, @JsonKey(name: 'location_text')  String? locationText, @JsonKey(name: 'location_lat')  double? locationLat, @JsonKey(name: 'location_lng')  double? locationLng)  $default,) {final _that = this;
 switch (_that) {
 case _UserModel():
-return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_that.photoUrl);}
+return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_that.photoUrl,_that.locationText,_that.locationLat,_that.locationLng);}
 }
 /// A variant of `when` that fallback to returning `null`
 ///
@@ -196,10 +200,10 @@ return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_tha
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email, @JsonKey(name: 'full_name')  String fullName,  String? phone, @JsonKey(name: 'role')  List<String> roles, @JsonKey(name: 'photo_url')  String? photoUrl)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String id,  String email, @JsonKey(name: 'full_name')  String fullName,  String? phone, @JsonKey(name: 'role')  List<String> roles, @JsonKey(name: 'photo_url')  String? photoUrl, @JsonKey(name: 'location_text')  String? locationText, @JsonKey(name: 'location_lat')  double? locationLat, @JsonKey(name: 'location_lng')  double? locationLng)?  $default,) {final _that = this;
 switch (_that) {
 case _UserModel() when $default != null:
-return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_that.photoUrl);case _:
+return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_that.photoUrl,_that.locationText,_that.locationLat,_that.locationLng);case _:
   return null;
 
 }
@@ -211,7 +215,7 @@ return $default(_that.id,_that.email,_that.fullName,_that.phone,_that.roles,_tha
 @JsonSerializable()
 
 class _UserModel extends UserModel {
-  const _UserModel({required this.id, required this.email, @JsonKey(name: 'full_name') required this.fullName, this.phone, @JsonKey(name: 'role') final  List<String> roles = const [], @JsonKey(name: 'photo_url') this.photoUrl}): _roles = roles,super._();
+  const _UserModel({required this.id, required this.email, @JsonKey(name: 'full_name') required this.fullName, this.phone, @JsonKey(name: 'role') final  List<String> roles = const [], @JsonKey(name: 'photo_url') this.photoUrl, @JsonKey(name: 'location_text') this.locationText, @JsonKey(name: 'location_lat') this.locationLat, @JsonKey(name: 'location_lng') this.locationLng}): _roles = roles,super._();
   factory _UserModel.fromJson(Map<String, dynamic> json) => _$UserModelFromJson(json);
 
 @override final  String id;
@@ -231,6 +235,10 @@ class _UserModel extends UserModel {
 }
 
 @override@JsonKey(name: 'photo_url') final  String? photoUrl;
+// Add these lines:
+@override@JsonKey(name: 'location_text') final  String? locationText;
+@override@JsonKey(name: 'location_lat') final  double? locationLat;
+@override@JsonKey(name: 'location_lng') final  double? locationLng;
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
@@ -245,16 +253,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&const DeepCollectionEquality().equals(other._roles, _roles)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserModel&&(identical(other.id, id) || other.id == id)&&(identical(other.email, email) || other.email == email)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.phone, phone) || other.phone == phone)&&const DeepCollectionEquality().equals(other._roles, _roles)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&(identical(other.locationText, locationText) || other.locationText == locationText)&&(identical(other.locationLat, locationLat) || other.locationLat == locationLat)&&(identical(other.locationLng, locationLng) || other.locationLng == locationLng));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,email,fullName,phone,const DeepCollectionEquality().hash(_roles),photoUrl);
+int get hashCode => Object.hash(runtimeType,id,email,fullName,phone,const DeepCollectionEquality().hash(_roles),photoUrl,locationText,locationLat,locationLng);
 
 @override
 String toString() {
-  return 'UserModel(id: $id, email: $email, fullName: $fullName, phone: $phone, roles: $roles, photoUrl: $photoUrl)';
+  return 'UserModel(id: $id, email: $email, fullName: $fullName, phone: $phone, roles: $roles, photoUrl: $photoUrl, locationText: $locationText, locationLat: $locationLat, locationLng: $locationLng)';
 }
 
 
@@ -265,7 +273,7 @@ abstract mixin class _$UserModelCopyWith<$Res> implements $UserModelCopyWith<$Re
   factory _$UserModelCopyWith(_UserModel value, $Res Function(_UserModel) _then) = __$UserModelCopyWithImpl;
 @override @useResult
 $Res call({
- String id, String email,@JsonKey(name: 'full_name') String fullName, String? phone,@JsonKey(name: 'role') List<String> roles,@JsonKey(name: 'photo_url') String? photoUrl
+ String id, String email,@JsonKey(name: 'full_name') String fullName, String? phone,@JsonKey(name: 'role') List<String> roles,@JsonKey(name: 'photo_url') String? photoUrl,@JsonKey(name: 'location_text') String? locationText,@JsonKey(name: 'location_lat') double? locationLat,@JsonKey(name: 'location_lng') double? locationLng
 });
 
 
@@ -282,7 +290,7 @@ class __$UserModelCopyWithImpl<$Res>
 
 /// Create a copy of UserModel
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? fullName = null,Object? phone = freezed,Object? roles = null,Object? photoUrl = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? email = null,Object? fullName = null,Object? phone = freezed,Object? roles = null,Object? photoUrl = freezed,Object? locationText = freezed,Object? locationLat = freezed,Object? locationLng = freezed,}) {
   return _then(_UserModel(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,email: null == email ? _self.email : email // ignore: cast_nullable_to_non_nullable
@@ -290,7 +298,10 @@ as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast
 as String,phone: freezed == phone ? _self.phone : phone // ignore: cast_nullable_to_non_nullable
 as String?,roles: null == roles ? _self._roles : roles // ignore: cast_nullable_to_non_nullable
 as List<String>,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: cast_nullable_to_non_nullable
-as String?,
+as String?,locationText: freezed == locationText ? _self.locationText : locationText // ignore: cast_nullable_to_non_nullable
+as String?,locationLat: freezed == locationLat ? _self.locationLat : locationLat // ignore: cast_nullable_to_non_nullable
+as double?,locationLng: freezed == locationLng ? _self.locationLng : locationLng // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 

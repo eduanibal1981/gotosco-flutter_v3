@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gotosco_v3/core/constants/enums.dart';
@@ -206,6 +207,9 @@ class AuthRepository {
     String? fullName,
     String? phone,
     String? photoUrl,
+    String? locationText,
+    double? locationLat,
+    double? locationLng,
   }) async {
     final updates = <String, dynamic>{
       'updated_at': DateTime.now().toIso8601String(),
@@ -213,7 +217,12 @@ class AuthRepository {
     if (fullName != null) updates['full_name'] = fullName;
     if (phone != null) updates['phone'] = phone;
     if (photoUrl != null) updates['photo_url'] = photoUrl;
-
+    if (locationText != null) updates['location_text'] = locationText;
+    if (locationLat != null && locationLng != null) {
+      // PostGIS format: POINT(lng lat)
+      updates['location_geo'] = 'POINT($locationLng $locationLat)';
+    }
+    
     if (updates.length > 1) {
       // > 1 because updated_at is always there
       await _supabase.from('users').update(updates).eq('id', userId);

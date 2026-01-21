@@ -798,7 +798,9 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
     "location_text" "text",
     "location_geo" "public"."geography",
     "location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("location_geo")::"public"."geometry")) STORED,
-    "location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("location_geo")::"public"."geometry")) STORED
+    "location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("location_geo")::"public"."geometry")) STORED,
+    "location_accuracy_meters" double precision,
+    "last_location_update" timestamp with time zone
 );
 
 
@@ -1098,8 +1100,8 @@ BEGIN
         COALESCE(l.is_online, false),
         d.is_verified,
         CASE
-            WHEN parent_geo IS NOT NULL AND d.location_geo IS NOT NULL
-            THEN ROUND((ST_Distance(d.location_geo, parent_geo) / 1000)::numeric, 2)
+            WHEN parent_geo IS NOT NULL AND u.location_geo IS NOT NULL
+            THEN ROUND((ST_Distance(u.location_geo, parent_geo) / 1000)::numeric, 2)
             ELSE NULL
         END,
         COALESCE(schools_data.json_agg, '[]'::jsonb),
@@ -1161,8 +1163,8 @@ BEGIN
       AND (
           max_distance_km IS NULL
           OR parent_geo IS NULL
-          OR d.location_geo IS NULL
-          OR ST_DWithin(d.location_geo, parent_geo, max_distance_km * 1000)
+          OR u.location_geo IS NULL
+          OR ST_DWithin(u.location_geo, parent_geo, max_distance_km * 1000)
       )
       AND (
           search_term IS NULL
@@ -1186,8 +1188,8 @@ BEGIN
     ORDER BY
        COALESCE(l.is_online, false) DESC,
        CASE
-           WHEN parent_geo IS NOT NULL AND d.location_geo IS NOT NULL
-           THEN d.location_geo <-> parent_geo
+           WHEN parent_geo IS NOT NULL AND u.location_geo IS NOT NULL
+           THEN u.location_geo <-> parent_geo
            ELSE NULL
        END ASC NULLS LAST,
        d.rating DESC,
@@ -1234,10 +1236,10 @@ BEGIN
         RAISE EXCEPTION 'Invalid longitude: must be between -180 and 180';
     END IF;
     
-    -- Get previous location
+    -- Get previous location FROM USERS TABLE
     SELECT location_geo INTO previous_location
-    FROM drivers
-    WHERE user_id = p_user_id;
+    FROM public.users
+    WHERE id = p_user_id;
     
     -- Calculate distance moved
     IF previous_location IS NOT NULL THEN
@@ -1249,14 +1251,13 @@ BEGIN
         distance_moved := 0;
     END IF;
     
-    -- Update location
-    UPDATE drivers
+    UPDATE public.users
     SET 
         location_geo = ST_SetSRID(ST_MakePoint(p_longitude, p_latitude), 4326)::geography,
         location_text = p_address,
         location_accuracy_meters = p_accuracy_meters,
         last_location_update = NOW()
-    WHERE user_id = p_user_id
+    WHERE id = p_user_id
       AND is_location_sharing_enabled = true;
     
     -- Check if update happened
@@ -1564,7 +1565,8 @@ CREATE TABLE IF NOT EXISTS "public"."children" (
     "gender" "text",
     "medical_conditions" "text",
     "notes" "text",
-    "created_at" timestamp with time zone DEFAULT "now"()
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "school_id" "uuid"
 );
 
 
@@ -1801,7 +1803,7 @@ CREATE TABLE IF NOT EXISTS "public"."trips" (
     CONSTRAINT "trips_trip_type_check" CHECK (("trip_type" = ANY (ARRAY['Go to School(s)'::"text", 'Return from School(s)'::"text", 'custom'::"text"])))
 );
 
--- No Analysis is usually needed form here donwwards -- as these are just constraints, policies and indexes
+
 ALTER TABLE "public"."trips" OWNER TO "postgres";
 
 
@@ -1997,6 +1999,10 @@ CREATE INDEX "idx_bookings_school_geo" ON "public"."bookings" USING "gist" ("sch
 
 
 
+CREATE INDEX "idx_children_school_id" ON "public"."children" USING "btree" ("school_id");
+
+
+
 CREATE INDEX "idx_driver_covered_schools_lookup" ON "public"."driver_covered_schools" USING "btree" ("driver_id", "school_id");
 
 
@@ -2140,6 +2146,11 @@ ALTER TABLE ONLY "public"."bookings"
 
 ALTER TABLE ONLY "public"."children"
     ADD CONSTRAINT "children_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."children"
+    ADD CONSTRAINT "children_school_id_fkey" FOREIGN KEY ("school_id") REFERENCES "public"."schools"("id");
 
 
 

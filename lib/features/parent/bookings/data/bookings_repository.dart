@@ -10,13 +10,15 @@ BookingsRepository bookingsRepository(Ref ref) {
 }
 
 @riverpod
-Stream<List<Map<String, dynamic>>> myBookings(Ref ref) {
-  return ref.watch(bookingsRepositoryProvider).getBookingsStream();
+Future<List<Map<String, dynamic>>> myBookings(Ref ref) {
+  return ref.watch(bookingsRepositoryProvider).getBookings();
 }
 
 class BookingsRepository {
   final SupabaseClient _supabase;
   BookingsRepository(this._supabase);
+
+  // ... (keeping createBooking and cancelBooking as they are, assume they are above) ...
 
   /// CREATE BOOKING (supports recurring + geo + children)
   Future<void> createBooking({
@@ -43,7 +45,7 @@ class BookingsRepository {
     required DateTime startDate,
     required DateTime endDate,
     bool isRecurring = false,
-    List<String>? recurringDays, // ["Mon","Tue"]
+    List<String>? recurringDays,
     bool isMonthlySubscription = false,
   }) async {
     final userId = _supabase.auth.currentUser!.id;
@@ -114,9 +116,7 @@ class BookingsRepository {
     DateTime? cancelRequestedAt,
     String? subscriptionStatus,
   }) async {
-    final update = <String, dynamic>{
-      'status': status,
-    };
+    final update = <String, dynamic>{'status': status};
 
     if (status == 'cancelled') {
       update['cancelled_at'] = DateTime.now().toIso8601String();
@@ -162,130 +162,135 @@ class BookingsRepository {
     await _supabase.from('bookings').delete().eq('id', bookingId);
   }
 
-  /// ✅ REALTIME + NO N+1
-  Stream<List<Map<String, dynamic>>> getBookingsStream() {
+  /// ✅ FUTURE (FETCH) - Replaces Stream for reliability
+  Future<List<Map<String, dynamic>>> getBookings() async {
     final userId = _supabase.auth.currentUser!.id;
 
-    return _supabase
+    // 1. Fetch basic bookings
+    final bookings = await _supabase
         .from('bookings')
-        .stream(primaryKey: ['id'])
+        .select()
         .eq('parent_id', userId)
-        .asyncMap((List<Map<String, dynamic>> bookings) async {
-          if (bookings.isEmpty) return <Map<String, dynamic>>[];
+        .order('created_at', ascending: false);
 
-          // 1. Extract IDs
-          final driverIds = bookings
-              .map((b) => b['driver_id'] as String?)
-              .where((id) => id != null)
-              .cast<String>()
-              .toSet()
-              .toList();
-          final schoolIds = bookings
-              .map((b) => b['school_id'] as String?)
-              .where((id) => id != null)
-              .cast<String>()
-              .toSet()
-              .toList();
-          final bookingIds = bookings.map((b) => b['id'] as String).toList();
+    if (bookings.isEmpty) return <Map<String, dynamic>>[];
 
-          // 2. Fetch Related Data in Parallel
-          final results = await Future.wait([
-            // Drivers
-            if (driverIds.isNotEmpty)
-              _supabase
-                  .from('users')
-                  .select('id, full_name, photo_url')
-                  .inFilter('id', driverIds)
-            else
-              Future.value(<Map<String, dynamic>>[]),
+    // 1. Extract IDs
+    final driverIds = bookings
+        .map((b) => b['driver_id'] as String?)
+        .where((id) => id != null)
+        .cast<String>()
+        .toSet()
+        .toList();
+    final schoolIds = bookings
+        .map((b) => b['school_id'] as String?)
+        .where((id) => id != null)
+        .cast<String>()
+        .toSet()
+        .toList();
+    final bookingIds = bookings.map((b) => b['id'] as String).toList();
 
-            // Schools
-            if (schoolIds.isNotEmpty)
-              _supabase
-                  .from('schools')
-                  .select('id, name, address')
-                  .inFilter('id', schoolIds)
-            else
-              Future.value(<Map<String, dynamic>>[]),
+    // 2. Fetch Related Data in Parallel
+    final results = await Future.wait([
+      // Drivers
+      if (driverIds.isNotEmpty)
+        _supabase
+            .from('users')
+            .select('id, full_name, photo_url')
+            .inFilter('id', driverIds)
+      else
+        Future.value(<Map<String, dynamic>>[]),
 
-            // Children (via booking_children)
-            if (bookingIds.isNotEmpty)
-              _supabase
-                  .from('booking_children')
-                  .select('booking_id, children(id, name)')
-                  .inFilter('booking_id', bookingIds)
-            else
-              Future.value(<Map<String, dynamic>>[]),
-          ]);
+      // Schools
+      if (schoolIds.isNotEmpty)
+        _supabase
+            .from('schools')
+            .select('id, name, address')
+            .inFilter('id', schoolIds)
+      else
+        Future.value(<Map<String, dynamic>>[]),
 
-          final driversData = results[0] as List<dynamic>;
-          final schoolsData = results[1] as List<dynamic>;
-          final childrenData = results[2] as List<dynamic>;
+      // Children (via booking_children)
+      if (bookingIds.isNotEmpty)
+        _supabase
+            .from('booking_children') // Fixed table name
+            .select('booking_id, children(id, name)')
+            .inFilter('booking_id', bookingIds)
+      else
+        Future.value(<Map<String, dynamic>>[]),
+    ]);
 
-          // 3. Create Lookup Maps
-          final driverMap = {
-            for (final d in driversData)
-              d['id']: {'name': d['full_name'], 'photo': d['photo_url']},
-          };
+    final driversData = results[0] as List<dynamic>;
+    final schoolsData = results[1] as List<dynamic>;
+    final childrenData = results[2] as List<dynamic>;
 
-          final schoolMap = {
-            for (final s in schoolsData)
-              s['id']: {'name': s['name'], 'address': s['address']},
-          };
+    // 3. Create Lookup Maps
+    final driverMap = {
+      for (final d in driversData)
+        d['id']: {'name': d['full_name'], 'photo': d['photo_url']},
+    };
 
-          // Children Map: booking_id -> {count, names[]}
-          final childrenMap = <String, Map<String, dynamic>>{};
-          for (final item in childrenData) {
-            final bId = item['booking_id'] as String;
-            final child = item['children'];
+    final schoolMap = {
+      for (final s in schoolsData)
+        s['id']: {'name': s['name'], 'address': s['address']},
+    };
 
-            if (child != null) {
-              if (!childrenMap.containsKey(bId)) {
-                childrenMap[bId] = {'count': 0, 'names': <String>[]};
-              }
-              final cName = child['name'] as String?;
-              if (cName != null) {
-                childrenMap[bId]!['count'] =
-                    (childrenMap[bId]!['count'] as int) + 1;
-                (childrenMap[bId]!['names'] as List<String>).add(cName);
-              }
-            }
-          }
+    // Children Map: booking_id -> {count, names[]}
+    final childrenMap = <String, Map<String, dynamic>>{};
+    for (final item in childrenData) {
+      final bId = item['booking_id'] as String;
+      final child =
+          item['children']; // This usually returns a Map or List depending on relationship
 
-          // Sort child names
-          for (final val in childrenMap.values) {
-            (val['names'] as List<String>).sort();
-          }
+      if (child != null) {
+        if (!childrenMap.containsKey(bId)) {
+          childrenMap[bId] = {'count': 0, 'names': <String>[]};
+        }
+        // Handle if 'children' is a single object or list (depending on query, here it's singular relation usually but let's be safe)
+        // With select('..., children(id, name)'), Supabase returns it as a single object if it's 1-to-1 or N-to-1, or list if 1-to-N.
+        // But here 'booking_children' is a join table.
+        // Actually, 'booking_children' -> 'children'.
+        // The join is: booking_children has child_id FK to children.
+        // So 'children' will be a single object per booking_children row.
 
-          // 4. Enrich Bookings
-          return bookings.map((b) {
-            final driverId = b['driver_id'];
-            final schoolId = b['school_id'];
-            final bId = b['id'];
+        final cName = child['name'] as String?;
+        if (cName != null) {
+          childrenMap[bId]!['count'] = (childrenMap[bId]!['count'] as int) + 1;
+          (childrenMap[bId]!['names'] as List<String>).add(cName);
+        }
+      }
+    }
 
-            final driverInfo = driverMap[driverId];
-            final schoolInfo = schoolMap[schoolId];
-            final childInfo = childrenMap[bId];
+    // Sort child names
+    for (final val in childrenMap.values) {
+      (val['names'] as List<String>).sort();
+    }
 
-            // Clone to avoid mutating original stream data
-            final newMap = Map<String, dynamic>.from(b);
+    // 4. Enrich Bookings
+    return bookings.map((b) {
+      final driverId = b['driver_id'];
+      final schoolId = b['school_id'];
+      final bId = b['id'];
 
-            // Add fields to match RPC signature
-            newMap['driver_name'] = driverInfo?['name'];
-            newMap['driver_photo'] = driverInfo?['photo'];
+      final driverInfo = driverMap[driverId];
+      final schoolInfo = schoolMap[schoolId];
+      final childInfo = childrenMap[bId];
 
-            newMap['school_name'] = schoolInfo?['name'] ?? b['school_name'];
-            newMap['school_address'] = schoolInfo?['address'];
+      final newMap = Map<String, dynamic>.from(b);
 
-            newMap['kids_count'] = childInfo?['count'] ?? 0;
-            newMap['child_names'] = childInfo?['names'] ?? [];
+      newMap['driver_name'] = driverInfo?['name'];
+      newMap['driver_photo'] = driverInfo?['photo'];
 
-            // UI aliases
-            newMap['home_location'] = b['hometxt_location'];
-            newMap['school_location'] = b['schooltxt_location'];
+      newMap['school_name'] = schoolInfo?['name'] ?? b['school_name'];
+      newMap['school_address'] = schoolInfo?['address'];
 
-            return newMap;
-          }).toList();
-        });
+      newMap['kids_count'] = childInfo?['count'] ?? 0;
+      newMap['child_names'] = childInfo?['names'] ?? [];
+
+      newMap['home_location'] = b['hometxt_location'];
+      newMap['school_location'] = b['schooltxt_location'];
+
+      return newMap;
+    }).toList();
   }
 }
