@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'package:go_router/go_router.dart';
+import 'package:gotosco_v3/core/models/user_model.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -28,11 +30,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final Color _bgColor = Colors.grey.shade50;
 
   // TEST DATA - REMOVE FOR RELEASE
-  // Add your actual test users here
-  final List<Map<String, String>> _testUsers = [
-    {'role': 'Driver', 'email': 'driver@test.com', 'password': 'password123'},
-    {'role': 'Parent', 'email': 'parent@test.com', 'password': 'password123'},
-  ];
+  List<UserModel> _debugUsers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    if (kDebugMode) {
+      _fetchDebugUsers();
+    }
+  }
+
+  Future<void> _fetchDebugUsers() async {
+    try {
+      // Attempt to fetch first 10 users for debug convenience
+      // This relies on RLS allowing reading public.users (or being admin)
+      final response = await Supabase.instance.client
+          .from('users')
+          .select()
+          .limit(10);
+
+      if (mounted) {
+        setState(() {
+          _debugUsers = response
+              .map((json) => UserModel.fromJson(json))
+              .toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Debug: Failed to fetch users: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -220,8 +247,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             isPassword: true,
                           ),
 
-                          // DEBUG: Test User Selector -> REMOVE FOR RELEASE
-                          if (kDebugMode && _isLogin) ...[
+                          if (kDebugMode &&
+                              _isLogin &&
+                              _debugUsers.isNotEmpty) ...[
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -235,7 +263,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: DropdownButtonHideUnderline(
-                                child: DropdownButton<Map<String, String>>(
+                                child: DropdownButton<UserModel>(
                                   isExpanded: true,
                                   hint: const Text(
                                     'Select Test User (Debug Only)',
@@ -245,20 +273,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       fontSize: 14,
                                     ),
                                   ),
-                                  items: _testUsers.map((user) {
+                                  items: _debugUsers.map((user) {
+                                    final rolesStr = user.roles.join(', ');
                                     return DropdownMenuItem(
                                       value: user,
                                       child: Text(
-                                        '${user['role']}: ${user['email']}',
+                                        '$rolesStr: ${user.email}',
                                         style: const TextStyle(fontSize: 14),
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     );
                                   }).toList(),
                                   onChanged: (user) {
                                     if (user != null) {
-                                      _emailController.text = user['email']!;
-                                      _passwordController.text =
-                                          user['password']!;
+                                      _emailController.text = user.email;
+                                      // Default password for testing - change if needed
+                                      _passwordController.text = '123456';
                                     }
                                   },
                                 ),
