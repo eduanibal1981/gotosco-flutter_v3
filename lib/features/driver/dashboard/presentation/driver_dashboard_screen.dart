@@ -51,9 +51,7 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
   List<Widget> _buildPages(int bookingTabIndex) {
     return [
       const EarningsTab(), // Index 0: Earnings
-      DriverBookingsScreen(
-        initialTabIndex: bookingTabIndex,
-      ), // Index 1: Booking
+      const DriverBookingsScreen(), // Index 1: Booking
       const DriverHomeTab(), // Index 2: Home
       const TripsTab(), // Index 3: Trips
       const DriverProfileTab(), // Index 4: Profile

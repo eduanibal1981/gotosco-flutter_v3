@@ -170,6 +170,7 @@ class _SchoolSelectionFieldState extends ConsumerState<SchoolSelectionField> {
         controller: _controller,
         decoration: InputDecoration(
           labelText: "School Name",
+          hintText: "Start typing to search school...",
           prefixIcon: const Icon(Icons.school_outlined, color: Colors.grey),
           suffixIcon: _isLoading
               ? const Padding(
