@@ -189,27 +189,40 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: 24),
 
-                          // Fields
-                          if (!_isLogin) ...[
-                            _buildTextField(
-                              controller: _nameController,
-                              label: 'Full Name',
-                              icon: Icons.person_outline,
+                          // Fields wrapped in AutofillGroup for password managers
+                          AutofillGroup(
+                            child: Column(
+                              children: [
+                                if (!_isLogin) ...[
+                                  _buildTextField(
+                                    controller: _nameController,
+                                    label: 'Full Name',
+                                    icon: Icons.person_outline,
+                                    autofillHints: const [AutofillHints.name],
+                                    textInputAction: TextInputAction.next,
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+                                _buildTextField(
+                                  controller: _emailController,
+                                  label: 'Email Address',
+                                  icon: Icons.email_outlined,
+                                  keyboardType: TextInputType.emailAddress,
+                                  autofillHints: const [AutofillHints.email],
+                                  textInputAction: TextInputAction.next,
+                                ),
+                                const SizedBox(height: 16),
+                                _buildTextField(
+                                  controller: _passwordController,
+                                  label: 'Password',
+                                  icon: Icons.lock_outline,
+                                  isPassword: true,
+                                  autofillHints: const [AutofillHints.password],
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (_) => _handleEmailAuth(),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 16),
-                          ],
-                          _buildTextField(
-                            controller: _emailController,
-                            label: 'Email Address',
-                            icon: Icons.email_outlined,
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _passwordController,
-                            label: 'Password',
-                            icon: Icons.lock_outline,
-                            isPassword: true,
                           ),
 
                           if (_isLogin) ...[
@@ -361,9 +374,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     required IconData icon,
     bool isPassword = false,
     TextInputType? keyboardType,
+    Iterable<String>? autofillHints,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onFieldSubmitted,
   }) {
     return TextFormField(
       controller: controller,
+      autofillHints: autofillHints,
+      textInputAction: textInputAction,
+      onFieldSubmitted: onFieldSubmitted,
       obscureText: isPassword && !_isPasswordVisible,
       keyboardType: keyboardType,
       style: const TextStyle(fontWeight: FontWeight.w500),
