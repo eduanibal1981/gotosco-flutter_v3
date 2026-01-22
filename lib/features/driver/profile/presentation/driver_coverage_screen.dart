@@ -367,19 +367,31 @@ class _DriverCoverageScreenState extends ConsumerState<DriverCoverageScreen> {
 
   Future<void> _handleSaveCoverage() async {
     if (!_initialSelectionLoaded) return;
-    await ref
-        .read(driverCoverageControllerProvider.notifier)
-        .saveCoverage(
-          areaIds: _selectedAreaIds,
-          schoolIds: _selectedSchoolIds,
-        );
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Coverage updated'),
-        backgroundColor: Colors.green,
-      ),
+
+    final controller = ref.read(driverCoverageControllerProvider.notifier);
+    await controller.saveCoverage(
+      areaIds: _selectedAreaIds,
+      schoolIds: _selectedSchoolIds,
     );
+
+    if (!mounted) return;
+
+    final state = ref.read(driverCoverageControllerProvider);
+    if (state.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error saving coverage: ${state.error}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Coverage updated'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Future<void> _openAddSchoolDialog(BuildContext context, String cityId) async {
