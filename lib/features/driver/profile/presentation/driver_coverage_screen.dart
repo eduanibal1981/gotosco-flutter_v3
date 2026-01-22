@@ -79,7 +79,7 @@ class _DriverCoverageScreenState extends ConsumerState<DriverCoverageScreen> {
               Expanded(
                 child: _selectedCityId == null
                     ? const Center(child: Text('Select a city to continue'))
-                    : _buildCoverageLists(context),
+                    : _buildCoverageLists(context, cities),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -151,8 +151,11 @@ class _DriverCoverageScreenState extends ConsumerState<DriverCoverageScreen> {
     );
   }
 
-  Widget _buildCoverageLists(BuildContext context) {
+  Widget _buildCoverageLists(BuildContext context, List<CityModel> cities) {
     final cityId = _selectedCityId!;
+    final cityName = cities
+        .firstWhere((c) => c.id == cityId, orElse: () => cities.first)
+        .name;
     final areasAsync = ref.watch(coverageAreasProvider(cityId: cityId));
     final schoolsAsync = ref.watch(coverageSchoolsProvider(cityId: cityId));
 
@@ -179,7 +182,7 @@ class _DriverCoverageScreenState extends ConsumerState<DriverCoverageScreen> {
         const SizedBox(height: 20),
         _buildSectionHeader(
           title: 'Covered Schools',
-          subtitle: 'Select schools you can serve in this city.',
+          subtitle: 'Select schools you can serve in $cityName.',
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
