@@ -2716,6 +2716,11 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
       setState(() => _isLoading = false);
       return;
     }
+    if (_licenseExpiry == null) {
+      _showValidationError('License expiry date is required.');
+      setState(() => _isLoading = false);
+      return;
+    }
     final capacity = int.tryParse(_vehicleCapacityController.text) ?? 0;
     if (capacity <= 0) {
       _showValidationError('Vehicle capacity must be greater than 0.');
