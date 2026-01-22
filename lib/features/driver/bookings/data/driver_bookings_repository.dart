@@ -25,7 +25,8 @@ class DriverBookingsRepository {
   /// Get all bookings for the current driver
   Future<List<BookingModel>> getAllBookings() async {
     try {
-      await _assertDriverProfile();
+      final hasProfile = await _assertDriverProfile();
+      if (!hasProfile) return [];
 
       // 1) Fetch bookings without parent join to avoid RLS failure.
       final response = await _supabase
@@ -42,7 +43,7 @@ class DriverBookingsRepository {
       final childrenLinks = await _supabase
           .from('booking_children')
           .select('booking_id, children(id, name, school_name, grade)')
-          .inFilter('booking_id', bookingIds);
+          .in_('booking_id', bookingIds);
 
       final childrenMap = <String, List<Map<String, dynamic>>>{};
       for (final link in (childrenLinks as List)) {
@@ -64,7 +65,7 @@ class DriverBookingsRepository {
           final parents = await _supabase
               .from('users')
               .select('id, full_name, photo_url, phone')
-              .inFilter('id', parentIds);
+              .in_('id', parentIds);
           parentMap = {
             for (final p in (parents as List))
               p['id'] as String: p as Map<String, dynamic>,
@@ -126,16 +127,12 @@ class DriverBookingsRepository {
     await _supabase.from('bookings').delete().eq('id', bookingId);
   }
 
-  Future<void> _assertDriverProfile() async {
+  Future<bool> _assertDriverProfile() async {
     final profile = await _supabase
         .from('drivers')
         .select('user_id')
         .eq('user_id', _driverId)
         .maybeSingle();
-    if (profile == null) {
-      throw Exception(
-        'No driver profile found for this account. Please sign in with your driver account.',
-      );
-    }
+    return profile != null;
   }
 }
