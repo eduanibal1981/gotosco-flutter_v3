@@ -380,6 +380,7 @@ class _DriverCoverageScreenState extends ConsumerState<DriverCoverageScreen> {
         backgroundColor: Colors.green,
       ),
     );
+    Navigator.pop(context);
   }
 
   Future<void> _openAddSchoolDialog(BuildContext context, String cityId) async {
