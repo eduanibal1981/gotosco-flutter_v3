@@ -229,6 +229,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 icon: Icons.attach_money,
                 title: 'Earnings',
                 subtitle: '0.00 OMR\nComplete profile to start earning',
+                onTap: () {
+                  ref.read(driverDashboardIndexProvider.notifier).setIndex(0);
+                },
               ),
 
               const SizedBox(height: 24),
