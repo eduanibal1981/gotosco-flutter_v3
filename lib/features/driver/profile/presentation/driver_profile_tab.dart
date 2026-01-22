@@ -29,6 +29,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
   final _scrollController = ScrollController();
   final _serviceAreasKey = GlobalKey();
   final _locationSettingsKey = GlobalKey();
+  String? _expandedShiftType;
 
   @override
   void dispose() {
@@ -1534,105 +1535,138 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                       data: Theme.of(
                         context,
                       ).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        tilePadding: const EdgeInsets.symmetric(horizontal: 12),
-                        leading: Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(icon, color: color, size: 20),
-                        ),
-                        title: Text(
-                          title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 14,
-                            color: Colors.grey.shade800,
-                          ),
-                        ),
-                        subtitle: Text(
-                          '${shiftSchedules.length} day${shiftSchedules.length > 1 ? 's' : ''}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey.shade600,
-                          ),
-                        ),
-                        initiallyExpanded: false,
-                        children:
-                            (shiftSchedules..sort(
-                                  (a, b) => a.dayIndex.compareTo(b.dayIndex),
-                                ))
-                                .map((schedule) {
-                                  return Container(
-                                    margin: const EdgeInsets.only(
-                                      left: 16,
-                                      right: 8,
-                                      bottom: 8,
-                                    ),
-                                    padding: const EdgeInsets.all(10),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ExpansionPanelList(
+                          elevation: 0,
+                          expandedHeaderPadding: EdgeInsets.zero,
+                          expansionCallback: (index, isExpanded) {
+                            setState(() {
+                              _expandedShiftType =
+                                  (_expandedShiftType == shiftType)
+                                      ? null
+                                      : shiftType;
+                            });
+                          },
+                          children: [
+                            ExpansionPanel(
+                              isExpanded: _expandedShiftType == shiftType,
+                              backgroundColor: Colors.transparent,
+                              canTapOnHeader: true,
+                              headerBuilder: (context, isExpanded) {
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12),
+                                  leading: Container(
+                                    padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
-                                      color: Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(6),
+                                      color: color.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.teal.shade100,
-                                            borderRadius: BorderRadius.circular(
-                                              4,
-                                            ),
-                                          ),
-                                          child: Text(
-                                            schedule.dayDisplayName
-                                                .substring(0, 3)
-                                                .toUpperCase(),
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.teal.shade700,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text(
-                                          schedule.timeRange,
-                                          style: TextStyle(
-                                            color: Colors.grey.shade700,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        InkWell(
-                                          onTap: () =>
-                                              _showEditScheduleSheet(schedule),
-                                          child: Icon(
-                                            Icons.edit_outlined,
-                                            color: Colors.teal.shade600,
-                                            size: 18,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        InkWell(
-                                          onTap: () =>
-                                              _deleteSchedule(schedule.id),
-                                          child: Icon(
-                                            Icons.close,
-                                            color: Colors.red.shade400,
-                                            size: 18,
-                                          ),
-                                        ),
-                                      ],
+                                    child: Icon(icon, color: color, size: 20),
+                                  ),
+                                  title: Text(
+                                    title,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                      color: Colors.grey.shade800,
                                     ),
-                                  );
-                                })
-                                .toList(),
+                                  ),
+                                  subtitle: Text(
+                                    '${shiftSchedules.length} day${shiftSchedules.length > 1 ? 's' : ''}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey.shade600,
+                                    ),
+                                  ),
+                                );
+                              },
+                              body: Column(
+                                children:
+                                    (shiftSchedules..sort(
+                                          (a, b) =>
+                                              a.dayIndex.compareTo(b.dayIndex),
+                                        ))
+                                        .map((schedule) {
+                                          return Container(
+                                            margin: const EdgeInsets.only(
+                                              left: 16,
+                                              right: 8,
+                                              bottom: 8,
+                                            ),
+                                            padding: const EdgeInsets.all(10),
+                                            decoration: BoxDecoration(
+                                              color: Colors.grey.shade50,
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 4,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.teal.shade100,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                      4,
+                                                    ),
+                                                  ),
+                                                  child: Text(
+                                                    schedule.dayDisplayName
+                                                        .substring(0, 3)
+                                                        .toUpperCase(),
+                                                    style: TextStyle(
+                                                      fontSize: 11,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color:
+                                                          Colors.teal.shade700,
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Text(
+                                                  schedule.timeRange,
+                                                  style: TextStyle(
+                                                    color: Colors.grey.shade700,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                                const Spacer(),
+                                                InkWell(
+                                                  onTap: () =>
+                                                      _showEditScheduleSheet(
+                                                          schedule),
+                                                  child: Icon(
+                                                    Icons.edit_outlined,
+                                                    color: Colors.teal.shade600,
+                                                    size: 18,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                InkWell(
+                                                  onTap: () => _deleteSchedule(
+                                                      schedule.id),
+                                                  child: Icon(
+                                                    Icons.close,
+                                                    color: Colors.red.shade400,
+                                                    size: 18,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        })
+                                        .toList(),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   );
