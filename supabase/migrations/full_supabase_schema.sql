@@ -500,34 +500,37 @@ CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
-BEGIN
-  INSERT INTO public.users (
-    id,
-    role,
-    full_name,
-    phone,
-    email,
-    auth_provider,
-    created_at
+begin
+  -- If public.users is missing, don't break auth
+  if to_regclass('public.users') is null then
+    return new;
+  end if;
+
+  insert into public.users (
+    id, role, full_name, phone, email, auth_provider, created_at
   )
-  VALUES (
-    NEW.id,
-    ARRAY[]::text[], -- REQUIRED, non-null
-    COALESCE(
-      NEW.raw_user_meta_data->>'full_name',
-      NEW.raw_user_meta_data->>'name',
-      split_part(COALESCE(NEW.email, NEW.phone), '@', 1),
+  values (
+    new.id,
+    array[]::text[],
+    coalesce(
+      new.raw_user_meta_data->>'full_name',
+      new.raw_user_meta_data->>'name',
+      split_part(coalesce(new.email, new.phone), '@', 1),
       'User'
     ),
-    NEW.phone,
-    NEW.email,
-    COALESCE(NEW.raw_app_meta_data->>'provider', 'phone'),
-    NEW.created_at
+    new.phone,
+    new.email,
+    coalesce(new.raw_app_meta_data->>'provider', 'phone'),
+    new.created_at
   )
-  ON CONFLICT (id) DO NOTHING;
+  on conflict (id) do nothing;
 
-  RETURN NEW;
-END;
+  return new;
+
+exception when others then
+  -- Never block auth flows for profile sync issues
+  return new;
+end;
 $$;
 
 

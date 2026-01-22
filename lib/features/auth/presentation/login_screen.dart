@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -30,35 +29,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final Color _bgColor = Colors.grey.shade50;
 
   // TEST DATA - REMOVE FOR RELEASE
-  List<UserModel> _debugUsers = [];
+  // Hardcoded test users for reliability
+  final List<UserModel> _testUsers = [
+    // Drivers
+    for (int i = 1; i <= 10; i++)
+      UserModel(
+        id: 'driver-$i', // local/testing ID (real UUID comes from auth)
+        email: 'driver$i@test.com',
+        fullName: 'Test Driver $i',
+        roles: const ['driver'],
+      ),
+
+    // Parents
+    for (int i = 1; i <= 5; i++)
+      UserModel(
+        id: 'parent-$i',
+        email: 'parent$i@test.com',
+        fullName: 'Test Parent $i',
+        roles: const ['parent'],
+      ),
+  ];
 
   @override
   void initState() {
     super.initState();
-    if (kDebugMode) {
-      _fetchDebugUsers();
-    }
-  }
-
-  Future<void> _fetchDebugUsers() async {
-    try {
-      // Attempt to fetch first 10 users for debug convenience
-      // This relies on RLS allowing reading public.users (or being admin)
-      final response = await Supabase.instance.client
-          .from('users')
-          .select()
-          .limit(10);
-
-      if (mounted) {
-        setState(() {
-          _debugUsers = response
-              .map((json) => UserModel.fromJson(json))
-              .toList();
-        });
-      }
-    } catch (e) {
-      debugPrint('Debug: Failed to fetch users: $e');
-    }
   }
 
   @override
@@ -247,9 +241,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             isPassword: true,
                           ),
 
-                          if (kDebugMode &&
-                              _isLogin &&
-                              _debugUsers.isNotEmpty) ...[
+                          // DEBUG: Test User Selector -> REMOVE FOR RELEASE
+                          if (kDebugMode && _isLogin) ...[
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -273,7 +266,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                       fontSize: 14,
                                     ),
                                   ),
-                                  items: _debugUsers.map((user) {
+                                  items: _testUsers.map((user) {
                                     final rolesStr = user.roles.join(', ');
                                     return DropdownMenuItem(
                                       value: user,
@@ -287,8 +280,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   onChanged: (user) {
                                     if (user != null) {
                                       _emailController.text = user.email;
-                                      // Default password for testing - change if needed
-                                      _passwordController.text = '123456';
+                                      _passwordController.text = 'Test@1234';
                                     }
                                   },
                                 ),
@@ -359,8 +351,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     const SizedBox(height: 40),
 
                     // --- Bottom Toggle ---
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      alignment: WrapAlignment.center,
                       children: [
                         Text(
                           _isLogin
