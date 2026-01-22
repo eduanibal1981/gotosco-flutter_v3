@@ -43,7 +43,7 @@ class DriverBookingsRepository {
       final childrenLinks = await _supabase
           .from('booking_children')
           .select('booking_id, children(id, name, school_name, grade)')
-          .in_('booking_id', bookingIds);
+          .inFilter('booking_id', bookingIds);
 
       final childrenMap = <String, List<Map<String, dynamic>>>{};
       for (final link in (childrenLinks as List)) {
@@ -65,7 +65,7 @@ class DriverBookingsRepository {
           final parents = await _supabase
               .from('users')
               .select('id, full_name, photo_url, phone')
-              .in_('id', parentIds);
+              .inFilter('id', parentIds);
           parentMap = {
             for (final p in (parents as List))
               p['id'] as String: p as Map<String, dynamic>,
