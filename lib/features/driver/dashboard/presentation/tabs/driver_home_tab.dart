@@ -26,6 +26,11 @@ class DriverHomeTab extends ConsumerStatefulWidget {
 class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
   bool _isLoading = false;
 
+  /// Switch to Trips tab (Index 3)
+  void _navigateToTripsTab() {
+    ref.read(driverDashboardIndexProvider.notifier).setIndex(3);
+  }
+
   /// Refresh all dashboard data
   Future<void> _refreshDashboard() async {
     // Invalidate all dashboard-related providers to force refresh
@@ -205,6 +210,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 icon: Icons.directions_bus,
                 title: "Today's Trips",
                 subtitle: 'No trips scheduled',
+                onTap: _navigateToTripsTab,
               ),
               const SizedBox(height: 12),
               _buildEmptyCard(
@@ -374,6 +380,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 icon: Icons.directions_bus,
                 title: "Today's Trips",
                 subtitle: 'Complete profile to schedule trips',
+                onTap: _navigateToTripsTab,
               ),
               const SizedBox(height: 12),
               _buildEmptyCard(
@@ -477,6 +484,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 icon: Icons.directions_bus,
                 title: "Today's Trips",
                 subtitle: 'No trips scheduled',
+                onTap: _navigateToTripsTab,
               ),
               const SizedBox(height: 12),
               _buildEmptyCard(
@@ -1713,31 +1721,34 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
         if (hasTrips) {
           // Trips already exist - show success state
-          return Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            decoration: BoxDecoration(
-              color: Colors.green.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.green.shade200),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  color: Colors.green.shade600,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Today\'s Trips Generated ✓',
-                  style: TextStyle(
-                    color: Colors.green.shade700,
-                    fontWeight: FontWeight.w600,
+          return GestureDetector(
+            onTap: _navigateToTripsTab,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 20,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  Text(
+                    'Today\'s Trips Generated ✓',
+                    style: TextStyle(
+                      color: Colors.green.shade700,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }
