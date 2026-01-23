@@ -44,6 +44,17 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    // Set default contract dates (August to May) on first load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref
+          .read(bookingFlowControllerProvider.notifier)
+          .setDefaultContractDates();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final bookingDraft = ref.watch(bookingFlowControllerProvider);
 
@@ -68,7 +79,7 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Select how often you need this service',
+          'Monthly subscription from August to May',
           style: Theme.of(
             context,
           ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
@@ -346,7 +357,7 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Contract Period',
+          'Contract Period (August - May)',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -425,9 +436,9 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
 
         const SizedBox(height: 20),
 
-        // Pickup Time
+        // Go Pickup Time (Morning)
         const Text(
-          'Daily Pickup Time',
+          'Go Pickup Time (Morning)',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -447,13 +458,54 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
             ),
             child: Row(
               children: [
-                Icon(Icons.access_time, color: Colors.indigo.shade600),
+                Icon(Icons.wb_sunny_outlined, color: Colors.orange.shade600),
                 const SizedBox(width: 12),
                 Text(
-                  bookingDraft.homePickupTime ?? 'Select time',
+                  bookingDraft.homePickupTime ?? 'Select morning pickup time',
                   style: TextStyle(
                     fontSize: 15,
                     color: bookingDraft.homePickupTime != null
+                        ? Colors.black87
+                        : Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Return Pickup Time (Afternoon)
+        const Text(
+          'Return Pickup Time (Afternoon)',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () => _pickTime(isPickup: false),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.nights_stay_outlined, color: Colors.indigo.shade600),
+                const SizedBox(width: 12),
+                Text(
+                  bookingDraft.schoolPickupTime ??
+                      'Select afternoon pickup time',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: bookingDraft.schoolPickupTime != null
                         ? Colors.black87
                         : Colors.grey.shade500,
                   ),
@@ -525,12 +577,18 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
       } else if (bookingDraft.isMonthlySubscription) {
         if (bookingDraft.contractStartDate != null &&
             bookingDraft.contractEndDate != null) {
+          // For monthly subscription, handle both morning and afternoon times
           ref
               .read(bookingFlowControllerProvider.notifier)
               .setMonthlySubscription(
                 contractStartDate: bookingDraft.contractStartDate!,
                 contractEndDate: bookingDraft.contractEndDate!,
-                pickupTime: timeString,
+                pickupTime: isPickup
+                    ? timeString
+                    : (bookingDraft.homePickupTime ?? ''),
+                dropoffTime: !isPickup
+                    ? timeString
+                    : (bookingDraft.schoolPickupTime ?? ''),
               );
         }
       }

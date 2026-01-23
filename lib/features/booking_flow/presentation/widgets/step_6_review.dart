@@ -245,53 +245,127 @@ class Step6Review extends ConsumerWidget {
           ],
         ),
         const SizedBox(height: 12),
-        if (bookingDraft.pickupLocationText != null)
-          Padding(
-            padding: const EdgeInsets.only(left: 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Pickup:',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  bookingDraft.pickupLocationText ?? 'N/A',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
-                  ),
-                ),
-              ],
+
+        // Multi-School Logic
+        if (bookingDraft.isMultiSchool) ...[
+          // 1. Pickup (always valid for Two Way / Go Only)
+          if (bookingDraft.pickupLocationText != null &&
+              bookingDraft.bookingType !=
+                  'One Way Back Home') // Standard Pickup
+            _buildDetailRow(
+              'Pickup (Home):',
+              bookingDraft.pickupLocationText ?? 'N/A',
             ),
-          ),
-        if (bookingDraft.dropoffLocationText != null) ...[
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.only(left: 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Dropoff:',
-                  style: TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  bookingDraft.dropoffLocationText ?? 'N/A',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+
+          // 2. Schools List (replaces Dropoff for Two Way / Go Only)
+          if (bookingDraft.bookingType != 'One Way Back Home') ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.only(left: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Dropoff (Schools):',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  ...bookingDraft.schoolLocations.map<Widget>((school) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '• ${school.schoolName}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ],
+
+          // 3. Pickup from Schools (One Way Back Home)
+          if (bookingDraft.bookingType == 'One Way Back Home') ...[
+            Padding(
+              padding: const EdgeInsets.only(left: 40),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Pickup (Schools):',
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  ...bookingDraft.schoolLocations.map<Widget>((school) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text(
+                        '• ${school.schoolName}',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ],
+              ),
+            ),
+          ],
+
+          // 4. Dropoff at Home (One Way Back Home)
+          if (bookingDraft.bookingType == 'One Way Back Home' &&
+              bookingDraft.dropoffLocationText != null) ...[
+            const SizedBox(height: 12),
+            _buildDetailRow(
+              'Dropoff (Home):',
+              bookingDraft.dropoffLocationText ?? 'N/A',
+            ),
+          ],
+        ] else ...[
+          // Standard Single Location Logic
+          if (bookingDraft.pickupLocationText != null)
+            _buildDetailRow(
+              'Pickup:',
+              bookingDraft.pickupLocationText ?? 'N/A',
+            ),
+
+          if (bookingDraft.dropoffLocationText != null) ...[
+            const SizedBox(height: 12),
+            _buildDetailRow(
+              'Dropoff:',
+              bookingDraft.dropoffLocationText ?? 'N/A',
+            ),
+          ],
+        ],
+      ],
+    );
+  }
+
+  /// Helper widget to build a detail row with label and value
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
             ),
           ),
         ],
-      ],
+      ),
     );
   }
 

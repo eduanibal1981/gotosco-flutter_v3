@@ -175,7 +175,13 @@ GoRouter router(Ref ref) {
       // NEW 6-STEP BOOKING FLOW
       GoRoute(
         path: '/booking-flow',
-        builder: (context, state) => const BookingFlowScreen(),
+        builder: (context, state) {
+          final args = state.extra as Map<String, dynamic>? ?? {};
+          return BookingFlowScreen(
+            driverId: args['driverId'],
+            driverName: args['driverName'],
+          );
+        },
       ),
       GoRoute(
         path: '/add-child',

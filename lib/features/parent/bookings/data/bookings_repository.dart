@@ -47,6 +47,9 @@ class BookingsRepository {
     bool isRecurring = false,
     List<String>? recurringDays,
     bool isMonthlySubscription = false,
+
+    // 🏫 Multi-School
+    List<Map<String, dynamic>>? multiSchoolData,
   }) async {
     final userId = _supabase.auth.currentUser!.id;
 
@@ -65,6 +68,8 @@ class BookingsRepository {
           'booking_type': bookingType,
           'school_id': schoolId,
           'school_name': schoolName,
+          'is_multi_school':
+              multiSchoolData != null && multiSchoolData.isNotEmpty,
 
           'hometxt_location': homeLocation,
           'schooltxt_location': schoolLocation,
@@ -100,6 +105,19 @@ class BookingsRepository {
                 .map((id) => {'booking_id': bookingId, 'child_id': id})
                 .toList(),
           );
+    }
+
+    // 3️⃣ Multi-school locations
+    if (multiSchoolData != null && multiSchoolData.isNotEmpty) {
+      final schoolsToInsert = multiSchoolData.map((data) {
+        return {
+          'booking_id': bookingId,
+          'school_id': data['school_id'],
+          'sequence_order': data['sequence_order'],
+        };
+      }).toList();
+
+      await _supabase.from('booking_schools').insert(schoolsToInsert);
     }
   }
 

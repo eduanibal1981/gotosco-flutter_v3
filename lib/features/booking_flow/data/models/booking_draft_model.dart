@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'school_location_model.dart';
 
 part 'booking_draft_model.freezed.dart';
 part 'booking_draft_model.g.dart';
@@ -8,8 +9,16 @@ part 'booking_draft_model.g.dart';
 abstract class BookingDraftModel with _$BookingDraftModel {
   const factory BookingDraftModel({
     // Step 1: Child Selection
+    // Single student (backward compatibility)
     String? studentId,
+    // Multiple students support
+    @Default([]) List<String> studentIds,
 
+    // Multi-School Support
+    @Default(false) bool isMultiSchool,
+    @Default([])
+    List<SchoolLocationModel>
+    schoolLocations, // Using dynamic to avoid circular dep issues during gen, maps to SchoolLocationModel
     // Step 2: Trip Category
     @Default('school') String tripCategory, // 'school', 'Journey', 'Other'
     // Step 3: Direction
@@ -25,15 +34,14 @@ abstract class BookingDraftModel with _$BookingDraftModel {
     // Step 5: Schedule
     @Default(false) bool isOneTime,
     @Default(false) bool isRecurring,
-    @Default(false) bool isMonthlySubscription,
+    @Default(true) bool isMonthlySubscription, // Default to monthly
     DateTime? scheduledPickupDatetime,
     DateTime? scheduledDropoffDatetime,
     DateTime? contractStartDate,
     DateTime? contractEndDate,
     List<String>? recurringDays, // ['monday', 'tuesday', etc.]
-    String? homePickupTime, // For recurring/subscription
-    String? schoolPickupTime,
-
+    String? homePickupTime, // Go pickup time (morning)
+    String? schoolPickupTime, // Return pickup time (afternoon)
     // Step 6: Review / Metadata
     String? driverId,
     double? estimatedPrice,
