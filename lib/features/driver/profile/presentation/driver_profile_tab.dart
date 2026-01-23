@@ -30,6 +30,9 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
   final _serviceAreasKey = GlobalKey();
   final _locationSettingsKey = GlobalKey();
   String? _expandedShiftType;
+  String? _currentLocationText;
+  double? _currentLocationLat;
+  double? _currentLocationLng;
 
   @override
   void dispose() {
@@ -1113,9 +1116,13 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                       children: [
                         Expanded(
                           child: Text(
-                            profile.locationText ?? 'No location set',
+                            _currentLocationText ??
+                                profile.locationText ??
+                                'No location set',
                             style: TextStyle(
-                              color: profile.locationText != null
+                              color: (_currentLocationText ??
+                                          profile.locationText) !=
+                                      null
                                   ? Colors.grey.shade800
                                   : Colors.grey.shade400,
                               fontSize: 14,
@@ -1180,7 +1187,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                     ),
                     // Same as Current button
                     OutlinedButton.icon(
-                      onPressed: profile.locationText != null
+                      onPressed: _hasCurrentLocation(profile)
                           ? () => _copyToStartLocation(profile)
                           : null,
                       icon: const Icon(Icons.copy, size: 14),
@@ -1266,6 +1273,14 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
       // Reverse geocode to get meaningful address
       final locationText = await _reverseGeocode(lat, lng);
+
+      if (locationType == 'current' && mounted) {
+        setState(() {
+          _currentLocationText = locationText;
+          _currentLocationLat = lat;
+          _currentLocationLng = lng;
+        });
+      }
 
       final repository = ref.read(driverProfileRepositoryProvider);
       bool success;
@@ -1372,6 +1387,14 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
         position.longitude,
       );
 
+      if (locationType == 'current' && mounted) {
+        setState(() {
+          _currentLocationText = locationText;
+          _currentLocationLat = position.latitude;
+          _currentLocationLng = position.longitude;
+        });
+      }
+
       final repository = ref.read(driverProfileRepositoryProvider);
       final success = await repository.updateDriverLocation(
         driverId: profile.id,
@@ -1403,7 +1426,24 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
   Future<void> _copyToStartLocation(DriverProfileModel profile) async {
     final repository = ref.read(driverProfileRepositoryProvider);
-    final success = await repository.copyLocationToStartPoint(profile.id);
+    final currentText = _currentLocationText ?? profile.locationText;
+    final currentLat = _currentLocationLat ?? profile.locationLat;
+    final currentLng = _currentLocationLng ?? profile.locationLng;
+    bool success;
+
+    if (currentText != null &&
+        currentText.trim().isNotEmpty &&
+        currentLat != null &&
+        currentLng != null) {
+      success = await repository.updateStartLocation(
+        driverId: profile.id,
+        locationText: currentText,
+        lat: currentLat,
+        lng: currentLng,
+      );
+    } else {
+      success = await repository.copyLocationToStartPoint(profile.id);
+    }
 
     if (success && mounted) {
       ref.invalidate(currentDriverProfileProvider);
@@ -1421,6 +1461,13 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
         ),
       );
     }
+  }
+
+  bool _hasCurrentLocation(DriverProfileModel profile) {
+    final text = _currentLocationText ?? profile.locationText;
+    final lat = _currentLocationLat ?? profile.locationLat;
+    final lng = _currentLocationLng ?? profile.locationLng;
+    return text != null && text.trim().isNotEmpty && lat != null && lng != null;
   }
 
   /// Build the weekly schedule section

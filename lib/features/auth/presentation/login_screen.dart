@@ -255,7 +255,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
 
                           // DEBUG: Test User Selector -> REMOVE FOR RELEASE
-                          if (!kDebugMode && _isLogin) ...[
+                          //if (!kDebugMode && _isLogin) ...[
+                          if (_isLogin) ...[
                             const SizedBox(height: 16),
                             Container(
                               padding: const EdgeInsets.symmetric(

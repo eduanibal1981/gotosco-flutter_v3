@@ -41,10 +41,13 @@ class DriverAdCard extends ConsumerWidget {
   }
 
   void _navigateToBooking(BuildContext context) {
-    context.push(
-      '/booking',
-      extra: {'driverId': driver.driverId, 'driverName': driver.name},
-    );
+    // Navigate to the new booking flow wizard
+    context.push('/booking-flow');
+
+    // TODO: After completing the booking flow, you might want to pass driver info
+    // For now, the flow completes all steps and driver selection can be added later
+    // Alternative: Pass driver info as extra if needed
+    // context.push('/booking-flow', extra: {'driverId': driver.driverId, 'driverName': driver.name});
   }
 
   void _viewProfile(BuildContext context) {

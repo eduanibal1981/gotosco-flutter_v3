@@ -35,6 +35,7 @@ import 'package:gotosco_v3/features/parent/support/presentation/terms_conditions
 import 'package:gotosco_v3/features/parent/support/presentation/privacy_policy_screen.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/features/booking_flow/presentation/screens/booking_flow_screen.dart';
 
 part 'router.g.dart';
 
@@ -170,6 +171,11 @@ GoRouter router(Ref ref) {
             initialData: args['initialData'],
           );
         },
+      ),
+      // NEW 6-STEP BOOKING FLOW
+      GoRoute(
+        path: '/booking-flow',
+        builder: (context, state) => const BookingFlowScreen(),
       ),
       GoRoute(
         path: '/add-child',
