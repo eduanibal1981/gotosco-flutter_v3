@@ -22,7 +22,7 @@ class BookingsRepository {
 
   /// CREATE BOOKING (supports recurring + geo + children)
   Future<void> createBooking({
-    required String driverId,
+    String? driverId, // Made nullable for Requests
     required List<String> childIds,
     required String bookingType,
     String? schoolId,
@@ -40,7 +40,8 @@ class BookingsRepository {
     TimeOfDay? schoolPickupTime,
 
     String? notes,
-
+    double? proposalPrice,
+    double? price, // Added 'price' for agreed/direct bookings
     // 🔁 Recurring fields
     required DateTime startDate,
     required DateTime endDate,
@@ -64,7 +65,7 @@ class BookingsRepository {
         .insert({
           'parent_id': userId,
           'driver_id': driverId,
-          'status': 'pending',
+          'status': driverId == null ? 'posted' : 'pending', // 'posted' for Ad
           'booking_type': bookingType,
           'school_id': schoolId,
           'school_name': schoolName,
@@ -83,6 +84,8 @@ class BookingsRepository {
           'home_pickup_time': formatTime(homePickupTime),
           'school_pickup_time': formatTime(schoolPickupTime),
           'notes': notes,
+          'proposal_price': proposalPrice,
+          'price': price,
 
           // 🔁 Recurring
           'start_date': startDate.toIso8601String(),
@@ -253,35 +256,16 @@ class BookingsRepository {
         s['id']: {'name': s['name'], 'address': s['address']},
     };
 
-    // Children Map: booking_id -> {count, names[]}
-    final childrenMap = <String, Map<String, dynamic>>{};
+    // Children Map: booking_id -> List<Map<String, dynamic>>
+    final childrenMap = <String, List<Map<String, dynamic>>>{};
     for (final item in childrenData) {
       final bId = item['booking_id'] as String;
-      final child =
-          item['children']; // This usually returns a Map or List depending on relationship
+      final child = item['children']; // {id, name, gender, grade}
 
       if (child != null) {
-        if (!childrenMap.containsKey(bId)) {
-          childrenMap[bId] = {'count': 0, 'names': <String>[]};
-        }
-        // Handle if 'children' is a single object or list (depending on query, here it's singular relation usually but let's be safe)
-        // With select('..., children(id, name)'), Supabase returns it as a single object if it's 1-to-1 or N-to-1, or list if 1-to-N.
-        // But here 'booking_children' is a join table.
-        // Actually, 'booking_children' -> 'children'.
-        // The join is: booking_children has child_id FK to children.
-        // So 'children' will be a single object per booking_children row.
-
-        final cName = child['name'] as String?;
-        if (cName != null) {
-          childrenMap[bId]!['count'] = (childrenMap[bId]!['count'] as int) + 1;
-          (childrenMap[bId]!['names'] as List<String>).add(cName);
-        }
+        childrenMap.putIfAbsent(bId, () => []);
+        childrenMap[bId]!.add(child);
       }
-    }
-
-    // Sort child names
-    for (final val in childrenMap.values) {
-      (val['names'] as List<String>).sort();
     }
 
     // 4. Enrich Bookings
@@ -292,7 +276,7 @@ class BookingsRepository {
 
       final driverInfo = driverMap[driverId];
       final schoolInfo = schoolMap[schoolId];
-      final childInfo = childrenMap[bId];
+      final childrenList = childrenMap[bId] ?? [];
 
       final newMap = Map<String, dynamic>.from(b);
 
@@ -302,8 +286,16 @@ class BookingsRepository {
       newMap['school_name'] = schoolInfo?['name'] ?? b['school_name'];
       newMap['school_address'] = schoolInfo?['address'];
 
-      newMap['kids_count'] = childInfo?['count'] ?? 0;
-      newMap['child_names'] = childInfo?['names'] ?? [];
+      newMap['kids_count'] = childrenList.length;
+      newMap['child_names'] = childrenList.map((c) => c['name']).toList();
+      newMap['students_info'] = childrenList; // Added for detailed views
+
+      // Flatten first child for list display if needed (Legacy compatibility)
+      if (childrenList.isNotEmpty) {
+        newMap['child_name'] = childrenList.first['name'];
+        newMap['child_gender'] = childrenList.first['gender'];
+        newMap['child_grade'] = childrenList.first['grade'];
+      }
 
       newMap['home_location'] = b['hometxt_location'];
       newMap['school_location'] = b['schooltxt_location'];

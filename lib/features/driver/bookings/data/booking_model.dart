@@ -7,6 +7,7 @@ class BookingModel {
   final String driverId;
   final String parentId;
   final double price;
+  final double? proposalPrice; // Added field
   final String homeLocation;
   final String schoolLocation;
   final String? startDate;
@@ -35,6 +36,7 @@ class BookingModel {
     required this.driverId,
     required this.parentId,
     required this.price,
+    this.proposalPrice, // Added parameter
     required this.homeLocation,
     required this.schoolLocation,
     this.startDate,
@@ -63,6 +65,7 @@ class BookingModel {
       driverId: map['driver_id'] ?? '',
       parentId: map['parent_id'] ?? '',
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
+      proposalPrice: (map['proposal_price'] as num?)?.toDouble(),
       homeLocation: map['hometxt_location'] ?? '',
       schoolLocation: map['schooltxt_location'] ?? '',
       startDate: map['start_date']?.toString(),

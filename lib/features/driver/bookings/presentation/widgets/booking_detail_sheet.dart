@@ -114,7 +114,17 @@ class BookingDetailSheet extends ConsumerWidget {
               booking.schoolLocation,
             ),
             const SizedBox(height: 12),
-            _buildInfoRow(Icons.payments, 'Price', '${booking.price} SAR'),
+            _buildInfoRow(
+              Icons.payments,
+              'Price',
+              // Use price if > 0, else proposalPrice, else 'Negotiable'
+              (booking.price > 0)
+                  ? '${booking.price} SAR'
+                  : (booking.proposalPrice != null &&
+                        booking.proposalPrice! > 0)
+                  ? '${booking.proposalPrice} SAR'
+                  : 'Negotiable',
+            ),
             const Divider(),
             const SizedBox(height: 16),
 

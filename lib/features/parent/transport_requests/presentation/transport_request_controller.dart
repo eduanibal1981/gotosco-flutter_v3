@@ -10,7 +10,7 @@ class TransportRequestController extends _$TransportRequestController {
 
   Future<bool> submitRequest({
     required String childName,
-    required int childAge,
+    // required int childAge, // Removed
     required String schoolName,
     required String bookingType,
     required String homeLocation,
@@ -23,13 +23,17 @@ class TransportRequestController extends _$TransportRequestController {
     String? childGender,
     String? childGrade,
     String? notes,
+    double? proposalPrice,
+    String? scheduleType,
+    String? startDate,
+    String? endDate,
+    String? pickupTime,
+    String? daysOfWeek,
   }) async {
     if (childName.trim().isEmpty) {
       throw Exception('Please enter the child name');
     }
-    if (childAge <= 0) {
-      throw Exception('Please enter a valid child age');
-    }
+    // Age check removed
     if (schoolName.trim().isEmpty) {
       throw Exception('Please enter the school name');
     }
@@ -43,9 +47,10 @@ class TransportRequestController extends _$TransportRequestController {
     state = const AsyncLoading();
 
     state = await AsyncValue.guard(() async {
-      await ref.read(transportRequestsRepositoryProvider).createTransportRequest(
+      await ref
+          .read(transportRequestsRepositoryProvider)
+          .createTransportRequest(
             childName: childName,
-            childAge: childAge,
             schoolName: schoolName,
             bookingType: bookingType,
             homeLocation: homeLocation,
@@ -58,6 +63,12 @@ class TransportRequestController extends _$TransportRequestController {
             childGender: childGender,
             childGrade: childGrade,
             notes: notes,
+            proposalPrice: proposalPrice,
+            scheduleType: scheduleType,
+            startDate: startDate,
+            endDate: endDate,
+            pickupTime: pickupTime,
+            daysOfWeek: daysOfWeek,
           );
     });
 

@@ -50,6 +50,7 @@ abstract class BookingDraftModel with _$BookingDraftModel {
     String? notes,
 
     // Current flow state
+    @Default(false) bool isPublicRequest,
     @Default(1) int currentStep,
     @Default('draft') String flowStep, // 'draft', 'submitted', 'confirmed'
   }) = _BookingDraftModel;

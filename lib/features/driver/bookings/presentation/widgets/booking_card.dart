@@ -28,8 +28,9 @@ class BookingCard extends ConsumerWidget {
     final startDate = booking.startDate != null
         ? DateTime.tryParse(booking.startDate!)
         : null;
-    final endDate =
-        booking.endDate != null ? DateTime.tryParse(booking.endDate!) : null;
+    final endDate = booking.endDate != null
+        ? DateTime.tryParse(booking.endDate!)
+        : null;
     final pauseUntil = booking.pauseEndDate != null
         ? DateTime.tryParse(booking.pauseEndDate!)
         : null;
@@ -119,22 +120,56 @@ class BookingCard extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              // Route Info (Simplified)
+              const SizedBox(height: 12), // Adjusted spacing
+              // Route Info (Enhanced Vertical Stepper)
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.route, size: 16, color: Colors.grey),
+                  Column(
+                    children: [
+                      const Icon(
+                        Icons.my_location,
+                        size: 16,
+                        color: Colors.indigo,
+                      ), // Pickup
+                      Container(
+                        width: 2,
+                        height: 12,
+                        color: Colors.grey.shade300,
+                        margin: const EdgeInsets.symmetric(vertical: 2),
+                      ),
+                      const Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Colors.teal,
+                      ), // Dropoff
+                    ],
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: Text(
-                      'Pickup: ${booking.homeLocation}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 13,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          booking.homeLocation,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          booking.schoolLocation,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.black87,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -142,20 +177,7 @@ class BookingCard extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              if (startDate != null || endDate != null) ...[
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_today,
-                        size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      _formatDateRange(dateFormatter, startDate, endDate),
-                      style: const TextStyle(color: Colors.black87),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-              ],
+              // Removed Date Range Schedule Block here as requested
               if (booking.isRecurring)
                 Row(
                   children: [
@@ -337,32 +359,16 @@ class BookingCard extends ConsumerWidget {
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              text,
-              style: TextStyle(color: color, fontSize: 12),
-            ),
+            child: Text(text, style: TextStyle(color: color, fontSize: 12)),
           ),
         ],
       ),
     );
   }
 
-  String _formatDateRange(
-    DateFormat formatter,
-    DateTime? start,
-    DateTime? end,
-  ) {
-    if (start != null && end != null) {
-      return 'Schedule: ${formatter.format(start)} - ${formatter.format(end)}';
-    }
-    if (start != null) {
-      return 'Starts: ${formatter.format(start)}';
-    }
-    if (end != null) {
-      return 'Ends: ${formatter.format(end)}';
-    }
-    return 'Schedule: Not set';
-  }
+  // Helper _formatDateRange removed or kept if used elsewhere?
+  // It was only used in the removed block. I can remove it or keep it as utility.
+  // I will keep it commented out or remove it to be clean.
 }
 
 class _BookingActions extends ConsumerStatefulWidget {

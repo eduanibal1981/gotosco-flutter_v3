@@ -2,14 +2,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../transport_requests/data/transport_requests_repository.dart';
+import '../../../bookings/data/bookings_repository.dart';
+import '../../../../shared/widgets/booking_details_view.dart';
 
 class TransportRequestCard extends ConsumerWidget {
   const TransportRequestCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final requestsAsync = ref.watch(parentTransportRequestsProvider);
+    // Watch my bookings, then filter for ads (driver_id is null OR status is posted)
+    final bookingsAsync = ref.watch(myBookingsProvider);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -28,8 +30,13 @@ class TransportRequestCard extends ConsumerWidget {
           ),
         ],
       ),
-      child: requestsAsync.when(
-        data: (requests) {
+      child: bookingsAsync.when(
+        data: (bookings) {
+          // Filter for Advertised Requests (Open)
+          final requests = bookings
+              .where((b) => b['status'] == 'posted' || b['driver_id'] == null)
+              .toList();
+
           if (requests.isEmpty) {
             return _buildEmptyState(context);
           }
@@ -168,56 +175,174 @@ class TransportRequestCard extends ConsumerWidget {
     WidgetRef ref,
     Map<String, dynamic> request,
   ) {
-    final childName = request['child_name'] as String? ?? 'Child';
+    // Privacy: Mask Child Name in list too
+    String displayChildName = 'Student';
+    final childGender = request['child_gender'] as String?;
+    final childGrade = request['child_grade'] as String?;
     final schoolName = request['school_name'] as String? ?? 'School';
     final status = request['status'] as String? ?? 'open';
-    final id = request['id'] as String? ?? '';
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  childName,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+    if (childGender != null && childGender.isNotEmpty) {
+      displayChildName = childGender;
+      if (displayChildName.isNotEmpty) {
+        displayChildName =
+            displayChildName[0].toUpperCase() + displayChildName.substring(1);
+      }
+    }
+
+    return InkWell(
+      onTap: () => _showDetailDialog(context, ref, request),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.2)),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$displayChildName${childGrade != null ? ' ($childGrade)' : ''}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  schoolName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.85),
-                    fontSize: 12,
+                  const SizedBox(height: 2),
+                  Text(
+                    schoolName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.85),
+                      fontSize: 12,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+            const SizedBox(width: 8),
+            _buildStatusChip(status),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDetailDialog(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> request,
+  ) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
           ),
-          const SizedBox(width: 8),
-          _buildStatusChip(status),
-          IconButton(
-            onPressed: id.isEmpty
-                ? null
-                : () => _confirmDelete(context, ref, id),
-            icon: const Icon(Icons.delete_outline, color: Colors.white),
-            tooltip: 'Delete',
+          padding: const EdgeInsets.all(16),
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.8,
+          ),
+          child: BookingDetailsView(
+            title: 'Review Advertise Request',
+            childName: request['child_name'] ?? 'Child',
+            childGender: request['child_gender'],
+            childGrade: request['child_grade'],
+            children: request['students_info'] != null
+                ? List.from(
+                    request['students_info'],
+                  ).cast<Map<String, dynamic>>()
+                : null,
+            schools: request['schools_info'] != null
+                ? List.from(
+                    request['schools_info'],
+                  ).cast<Map<String, dynamic>>()
+                : null,
+            tripCategory: request['trip_category'] == 'school'
+                ? 'School Transport'
+                : 'Journey/Other', // Basic derivation
+            bookingType: request['booking_type'] ?? '',
+
+            locations: [
+              if (request['hometxt_location'] != null)
+                {'label': 'Pickup From', 'value': request['hometxt_location']},
+              if (request['schooltxt_location'] != null)
+                {'label': 'Dropoff To', 'value': request['schooltxt_location']},
+            ],
+            scheduleType:
+                request['schedule_type'] ??
+                request['booking_type'] ??
+                'Request',
+            scheduleDescription: _formatScheduleDescription(request),
+            price: request['propsal_price'] != null
+                ? double.tryParse(request['propsal_price'].toString())
+                : null,
+            notes: request['notes'],
+
+            isPublicRequest: true,
+            isEditable: false,
+            isDriverView: false, // Parent viewing own ad
+
+            onClose: () => Navigator.pop(ctx),
+            onDelete: () => _handleDelete(ctx, ref, request['id']),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleDelete(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+  ) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dCtx) => AlertDialog(
+        title: const Text('Delete request?'),
+        content: const Text(
+          'This will remove the request from the marketplace.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dCtx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dCtx, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      if (context.mounted) Navigator.pop(context); // Close detail dialog
+      try {
+        await ref.read(bookingsRepositoryProvider).deleteBooking(id);
+        // ref.invalidate(myBookingsProvider); // Stream auto-updates
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+        }
+      }
+    }
   }
 
   Widget _buildStatusChip(String status) {
@@ -225,8 +350,8 @@ class TransportRequestCard extends ConsumerWidget {
     final color = status == 'open'
         ? Colors.green
         : status == 'closed'
-            ? Colors.orange
-            : Colors.grey;
+        ? Colors.orange
+        : Colors.grey;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -268,47 +393,55 @@ class TransportRequestCard extends ConsumerWidget {
   }
 
   Widget _buildErrorState(String message) {
-    return Text(
-      'Error: $message',
-      style: const TextStyle(color: Colors.white),
-    );
+    return Text('Error: $message', style: const TextStyle(color: Colors.white));
   }
 
-  Future<void> _confirmDelete(
-    BuildContext context,
-    WidgetRef ref,
-    String requestId,
-  ) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete request?'),
-        content: const Text(
-          'This will remove the request from the marketplace.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await ref
-          .read(transportRequestsRepositoryProvider)
-          .deleteRequest(requestId);
-      ref.invalidate(parentTransportRequestsProvider);
+  // _confirmDelete method removed as logic moved to dialog
+  String _formatScheduleDescription(Map<String, dynamic> req) {
+    if (req['schedule_type'] == 'One-Time Trip') {
+      final date = req['start_date'] != null
+          ? DateTime.parse(req['start_date'])
+          : null;
+      return date != null ? _formatDate(date) : '';
     }
+    if (req['schedule_type'] == 'Recurring Trip') {
+      return '${req['days_of_week'] ?? ""}\nPickup: ${req['pickup_time'] ?? ""}';
+    }
+    if (req['schedule_type'] == 'Monthly Subscription') {
+      String desc = '';
+      if (req['start_date'] != null) {
+        final start = DateTime.parse(req['start_date']);
+        desc = '${_formatDate(start)}';
+        if (req['end_date'] != null) {
+          final end = DateTime.parse(req['end_date']);
+          desc += ' - ${_formatDate(end)}';
+        }
+      }
+      if (req['pickup_time'] != null) {
+        desc += '\nDaily Pickup: ${req['pickup_time']}';
+      }
+      if (desc.isNotEmpty) return desc;
+    }
+
+    // Fallback if new columns are empty (old data or just failed)
+    return 'See details in Notes below\nPosted: ${_formatDate(DateTime.parse(req['created_at']))}';
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }

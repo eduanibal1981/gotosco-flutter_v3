@@ -20,7 +20,8 @@ class TransportRequestsRepository {
 
   Future<void> createTransportRequest({
     required String childName,
-    required int childAge,
+
+    // required int childAge, // Removed
     required String schoolName,
     required String bookingType,
     required String homeLocation,
@@ -33,6 +34,14 @@ class TransportRequestsRepository {
     String? childGender,
     String? childGrade,
     String? notes,
+    double? proposalPrice,
+    String? scheduleType,
+    String? startDate,
+    String? endDate,
+    String? pickupTime,
+    String? daysOfWeek,
+    List<Map<String, dynamic>>? studentsInfo,
+    List<Map<String, dynamic>>? schoolsInfo,
   }) async {
     final userId = _supabase.auth.currentUser!.id;
 
@@ -40,7 +49,6 @@ class TransportRequestsRepository {
       'parent_id': userId,
       'child_id': childId,
       'child_name': childName,
-      'child_age': childAge,
       'child_gender': childGender,
       'child_grade': childGrade,
       'school_name': schoolName,
@@ -50,6 +58,14 @@ class TransportRequestsRepository {
       'homegeo_location': 'SRID=4326;POINT($homeLng $homeLat)',
       'schoolgeo_location': 'SRID=4326;POINT($schoolLng $schoolLat)',
       'notes': notes,
+      'propsal_price': proposalPrice?.toString(),
+      'schedule_type': scheduleType,
+      'start_date': startDate,
+      'end_date': endDate,
+      'pickup_time': pickupTime,
+      'days_of_week': daysOfWeek,
+      'students_info': studentsInfo ?? [],
+      'schools_info': schoolsInfo ?? [],
       'created_at': DateTime.now().toIso8601String(),
     });
   }

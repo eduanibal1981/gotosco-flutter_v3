@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/find_driver/data/drivers_repository.dart';
 
 class FeaturedDrivers extends ConsumerWidget {
@@ -29,6 +30,7 @@ class FeaturedDrivers extends ConsumerWidget {
                 subtitle: driver.vehicleType, // Using vehicle type as subtitle
                 isVerified: driver.isVerified,
                 photoUrl: driver.photoUrl,
+                onTap: () => context.push('/driver-detail', extra: driver),
               );
             },
           );
@@ -89,75 +91,79 @@ class FeaturedDrivers extends ConsumerWidget {
     required String subtitle,
     required bool isVerified,
     String? photoUrl,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      width: 140,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              CircleAvatar(
-                backgroundColor: Colors.indigo.shade50,
-                radius: 16,
-                backgroundImage: photoUrl != null
-                    ? NetworkImage(photoUrl)
-                    : null,
-                child: photoUrl == null
-                    ? Text(
-                        name.isNotEmpty ? name[0] : 'D',
-                        style: TextStyle(color: Colors.indigo.shade700),
-                      )
-                    : null,
-              ),
-              const Spacer(),
-              const Icon(Icons.star, size: 14, color: Colors.amber),
-              Text(
-                rating,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 140,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.shade100),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: Colors.indigo.shade50,
+                  radius: 16,
+                  backgroundImage: photoUrl != null
+                      ? NetworkImage(photoUrl)
+                      : null,
+                  child: photoUrl == null
+                      ? Text(
+                          name.isNotEmpty ? name[0] : 'D',
+                          style: TextStyle(color: Colors.indigo.shade700),
+                        )
+                      : null,
                 ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          if (isVerified)
-            Container(
-              margin: const EdgeInsets.only(bottom: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                "Verified",
-                style: TextStyle(
-                  fontSize: 9,
-                  color: Colors.blue,
-                  fontWeight: FontWeight.bold,
+                const Spacer(),
+                const Icon(Icons.star, size: 14, color: Colors.amber),
+                Text(
+                  rating,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
+              ],
             ),
-          Text(
-            name,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-          ),
-          Text(
-            subtitle,
-            style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+            const Spacer(),
+            if (isVerified)
+              Container(
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  "Verified",
+                  style: TextStyle(
+                    fontSize: 9,
+                    color: Colors.blue,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            Text(
+              name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }

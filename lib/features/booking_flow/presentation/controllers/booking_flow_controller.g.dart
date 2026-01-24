@@ -45,7 +45,7 @@ final class BookingFlowControllerProvider
 }
 
 String _$bookingFlowControllerHash() =>
-    r'df235b9d4d4c69d32f539f2326763b1a133377a4';
+    r'16b82c34d604f294ae6fdb61dbf92c6080bb709d';
 
 /// Controller for managing booking flow state and navigation between steps
 

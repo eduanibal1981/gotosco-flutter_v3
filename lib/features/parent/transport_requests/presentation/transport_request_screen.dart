@@ -62,7 +62,8 @@ class _TransportRequestScreenState
     final selected = _selectedChild;
     final childName = selected?.name ?? _childNameController.text.trim();
     final derivedAge = _calculateAge(selected?.dob);
-    final childAge = derivedAge ?? int.tryParse(_childAgeController.text.trim());
+    final childAge =
+        derivedAge ?? int.tryParse(_childAgeController.text.trim());
 
     if (childAge == null || childAge <= 0) {
       _showMessage('Please enter a valid child age');
@@ -93,7 +94,7 @@ class _TransportRequestScreenState
           .read(transportRequestControllerProvider.notifier)
           .submitRequest(
             childName: childName,
-            childAge: childAge,
+            // childAge: childAge, // Removed
             schoolName: schoolName,
             bookingType: _bookingType,
             homeLocation: homeLocation,
@@ -121,9 +122,9 @@ class _TransportRequestScreenState
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -257,12 +258,7 @@ class _TransportRequestScreenState
               border: OutlineInputBorder(),
             ),
             items: children
-                .map(
-                  (c) => DropdownMenuItem(
-                    value: c,
-                    child: Text(c.name),
-                  ),
-                )
+                .map((c) => DropdownMenuItem(value: c, child: Text(c.name)))
                 .toList(),
             onChanged: (child) {
               setState(() {
@@ -372,4 +368,3 @@ class _TransportRequestScreenState
     );
   }
 }
-

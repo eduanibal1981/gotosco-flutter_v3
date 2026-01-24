@@ -57,6 +57,7 @@ _BookingDraftModel _$BookingDraftModelFromJson(Map<String, dynamic> json) =>
       totalEstimatedDurationMinutes:
           (json['totalEstimatedDurationMinutes'] as num?)?.toInt(),
       notes: json['notes'] as String?,
+      isPublicRequest: json['isPublicRequest'] as bool? ?? false,
       currentStep: (json['currentStep'] as num?)?.toInt() ?? 1,
       flowStep: json['flowStep'] as String? ?? 'draft',
     );
@@ -92,6 +93,7 @@ Map<String, dynamic> _$BookingDraftModelToJson(_BookingDraftModel instance) =>
       'totalEstimatedDistanceKm': instance.totalEstimatedDistanceKm,
       'totalEstimatedDurationMinutes': instance.totalEstimatedDurationMinutes,
       'notes': instance.notes,
+      'isPublicRequest': instance.isPublicRequest,
       'currentStep': instance.currentStep,
       'flowStep': instance.flowStep,
     };

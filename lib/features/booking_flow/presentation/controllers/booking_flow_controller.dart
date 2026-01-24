@@ -475,4 +475,12 @@ class BookingFlowController extends _$BookingFlowController {
   void setDriverInfo({required String driverId, String? notes}) {
     state = state.copyWith(driverId: driverId, notes: notes);
   }
+
+  void setPublicRequestMode(bool isPublic) {
+    state = state.copyWith(isPublicRequest: isPublic);
+  }
+
+  void setEstimatedPrice(double price) {
+    state = state.copyWith(estimatedPrice: price);
+  }
 }

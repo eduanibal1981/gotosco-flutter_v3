@@ -10,12 +10,21 @@ import '../widgets/step_5_schedule.dart';
 import '../widgets/step_6_review.dart';
 import '../../../parent/bookings/data/bookings_repository.dart';
 
+import '../../../parent/children/data/children_repository.dart';
+import '../../../parent/children/data/child_model.dart';
+
 /// Main booking flow screen with 6-step wizard
 class BookingFlowScreen extends ConsumerStatefulWidget {
   final String? driverId;
   final String? driverName;
+  final bool isPublicRequest;
 
-  const BookingFlowScreen({super.key, this.driverId, this.driverName});
+  const BookingFlowScreen({
+    super.key,
+    this.driverId,
+    this.driverName,
+    this.isPublicRequest = false,
+  });
 
   @override
   ConsumerState<BookingFlowScreen> createState() => _BookingFlowScreenState();
@@ -25,12 +34,22 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
   @override
   void initState() {
     super.initState();
+
     // Initialize with driver info if provided
     if (widget.driverId != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
             .read(bookingFlowControllerProvider.notifier)
             .setDriverInfo(driverId: widget.driverId!);
+      });
+    }
+
+    // Initialize public request mode
+    if (widget.isPublicRequest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(bookingFlowControllerProvider.notifier)
+            .setPublicRequestMode(true);
       });
     }
   }
@@ -181,7 +200,11 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                currentStep == 6 ? 'Submit Booking' : 'Continue',
+                currentStep == 6
+                    ? (ref.read(bookingFlowControllerProvider).isPublicRequest
+                          ? 'Post Request'
+                          : 'Submit Booking')
+                    : 'Continue',
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -201,6 +224,197 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
 
   Future<void> _handleSubmit(BuildContext context, WidgetRef ref) async {
     final bookingDraft = ref.read(bookingFlowControllerProvider);
+
+    // 1. PUBLIC REQUEST SUBMISSION
+    if (bookingDraft.isPublicRequest) {
+      // Get Child Info
+      if (bookingDraft.studentIds.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: No child selected')),
+          );
+        }
+        return;
+      }
+
+      final childrenAsync = ref.read(myChildrenProvider);
+      if (!childrenAsync.hasValue) {
+        return;
+      }
+
+      final allChildren = childrenAsync.value!.cast<ChildModel>();
+      final selectedChildren = allChildren
+          .where((c) => bookingDraft.studentIds.contains(c.id))
+          .toList();
+
+      if (selectedChildren.isEmpty) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Selected children not found')),
+          );
+        }
+        return;
+      }
+
+      // Serialize Schools Info (if multi-school)
+      List<Map<String, dynamic>> schoolsInfo = [];
+      if (bookingDraft.isMultiSchool) {
+        schoolsInfo = bookingDraft.schoolLocations
+            .map(
+              (s) => {
+                'school_id': s.schoolId,
+                'name': s.schoolName,
+                'address': s.schoolAddress,
+                'latitude': s.latitude,
+                'longitude': s.longitude,
+                'student_ids': s.studentIds,
+              },
+            )
+            .toList();
+      }
+
+      // Fallback/Legacy Summary Data (First Child / First School)
+      final primaryChild = selectedChildren.first;
+      String schoolNameSummary = 'Multiple Schools';
+      double schoolLat = 0;
+      double schoolLng = 0;
+      String schoolLocationText = 'Values in list';
+
+      if (!bookingDraft.isMultiSchool) {
+        // Single location mode (School or Journey)
+        if (bookingDraft.tripCategory == 'school') {
+          schoolNameSummary = primaryChild.schoolName.isNotEmpty
+              ? primaryChild.schoolName
+              : 'School';
+        } else {
+          // For Journey/Other, "School Name" is really "Destination Name"
+          // Use the custom dropoff text
+          schoolNameSummary = bookingDraft.dropoffLocationText ?? 'Destination';
+        }
+
+        schoolLocationText = bookingDraft.dropoffLocationText ?? 'School';
+        schoolLat = bookingDraft.dropoffLat ?? 0;
+        schoolLng = bookingDraft.dropoffLng ?? 0;
+
+        // Create a single entry in schoolsInfo if empty to ensure JSON consistency
+        if (schoolsInfo.isEmpty) {
+          schoolsInfo.add({
+            'name': schoolNameSummary,
+            'address': schoolLocationText,
+            'latitude': schoolLat,
+            'longitude': schoolLng,
+            'type': 'primary',
+          });
+        }
+      } else {
+        // Takes the first valid school for summary columns if needed
+        if (bookingDraft.schoolLocations.isNotEmpty) {
+          final firstS = bookingDraft.schoolLocations.first;
+          schoolNameSummary = firstS.schoolName;
+          schoolLat = firstS.latitude ?? 0;
+          schoolLng = firstS.longitude ?? 0;
+          schoolLocationText = firstS.schoolAddress ?? firstS.schoolName;
+        }
+      }
+
+      try {
+        // Show loading
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) =>
+              const Center(child: CircularProgressIndicator()),
+        );
+
+        final bookingsRepo = ref.read(bookingsRepositoryProvider);
+
+        // Prepare Multi-School Data for Booking Repo (needs 'school_id', 'sequence_order')
+        List<Map<String, dynamic>>? multiSchoolForBooking;
+        if (bookingDraft.isMultiSchool &&
+            bookingDraft.schoolLocations.isNotEmpty) {
+          int seq = 1;
+          multiSchoolForBooking = bookingDraft.schoolLocations
+              .map(
+                (s) => {
+                  'school_id': s.schoolId == 'pending_selection'
+                      ? null
+                      : s.schoolId, // Handle placeholders? Booking repo might expect UUID
+                  'sequence_order': seq++,
+                },
+              )
+              .where((m) => m['school_id'] != null)
+              .toList();
+        }
+
+        // We assume Bookings Table handles recurring logic natively via start/end dates
+        await bookingsRepo.createBooking(
+          driverId: null, // Open Request
+          childIds: selectedChildren.map((c) => c.id).toList(),
+          bookingType: bookingDraft.bookingType ?? 'Two Way',
+
+          schoolId: !bookingDraft.isMultiSchool
+              ? (primaryChild.schoolId != null &&
+                        primaryChild.schoolId!.isNotEmpty
+                    ? primaryChild.schoolId
+                    : null)
+              : null,
+          schoolName: schoolNameSummary,
+
+          homeLocation: bookingDraft.pickupLocationText,
+          schoolLocation: schoolLocationText,
+
+          homeLat: bookingDraft.pickupLat,
+          homeLng: bookingDraft.pickupLng,
+          schoolLat: schoolLat != 0 ? schoolLat : null,
+          schoolLng: schoolLng != 0 ? schoolLng : null,
+
+          homePickupTime: bookingDraft.homePickupTime != null
+              ? _parseTimeOfDay(bookingDraft.homePickupTime!)
+              : null,
+          schoolPickupTime: bookingDraft.schoolPickupTime != null
+              ? _parseTimeOfDay(bookingDraft.schoolPickupTime!)
+              : null,
+
+          notes: bookingDraft.notes,
+          proposalPrice: bookingDraft.estimatedPrice,
+
+          startDate: bookingDraft.contractStartDate ?? DateTime.now(),
+          endDate:
+              bookingDraft.contractEndDate ??
+              DateTime.now().add(const Duration(days: 30)),
+          isRecurring: bookingDraft.isRecurring,
+          recurringDays: bookingDraft.recurringDays,
+          isMonthlySubscription: bookingDraft.isMonthlySubscription,
+
+          multiSchoolData: multiSchoolForBooking,
+        );
+
+        if (context.mounted) {
+          Navigator.pop(context); // Hide loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Transport request posted successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          ref.read(bookingFlowControllerProvider.notifier).reset();
+          Navigator.of(context).pop();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          Navigator.pop(context); // Hide loading
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to post request: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+      return;
+    }
+
+    // 2. REGULAR BOOKING SUBMISSION
     final repo = ref.read(bookingsRepositoryProvider);
 
     // Basic Validation
@@ -266,14 +480,27 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         }
       }
 
+      // Resolve School ID for Single School Booking (Critical for DB Trigger)
+      String? resolvedSchoolId;
+      if (!bookingDraft.isMultiSchool && bookingDraft.studentIds.isNotEmpty) {
+        final childrenAsync = ref.read(myChildrenProvider);
+        if (childrenAsync.hasValue) {
+          final allChildren = childrenAsync.value!.cast<ChildModel>();
+          final matchingChildren = allChildren.where(
+            (c) => bookingDraft.studentIds.contains(c.id),
+          );
+          if (matchingChildren.isNotEmpty) {
+            resolvedSchoolId = matchingChildren.first.schoolId;
+          }
+        }
+      }
+
       await repo.createBooking(
         driverId: bookingDraft.driverId!,
         childIds: bookingDraft.studentIds,
         bookingType: bookingDraft.bookingType!,
 
-        schoolId: bookingDraft.isMultiSchool
-            ? null
-            : null, // If single school, maybe we should set it?
+        schoolId: bookingDraft.isMultiSchool ? null : resolvedSchoolId,
         // Logic: if NOT multi-school, we usually set schoolId on the main booking row.
         // Where do we get it? From the single child?
         // But the repo takes schoolId/schoolName args.
@@ -298,6 +525,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         schoolPickupTime: parseTime(bookingDraft.schoolPickupTime),
 
         notes: bookingDraft.notes,
+        price: bookingDraft.estimatedPrice, // Pass the price to the new column
 
         startDate: bookingDraft.contractStartDate ?? DateTime.now(), // Fallback
         endDate: bookingDraft.contractEndDate ?? DateTime.now(),
@@ -316,10 +544,6 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             backgroundColor: Colors.green,
           ),
         );
-
-        // Navigate away or reset
-        ref.read(bookingFlowControllerProvider.notifier).reset();
-        Navigator.of(context).pop();
       }
     } catch (e) {
       if (context.mounted) {
@@ -331,6 +555,29 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
           ),
         );
       }
+    }
+  }
+
+  TimeOfDay? _parseTimeOfDay(String? timeStr) {
+    if (timeStr == null || timeStr.isEmpty) return null;
+    try {
+      final lower = timeStr.toLowerCase();
+      final isPm = lower.contains('pm');
+      final isAm = lower.contains('am');
+
+      String cleanTime = timeStr.replaceAll(RegExp(r'[a-zA-Z\s]'), '');
+      final parts = cleanTime.split(':');
+      if (parts.length < 2) return null;
+
+      int hour = int.parse(parts[0]);
+      int minute = int.parse(parts[1]);
+
+      if (isPm && hour < 12) hour += 12;
+      if (isAm && hour == 12) hour = 0;
+
+      return TimeOfDay(hour: hour, minute: minute);
+    } catch (e) {
+      return null;
     }
   }
 }

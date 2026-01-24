@@ -28,7 +28,7 @@ import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart';
 import 'package:gotosco_v3/features/parent/profile/presentation/edit_profile_screen.dart';
-import 'package:gotosco_v3/features/parent/transport_requests/presentation/transport_request_screen.dart';
+
 import 'package:gotosco_v3/features/parent/notifications/presentation/notifications_screen.dart';
 import 'package:gotosco_v3/features/parent/support/presentation/help_support_screen.dart';
 import 'package:gotosco_v3/features/parent/support/presentation/terms_conditions_screen.dart';
@@ -74,7 +74,8 @@ GoRouter router(Ref ref) {
       ),
       GoRoute(
         path: '/transport-request',
-        builder: (context, state) => const TransportRequestScreen(),
+        builder: (context, state) =>
+            const BookingFlowScreen(isPublicRequest: true),
       ),
       GoRoute(
         path: '/notifications',
