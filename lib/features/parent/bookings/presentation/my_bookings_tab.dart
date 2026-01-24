@@ -296,7 +296,15 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
         _buildSectionHeader('Pending Approval', Colors.orange, pending.length),
       );
       for (var booking in pending) {
-        items.add(_buildBookingCard(context, ref, booking, showCancel: true));
+        items.add(
+          _buildBookingCard(
+            context,
+            ref,
+            booking,
+            showCancel: true,
+            showEdit: true,
+          ),
+        );
       }
       items.add(const SizedBox(height: 16));
     }
@@ -383,6 +391,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
     bool showCancel = false,
     bool showDelete = false,
     bool showRebook = false,
+    bool showEdit = false,
   }) {
     final status = booking['status'] as String?;
     final driverName = booking['driver_name'] as String? ?? 'Driver';
@@ -550,7 +559,11 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
               ),
 
             // Actions
-            if (showTrack || showCancel || showDelete || showRebook) ...[
+            if (showTrack ||
+                showCancel ||
+                showDelete ||
+                showRebook ||
+                showEdit) ...[
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -570,7 +583,29 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
                         ),
                       ),
                     ),
-                  if (showTrack && showCancel) const SizedBox(width: 12),
+                  if (showTrack && (showCancel || showEdit))
+                    const SizedBox(width: 12),
+
+                  // Edit button for pending bookings
+                  if (showEdit)
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _editBooking(context, booking),
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Edit'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.indigo.shade50,
+                          foregroundColor: Colors.indigo,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (showEdit && showCancel) const SizedBox(width: 12),
+
                   if (showCancel)
                     Expanded(
                       child: OutlinedButton.icon(
@@ -782,6 +817,22 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
         const SnackBar(content: Text('Cannot rebook: Driver details missing')),
       );
     }
+  }
+
+  /// Navigate to booking flow screen in edit mode for a pending booking
+  void _editBooking(BuildContext context, Map<String, dynamic> booking) {
+    final bookingId = booking['id'] as String?;
+    if (bookingId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cannot edit: Booking ID missing')),
+      );
+      return;
+    }
+
+    context.push(
+      '/booking-flow',
+      extra: {'editBookingId': bookingId, 'editBookingData': booking},
+    );
   }
 
   void _showCancelDialog(

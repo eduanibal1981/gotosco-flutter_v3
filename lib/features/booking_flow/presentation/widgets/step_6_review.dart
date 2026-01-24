@@ -59,6 +59,11 @@ class Step6Review extends ConsumerWidget {
     dynamic bookingDraft,
     AsyncValue<List<dynamic>> childrenAsync,
   ) {
+    // Check if booking is for parent themselves
+    if (bookingDraft.isForParent) {
+      return 'Yourself';
+    }
+
     if (bookingDraft.studentIds.isNotEmpty && childrenAsync.hasValue) {
       final names = bookingDraft.studentIds.map((id) {
         final child = childrenAsync.value!.cast<ChildModel?>().firstWhere(

@@ -5,21 +5,15 @@ class TripCategories {
   static const List<TripCategoryModel> all = [
     TripCategoryModel(
       id: 'school',
-      label: 'School Transport',
+      label: 'School / College Transport',
       icon: '🏫',
-      description: 'Daily school pickup and dropoff',
+      description: 'Daily school or college pickup and dropoff',
     ),
     TripCategoryModel(
       id: 'Journey',
-      label: 'Journey Trip',
+      label: 'Journey / Other Trips',
       icon: '🚗',
-      description: 'Special trips and excursions',
-    ),
-    TripCategoryModel(
-      id: 'Other',
-      label: 'Other',
-      icon: '📍',
-      description: 'Custom destinations',
+      description: 'Special trips, excursions, and custom destinations',
     ),
   ];
 }

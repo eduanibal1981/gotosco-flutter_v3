@@ -35,7 +35,7 @@ final class TransportRequestControllerProvider
 }
 
 String _$transportRequestControllerHash() =>
-    r'8c24535478624eaf021c581e510babfe12c3f73d';
+    r'c86008b93e05002804b6082019ecca4ef415cf50';
 
 abstract class _$TransportRequestController extends $AsyncNotifier<void> {
   FutureOr<void> build();

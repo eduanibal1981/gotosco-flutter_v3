@@ -14,6 +14,7 @@ _BookingDraftModel _$BookingDraftModelFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           const [],
+      isForParent: json['isForParent'] as bool? ?? false,
       isMultiSchool: json['isMultiSchool'] as bool? ?? false,
       schoolLocations:
           (json['schoolLocations'] as List<dynamic>?)
@@ -66,6 +67,7 @@ Map<String, dynamic> _$BookingDraftModelToJson(_BookingDraftModel instance) =>
     <String, dynamic>{
       'studentId': instance.studentId,
       'studentIds': instance.studentIds,
+      'isForParent': instance.isForParent,
       'isMultiSchool': instance.isMultiSchool,
       'schoolLocations': instance.schoolLocations,
       'tripCategory': instance.tripCategory,

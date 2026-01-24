@@ -13,6 +13,8 @@ abstract class BookingDraftModel with _$BookingDraftModel {
     String? studentId,
     // Multiple students support
     @Default([]) List<String> studentIds,
+    // Parent booking for themselves
+    @Default(false) bool isForParent,
 
     // Multi-School Support
     @Default(false) bool isMultiSchool,

@@ -19,11 +19,17 @@ class BookingFlowScreen extends ConsumerStatefulWidget {
   final String? driverName;
   final bool isPublicRequest;
 
+  /// For editing an existing pending booking
+  final Map<String, dynamic>? editBookingData;
+  final String? editBookingId;
+
   const BookingFlowScreen({
     super.key,
     this.driverId,
     this.driverName,
     this.isPublicRequest = false,
+    this.editBookingData,
+    this.editBookingId,
   });
 
   @override
@@ -31,9 +37,25 @@ class BookingFlowScreen extends ConsumerStatefulWidget {
 }
 
 class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
+  bool get isEditMode =>
+      widget.editBookingId != null && widget.editBookingData != null;
+
   @override
   void initState() {
     super.initState();
+
+    // If editing an existing booking, load its data
+    if (isEditMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref
+            .read(bookingFlowControllerProvider.notifier)
+            .loadFromBooking(
+              widget.editBookingData!,
+              editBookingId: widget.editBookingId,
+            );
+      });
+      return; // Skip other initializations for edit mode
+    }
 
     // Initialize with driver info if provided
     if (widget.driverId != null) {
@@ -183,7 +205,11 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
                   if (currentStep < 6) {
                     controller.nextStep();
                   } else {
-                    _handleSubmit(context, ref);
+                    if (isEditMode) {
+                      _handleEditSubmit(context, ref);
+                    } else {
+                      _handleSubmit(context, ref);
+                    }
                   }
                 }
               : null,
@@ -201,7 +227,11 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             children: [
               Text(
                 currentStep == 6
-                    ? (ref.read(bookingFlowControllerProvider).isPublicRequest
+                    ? (isEditMode
+                          ? 'Save Changes'
+                          : ref
+                                .read(bookingFlowControllerProvider)
+                                .isPublicRequest
                           ? 'Post Request'
                           : 'Submit Booking')
                     : 'Continue',
@@ -578,6 +608,117 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
       return TimeOfDay(hour: hour, minute: minute);
     } catch (e) {
       return null;
+    }
+  }
+
+  /// Handle saving edits to an existing pending booking
+  Future<void> _handleEditSubmit(BuildContext context, WidgetRef ref) async {
+    final bookingDraft = ref.read(bookingFlowControllerProvider);
+    final repo = ref.read(bookingsRepositoryProvider);
+
+    if (widget.editBookingId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error: Booking ID missing')),
+      );
+      return;
+    }
+
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Prepare multi-school data
+      List<Map<String, dynamic>>? multiSchoolData;
+      if (bookingDraft.isMultiSchool) {
+        multiSchoolData = bookingDraft.schoolLocations.asMap().entries.map((
+          entry,
+        ) {
+          final index = entry.key;
+          final loc = entry.value;
+          return {
+            'school_id': loc.schoolId == 'pending_selection'
+                ? null
+                : loc.schoolId,
+            'school_lat': loc.latitude,
+            'school_lng': loc.longitude,
+            'student_ids': loc.studentIds,
+            'sequence_order': index + 1,
+          };
+        }).toList();
+      }
+
+      // Resolve School ID for Single School Booking
+      String? resolvedSchoolId;
+      if (!bookingDraft.isMultiSchool && bookingDraft.studentIds.isNotEmpty) {
+        final childrenAsync = ref.read(myChildrenProvider);
+        if (childrenAsync.hasValue) {
+          final allChildren = childrenAsync.value!.cast<ChildModel>();
+          final matchingChildren = allChildren.where(
+            (c) => bookingDraft.studentIds.contains(c.id),
+          );
+          if (matchingChildren.isNotEmpty) {
+            resolvedSchoolId = matchingChildren.first.schoolId;
+          }
+        }
+      }
+
+      await repo.updateBooking(
+        bookingId: widget.editBookingId!,
+        childIds: bookingDraft.studentIds,
+        bookingType: bookingDraft.bookingType ?? 'Two Way',
+
+        schoolId: bookingDraft.isMultiSchool ? null : resolvedSchoolId,
+        schoolName: bookingDraft.tripCategory == 'school' ? 'School' : null,
+
+        homeLocation: bookingDraft.pickupLocationText,
+        schoolLocation: bookingDraft.dropoffLocationText,
+        homeLat: bookingDraft.pickupLat,
+        homeLng: bookingDraft.pickupLng,
+        schoolLat: bookingDraft.dropoffLat,
+        schoolLng: bookingDraft.dropoffLng,
+
+        homePickupTime: _parseTimeOfDay(bookingDraft.homePickupTime),
+        schoolPickupTime: _parseTimeOfDay(bookingDraft.schoolPickupTime),
+
+        notes: bookingDraft.notes,
+        price: bookingDraft.estimatedPrice,
+
+        startDate: bookingDraft.contractStartDate ?? DateTime.now(),
+        endDate: bookingDraft.contractEndDate ?? DateTime.now(),
+        isRecurring: bookingDraft.isRecurring,
+        recurringDays: bookingDraft.recurringDays,
+        isMonthlySubscription: bookingDraft.isMonthlySubscription,
+        isForParent: bookingDraft.isForParent,
+        tripCategory: bookingDraft.tripCategory,
+
+        multiSchoolData: multiSchoolData,
+      );
+
+      if (context.mounted) {
+        Navigator.pop(context); // Hide loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Booking updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        ref.read(bookingFlowControllerProvider.notifier).resetBookingFlow();
+        Navigator.of(context).pop(); // Go back to bookings list
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context); // Hide loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update booking: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

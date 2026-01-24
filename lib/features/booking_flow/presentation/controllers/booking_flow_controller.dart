@@ -42,12 +42,23 @@ class BookingFlowController extends _$BookingFlowController {
       studentId: currentIds.isEmpty
           ? null
           : currentIds.first, // Keep first for backward compat
+      isForParent: false, // Deselect parent if selecting children
     );
   }
 
   // Clear all child selections
   void clearChildSelections() {
-    state = state.copyWith(studentId: null, studentIds: []);
+    state = state.copyWith(studentId: null, studentIds: [], isForParent: false);
+  }
+
+  // Step 1: Parent booking for themselves
+  void selectParentSelf() {
+    state = state.copyWith(isForParent: true, studentId: null, studentIds: []);
+  }
+
+  // Deselect parent self (when selecting children instead)
+  void deselectParentSelf() {
+    state = state.copyWith(isForParent: false);
   }
 
   // Step 2: Trip Category
@@ -185,8 +196,9 @@ class BookingFlowController extends _$BookingFlowController {
   bool canProceedFromStep(int step) {
     switch (step) {
       case 1:
-        // Support both single and multiple child selection
-        return (state.studentId != null && state.studentId!.isNotEmpty) ||
+        // Support child selection OR parent booking for themselves
+        return state.isForParent ||
+            (state.studentId != null && state.studentId!.isNotEmpty) ||
             (state.studentIds.isNotEmpty);
       case 2:
         return state.tripCategory.isNotEmpty;
@@ -457,8 +469,13 @@ class BookingFlowController extends _$BookingFlowController {
     }
   }
 
-  // Set default contract dates (August to May)
+  // Set default contract dates (August to May) - only if not already set
   void setDefaultContractDates() {
+    // Skip if dates are already set (e.g. from edit mode)
+    if (state.contractStartDate != null && state.contractEndDate != null) {
+      return;
+    }
+
     final now = DateTime.now();
     final currentYear = now.year;
 
@@ -482,5 +499,170 @@ class BookingFlowController extends _$BookingFlowController {
 
   void setEstimatedPrice(double price) {
     state = state.copyWith(estimatedPrice: price);
+  }
+
+  /// Reset the booking flow to initial state
+  void resetBookingFlow() {
+    state = const BookingDraftModel(
+      tripCategory: 'school',
+      bookingType: 'Two Way',
+    );
+  }
+
+  /// Load booking data from an existing booking for editing
+  /// This populates all draft fields from a booking Map retrieved from DB
+  void loadFromBooking(Map<String, dynamic> booking, {String? editBookingId}) {
+    print('🔄 Loading booking data for edit: ${booking.keys.toList()}');
+
+    // Parse child IDs from students_info
+    // The students_info comes from booking_children join with children(id, name)
+    List<String> childIds = [];
+    if (booking['students_info'] != null && booking['students_info'] is List) {
+      final studentsInfo = booking['students_info'] as List;
+      print('📋 Students info: $studentsInfo');
+
+      for (final child in studentsInfo) {
+        if (child is Map<String, dynamic>) {
+          // Try direct 'id' field first
+          if (child['id'] != null) {
+            childIds.add(child['id'] as String);
+          }
+        }
+      }
+    }
+
+    // If students_info didn't work, try child_ids array (if stored directly)
+    if (childIds.isEmpty && booking['child_ids'] != null) {
+      childIds = (booking['child_ids'] as List)
+          .map((id) => id.toString())
+          .toList();
+    }
+
+    print('👶 Extracted child IDs: $childIds');
+
+    // Parse pickup times
+    String? homePickupTime;
+    String? schoolPickupTime;
+    if (booking['home_pickup_time'] != null) {
+      homePickupTime = booking['home_pickup_time'] as String;
+    }
+    if (booking['school_pickup_time'] != null) {
+      schoolPickupTime = booking['school_pickup_time'] as String;
+    }
+    print('⏰ Pickup times - Home: $homePickupTime, School: $schoolPickupTime');
+
+    // Parse dates
+    DateTime? contractStartDate;
+    DateTime? contractEndDate;
+    if (booking['start_date'] != null) {
+      contractStartDate = DateTime.tryParse(booking['start_date'].toString());
+    }
+    if (booking['end_date'] != null) {
+      contractEndDate = DateTime.tryParse(booking['end_date'].toString());
+    } else if (booking['contract_end_date'] != null) {
+      contractEndDate = DateTime.tryParse(
+        booking['contract_end_date'].toString(),
+      );
+    }
+    print('📅 Dates - Start: $contractStartDate, End: $contractEndDate');
+
+    // Parse recurring days
+    List<String>? recurringDays;
+    if (booking['recurring_days'] != null &&
+        booking['recurring_days'] is List) {
+      recurringDays = (booking['recurring_days'] as List)
+          .map((e) => e.toString())
+          .toList();
+    }
+
+    // Determine trip category (defaults to 'school' if not set)
+    String tripCategory = (booking['trip_category'] as String?) ?? 'school';
+
+    // Get booking type
+    String? bookingType = booking['booking_type'] as String?;
+    print('🚗 Trip category: $tripCategory, Booking type: $bookingType');
+
+    // Parse locations - try multiple field names
+    String? pickupLocationText =
+        booking['home_location'] as String? ??
+        booking['hometxt_location'] as String?;
+    String? dropoffLocationText =
+        booking['school_location'] as String? ??
+        booking['schooltxt_location'] as String?;
+
+    // Parse geo coordinates
+    double? pickupLat = _parseDouble(booking['home_lat']);
+    double? pickupLng = _parseDouble(booking['home_lng']);
+    double? dropoffLat = _parseDouble(booking['school_lat']);
+    double? dropoffLng = _parseDouble(booking['school_lng']);
+
+    print(
+      '📍 Locations - Pickup: $pickupLocationText, Dropoff: $dropoffLocationText',
+    );
+    print(
+      '🗺️ Coords - Pickup: ($pickupLat, $pickupLng), Dropoff: ($dropoffLat, $dropoffLng)',
+    );
+
+    // Parse price
+    double? estimatedPrice =
+        _parseDouble(booking['price']) ??
+        _parseDouble(booking['proposal_price']);
+
+    state = BookingDraftModel(
+      // Step 1: Child Selection
+      studentIds: childIds,
+      studentId: childIds.isNotEmpty ? childIds.first : null,
+      isForParent: booking['is_for_parent'] == true,
+
+      // Step 2: Trip Category
+      tripCategory: tripCategory,
+
+      // Step 3: Direction
+      bookingType: bookingType,
+
+      // Step 4: Locations
+      pickupLocationText: pickupLocationText,
+      pickupLat: pickupLat,
+      pickupLng: pickupLng,
+      dropoffLocationText: dropoffLocationText,
+      dropoffLat: dropoffLat,
+      dropoffLng: dropoffLng,
+
+      // Multi-school
+      isMultiSchool: booking['is_multi_school'] == true,
+
+      // Step 5: Schedule
+      isOneTime: booking['is_one_time'] == true,
+      isRecurring: booking['is_recurring'] == true,
+      isMonthlySubscription: booking['is_monthly_subscription'] == true,
+      contractStartDate: contractStartDate,
+      contractEndDate: contractEndDate,
+      recurringDays: recurringDays,
+      homePickupTime: homePickupTime,
+      schoolPickupTime: schoolPickupTime,
+
+      // Step 6: Review
+      driverId: booking['driver_id'] as String?,
+      estimatedPrice: estimatedPrice,
+      notes: booking['notes'] as String?,
+
+      // Flow state - start at step 6 (review) so user sees summary
+      currentStep: 6,
+      flowStep: 'draft',
+      isPublicRequest: booking['driver_id'] == null,
+    );
+
+    print(
+      '✅ Booking draft loaded: studentIds=${state.studentIds}, tripCategory=${state.tripCategory}',
+    );
+  }
+
+  /// Helper to safely parse double from dynamic value
+  double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
   }
 }

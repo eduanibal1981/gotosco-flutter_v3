@@ -178,6 +178,104 @@ class BookingsRepository {
     await _supabase.from('bookings').update(fields).eq('id', bookingId);
   }
 
+  /// Update a pending booking with new data (for edit flow)
+  Future<void> updateBooking({
+    required String bookingId,
+    required List<String> childIds,
+    required String bookingType,
+    String? schoolId,
+    String? schoolName,
+    String? homeLocation,
+    String? schoolLocation,
+    double? homeLat,
+    double? homeLng,
+    double? schoolLat,
+    double? schoolLng,
+    TimeOfDay? homePickupTime,
+    TimeOfDay? schoolPickupTime,
+    String? notes,
+    double? price,
+    required DateTime startDate,
+    required DateTime endDate,
+    bool isRecurring = false,
+    List<String>? recurringDays,
+    bool isMonthlySubscription = false,
+    bool isForParent = false,
+    String? tripCategory,
+    List<Map<String, dynamic>>? multiSchoolData,
+  }) async {
+    String? formatTime(TimeOfDay? time) {
+      if (time == null) return null;
+      return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
+    }
+
+    // 1️⃣ Update booking
+    await _supabase
+        .from('bookings')
+        .update({
+          'booking_type': bookingType,
+          'school_id': schoolId,
+          'school_name': schoolName,
+          'is_multi_school':
+              multiSchoolData != null && multiSchoolData.isNotEmpty,
+          'is_for_parent': isForParent,
+          'trip_category': tripCategory,
+
+          'hometxt_location': homeLocation,
+          'schooltxt_location': schoolLocation,
+
+          if (homeLat != null && homeLng != null)
+            'homegeo_location': 'SRID=4326;POINT($homeLng $homeLat)',
+
+          if (schoolLat != null && schoolLng != null)
+            'schoolgeo_location': 'SRID=4326;POINT($schoolLng $schoolLat)',
+
+          'home_pickup_time': formatTime(homePickupTime),
+          'school_pickup_time': formatTime(schoolPickupTime),
+          'notes': notes,
+          'price': price,
+
+          'start_date': startDate.toIso8601String(),
+          'end_date': endDate.toIso8601String(),
+          'is_recurring': isRecurring,
+          'recurring_days': recurringDays,
+          'is_monthly_subscription': isMonthlySubscription,
+        })
+        .eq('id', bookingId);
+
+    // 2️⃣ Delete and re-insert children
+    await _supabase
+        .from('booking_children')
+        .delete()
+        .eq('booking_id', bookingId);
+    if (childIds.isNotEmpty) {
+      await _supabase
+          .from('booking_children')
+          .insert(
+            childIds
+                .map((id) => {'booking_id': bookingId, 'child_id': id})
+                .toList(),
+          );
+    }
+
+    // 3️⃣ Delete and re-insert multi-school locations
+    await _supabase
+        .from('booking_schools')
+        .delete()
+        .eq('booking_id', bookingId);
+    if (multiSchoolData != null && multiSchoolData.isNotEmpty) {
+      final schoolsToInsert = multiSchoolData.map((data) {
+        return {
+          'booking_id': bookingId,
+          'school_id': data['school_id'],
+          'sequence_order': data['sequence_order'],
+        };
+      }).toList();
+
+      await _supabase.from('booking_schools').insert(schoolsToInsert);
+    }
+  }
+
   /// Delete booking
   Future<void> deleteBooking(String bookingId) async {
     await _supabase.from('bookings').delete().eq('id', bookingId);

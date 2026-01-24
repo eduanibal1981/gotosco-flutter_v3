@@ -181,6 +181,9 @@ GoRouter router(Ref ref) {
           return BookingFlowScreen(
             driverId: args['driverId'],
             driverName: args['driverName'],
+            // Edit mode parameters
+            editBookingId: args['editBookingId'],
+            editBookingData: args['editBookingData'],
           );
         },
       ),

@@ -13,6 +13,18 @@ class Step1SelectChild extends ConsumerWidget {
     final childrenAsync = ref.watch(myChildrenProvider);
     final bookingDraft = ref.watch(bookingFlowControllerProvider);
     final selectedIds = bookingDraft.studentIds;
+    final isForParent = bookingDraft.isForParent;
+
+    // Build subtitle text
+    String subtitleText;
+    if (isForParent) {
+      subtitleText = 'Booking for yourself';
+    } else if (selectedIds.isEmpty) {
+      subtitleText = 'Choose yourself or children for this trip';
+    } else {
+      subtitleText =
+          '${selectedIds.length} child${selectedIds.length > 1 ? "ren" : ""} selected';
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -25,7 +37,7 @@ class Step1SelectChild extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Select Child(ren)',
+                    'Who is this trip for?',
                     style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Colors.grey.shade800,
@@ -33,14 +45,12 @@ class Step1SelectChild extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    selectedIds.isEmpty
-                        ? 'Choose one or more children for this trip'
-                        : '${selectedIds.length} child${selectedIds.length > 1 ? "ren" : ""} selected',
+                    subtitleText,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: selectedIds.isEmpty
+                      color: (selectedIds.isEmpty && !isForParent)
                           ? Colors.grey.shade600
                           : Colors.indigo.shade700,
-                      fontWeight: selectedIds.isEmpty
+                      fontWeight: (selectedIds.isEmpty && !isForParent)
                           ? FontWeight.normal
                           : FontWeight.w600,
                     ),
@@ -48,7 +58,7 @@ class Step1SelectChild extends ConsumerWidget {
                 ],
               ),
             ),
-            if (selectedIds.isNotEmpty)
+            if (selectedIds.isNotEmpty || isForParent)
               TextButton.icon(
                 onPressed: () {
                   ref
@@ -68,67 +78,37 @@ class Step1SelectChild extends ConsumerWidget {
         Expanded(
           child: childrenAsync.when(
             data: (children) {
-              if (children.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.child_care_outlined,
-                        size: 64,
-                        color: Colors.grey.shade400,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No children added yet',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Please add a child in your profile first',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return ListView.builder(
-                itemCount: children.length,
-                itemBuilder: (context, index) {
-                  final child = children[index];
-                  final isSelected = selectedIds.contains(child.id);
-
-                  return Padding(
+              // Build a list with "Myself" option first, then children
+              return ListView(
+                children: [
+                  // "Myself (Parent)" option card
+                  Padding(
                     padding: const EdgeInsets.only(bottom: 12.0),
                     child: InkWell(
-                      onTap: () async {
-                        // Toggle child selection
-                        ref
-                            .read(bookingFlowControllerProvider.notifier)
-                            .toggleChildSelection(child.id);
-
-                        // Auto-populate locations from user profile and school(s)
-                        await _autoPopulateLocationsForMultiple(ref, children);
+                      onTap: () {
+                        if (isForParent) {
+                          // Already selected, deselect
+                          ref
+                              .read(bookingFlowControllerProvider.notifier)
+                              .clearChildSelections();
+                        } else {
+                          // Select parent
+                          ref
+                              .read(bookingFlowControllerProvider.notifier)
+                              .selectParentSelf();
+                        }
                       },
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(
-                            color: isSelected
+                            color: isForParent
                                 ? Colors.indigo.shade500
                                 : Colors.grey.shade200,
                             width: 2,
                           ),
                           borderRadius: BorderRadius.circular(16),
-                          color: isSelected
+                          color: isForParent
                               ? Colors.indigo.shade50
                               : Colors.transparent,
                         ),
@@ -140,18 +120,18 @@ class Step1SelectChild extends ConsumerWidget {
                               width: 24,
                               height: 24,
                               decoration: BoxDecoration(
-                                color: isSelected
+                                color: isForParent
                                     ? Colors.indigo.shade600
                                     : Colors.transparent,
                                 border: Border.all(
-                                  color: isSelected
+                                  color: isForParent
                                       ? Colors.indigo.shade600
                                       : Colors.grey.shade400,
                                   width: 2,
                                 ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
-                              child: isSelected
+                              child: isForParent
                                   ? const Icon(
                                       Icons.check,
                                       color: Colors.white,
@@ -161,7 +141,7 @@ class Step1SelectChild extends ConsumerWidget {
                             ),
                             const SizedBox(width: 12),
 
-                            // Child Avatar
+                            // Parent Avatar
                             Container(
                               width: 56,
                               height: 56,
@@ -171,34 +151,29 @@ class Step1SelectChild extends ConsumerWidget {
                                   begin: Alignment.topLeft,
                                   end: Alignment.bottomRight,
                                   colors: [
-                                    Colors.indigo.shade400,
-                                    Colors.purple.shade500,
+                                    Colors.teal.shade400,
+                                    Colors.cyan.shade500,
                                   ],
                                 ),
                               ),
-                              child: Center(
-                                child: Text(
-                                  child.name.isNotEmpty
-                                      ? child.name[0].toUpperCase()
-                                      : '?',
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                              child: const Center(
+                                child: Icon(
+                                  Icons.person,
+                                  color: Colors.white,
+                                  size: 28,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 16),
 
-                            // Child Info
+                            // Parent Info
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    child.name,
-                                    style: const TextStyle(
+                                  const Text(
+                                    'Myself',
+                                    style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.black87,
@@ -206,36 +181,12 @@ class Step1SelectChild extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${_calculateAge(child.dob)} years • Grade ${child.grade}',
+                                    'Book transport for yourself',
                                     style: TextStyle(
                                       fontSize: 14,
                                       color: Colors.grey.shade600,
                                     ),
                                   ),
-                                  if (child.schoolName.isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.school_outlined,
-                                          size: 16,
-                                          color: Colors.grey.shade500,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Expanded(
-                                          child: Text(
-                                            child.schoolName,
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey.shade600,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
                                 ],
                               ),
                             ),
@@ -243,8 +194,177 @@ class Step1SelectChild extends ConsumerWidget {
                         ),
                       ),
                     ),
-                  );
-                },
+                  ),
+
+                  // Divider with "or" label
+                  if (children.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8.0),
+                      child: Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.grey.shade300)),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Text(
+                              'or select children',
+                              style: TextStyle(
+                                color: Colors.grey.shade500,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: Colors.grey.shade300)),
+                        ],
+                      ),
+                    ),
+
+                  // Children list
+                  ...children.map((child) {
+                    final isSelected = selectedIds.contains(child.id);
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: InkWell(
+                        onTap: () async {
+                          // Toggle child selection
+                          ref
+                              .read(bookingFlowControllerProvider.notifier)
+                              .toggleChildSelection(child.id);
+
+                          // Auto-populate locations from user profile and school(s)
+                          await _autoPopulateLocationsForMultiple(
+                            ref,
+                            children,
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: isSelected
+                                  ? Colors.indigo.shade500
+                                  : Colors.grey.shade200,
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            color: isSelected
+                                ? Colors.indigo.shade50
+                                : Colors.transparent,
+                          ),
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            children: [
+                              // Checkbox
+                              Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.indigo.shade600
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.indigo.shade600
+                                        : Colors.grey.shade400,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: isSelected
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 16,
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 12),
+
+                              // Child Avatar
+                              Container(
+                                width: 56,
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      Colors.indigo.shade400,
+                                      Colors.purple.shade500,
+                                    ],
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    child.name.isNotEmpty
+                                        ? child.name[0].toUpperCase()
+                                        : '?',
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+
+                              // Child Info
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      child.name,
+                                      style: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${_calculateAge(child.dob)} years • Grade ${child.grade}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    if (child.schoolName.isNotEmpty) ...[
+                                      const SizedBox(height: 4),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.school_outlined,
+                                            size: 16,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Expanded(
+                                            child: Text(
+                                              child.schoolName,
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
