@@ -313,7 +313,7 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
 
         // Pickup Time
         const Text(
-          'Pickup Time',
+          'Go Pickup Time (Morning)',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -333,13 +333,54 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
             ),
             child: Row(
               children: [
-                Icon(Icons.access_time, color: Colors.indigo.shade600),
+                Icon(Icons.wb_sunny_outlined, color: Colors.orange.shade600),
                 const SizedBox(width: 12),
                 Text(
-                  bookingDraft.homePickupTime ?? 'Select time',
+                  bookingDraft.homePickupTime ?? 'Select morning pickup time',
                   style: TextStyle(
                     fontSize: 15,
                     color: bookingDraft.homePickupTime != null
+                        ? Colors.black87
+                        : Colors.grey.shade500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 12),
+
+        // Return Pickup Time
+        const Text(
+          'Return Pickup Time (Afternoon)',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 8),
+        InkWell(
+          onTap: () => _pickTime(isPickup: false),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.nights_stay_outlined, color: Colors.indigo.shade600),
+                const SizedBox(width: 12),
+                Text(
+                  bookingDraft.schoolPickupTime ??
+                      'Select afternoon pickup time',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: bookingDraft.schoolPickupTime != null
                         ? Colors.black87
                         : Colors.grey.shade500,
                   ),
@@ -572,7 +613,10 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
             .read(bookingFlowControllerProvider.notifier)
             .setRecurringSchedule(
               recurringDays: bookingDraft.recurringDays ?? [],
-              pickupTime: timeString,
+              pickupTime: isPickup ? timeString : bookingDraft.homePickupTime,
+              dropoffTime: !isPickup
+                  ? timeString
+                  : bookingDraft.schoolPickupTime,
             );
       } else if (bookingDraft.isMonthlySubscription) {
         if (bookingDraft.contractStartDate != null &&
@@ -583,12 +627,10 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
               .setMonthlySubscription(
                 contractStartDate: bookingDraft.contractStartDate!,
                 contractEndDate: bookingDraft.contractEndDate!,
-                pickupTime: isPickup
-                    ? timeString
-                    : (bookingDraft.homePickupTime ?? ''),
+                pickupTime: isPickup ? timeString : bookingDraft.homePickupTime,
                 dropoffTime: !isPickup
                     ? timeString
-                    : (bookingDraft.schoolPickupTime ?? ''),
+                    : bookingDraft.schoolPickupTime,
               );
         }
       }
@@ -621,7 +663,8 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
             .setMonthlySubscription(
               contractStartDate: pickedDate,
               contractEndDate: endDate,
-              pickupTime: bookingDraft.homePickupTime ?? '',
+              pickupTime: bookingDraft.homePickupTime,
+              dropoffTime: bookingDraft.schoolPickupTime,
             );
       } else {
         // Set end date
@@ -631,7 +674,8 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
               .setMonthlySubscription(
                 contractStartDate: bookingDraft.contractStartDate!,
                 contractEndDate: pickedDate,
-                pickupTime: bookingDraft.homePickupTime ?? '',
+                pickupTime: bookingDraft.homePickupTime,
+                dropoffTime: bookingDraft.schoolPickupTime,
               );
         }
       }
@@ -652,7 +696,8 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
         .read(bookingFlowControllerProvider.notifier)
         .setRecurringSchedule(
           recurringDays: currentDays,
-          pickupTime: bookingDraft.homePickupTime ?? '',
+          pickupTime: bookingDraft.homePickupTime,
+          dropoffTime: bookingDraft.schoolPickupTime,
         );
   }
 }

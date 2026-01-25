@@ -139,7 +139,7 @@ class BookingFlowController extends _$BookingFlowController {
 
   void setRecurringSchedule({
     required List<String> recurringDays,
-    required String pickupTime,
+    String? pickupTime,
     String? dropoffTime,
   }) {
     state = state.copyWith(
@@ -152,7 +152,7 @@ class BookingFlowController extends _$BookingFlowController {
   void setMonthlySubscription({
     required DateTime contractStartDate,
     required DateTime contractEndDate,
-    required String pickupTime,
+    String? pickupTime,
     String? dropoffTime,
   }) {
     state = state.copyWith(
@@ -544,10 +544,12 @@ class BookingFlowController extends _$BookingFlowController {
     String? homePickupTime;
     String? schoolPickupTime;
     if (booking['home_pickup_time'] != null) {
-      homePickupTime = booking['home_pickup_time'] as String;
+      final t = booking['home_pickup_time'].toString();
+      if (t.isNotEmpty) homePickupTime = t;
     }
     if (booking['school_pickup_time'] != null) {
-      schoolPickupTime = booking['school_pickup_time'] as String;
+      final t = booking['school_pickup_time'].toString();
+      if (t.isNotEmpty) schoolPickupTime = t;
     }
     print('⏰ Pickup times - Home: $homePickupTime, School: $schoolPickupTime');
 
@@ -655,6 +657,11 @@ class BookingFlowController extends _$BookingFlowController {
     print(
       '✅ Booking draft loaded: studentIds=${state.studentIds}, tripCategory=${state.tripCategory}',
     );
+
+    // Auto-populate school locations if it's a school trip
+    if (state.tripCategory == 'school') {
+      buildSchoolLocationsFromChildren();
+    }
   }
 
   /// Helper to safely parse double from dynamic value

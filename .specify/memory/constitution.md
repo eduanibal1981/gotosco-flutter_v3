@@ -62,6 +62,14 @@ The project follows a **strict feature-first organization** where each business 
 - **DO NOT** rely on static SQL files (like `full_schema.sql`) for current schema state, as they may be outdated. Use `list_tables` or `execute_sql` (for inspection) to get the live source of truth.
 - **ALWAYS** verify migration success using MCP tools after applying changes.
 
+## 🧠 Project Knowledge Base
+You are connected to the "gotosco_v3" Project via NotebookLM MCP.
+URL: https://notebooklm.google.com/notebook/9a5e5cde-2a69-4726-ae2d-5ec276e9a0bf
+
+## 🛡️ Critical Rules
+1. **Always Verify First:** Before generating code, you MUST query the NotebookLM to check existing models and SQL schema.
+2. **Context First:** Do not assume standard implementations; check specific project constraints (e.g., Supabase RLS, Riverpod providers) from the notebook.
+
 #### Root Structure
 ```lib/
 ├── main.dart

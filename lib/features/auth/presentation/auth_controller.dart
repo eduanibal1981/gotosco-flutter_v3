@@ -5,6 +5,7 @@ import '../data/auth_repository.dart';
 
 part 'auth_controller.g.dart';
 
+// SECRET_KEY_TEST_123: Hello from AntiGravity!
 /// State representing the result of an auth operation
 class AuthResult {
   final bool success;
