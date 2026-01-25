@@ -57,6 +57,11 @@ go_router: ^14.x
 
 The project follows a **strict feature-first organization** where each business domain is isolated into its own feature module.
 
+### Database Interactions & MCP Usage
+- **ALWAYS** prefer using Supabase MCP tools (`supabase-mcp-server`) to inspect the database schema, table structures, and policies.
+- **DO NOT** rely on static SQL files (like `full_schema.sql`) for current schema state, as they may be outdated. Use `list_tables` or `execute_sql` (for inspection) to get the live source of truth.
+- **ALWAYS** verify migration success using MCP tools after applying changes.
+
 #### Root Structure
 ```lib/
 ├── main.dart
