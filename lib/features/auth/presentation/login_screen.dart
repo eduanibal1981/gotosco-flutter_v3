@@ -18,6 +18,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   // State to toggle password visibility
   bool _isPasswordVisible = false;
 
+  final _formKey = GlobalKey<FormState>();
+
   // Controllers (Mocking them for UI purposes)
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -80,29 +82,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   // ============== EMAIL/PASSWORD HANDLER ==============
   Future<void> _handleEmailAuth() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final name = _nameController.text.trim();
-
-    if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter email and password'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    if (!_isLogin && name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter your full name'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
 
     // Dismiss keyboard
     FocusScope.of(context).unfocus();
@@ -220,37 +204,71 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           // Fields
                           AutofillGroup(
-                            child: Column(
-                              children: [
-                                if (!_isLogin) ...[
+                            child: Form(
+                              key: _formKey,
+                              child: Column(
+                                children: [
+                                  if (!_isLogin) ...[
+                                    _buildTextField(
+                                      controller: _nameController,
+                                      label: 'Full Name',
+                                      icon: Icons.person_outline,
+                                      autofillHints: const [AutofillHints.name],
+                                      textInputAction: TextInputAction.next,
+                                      validator: (value) {
+                                        if (value == null ||
+                                            value.trim().isEmpty) {
+                                          return 'Please enter your full name';
+                                        }
+                                        return null;
+                                      },
+                                    ),
+                                    const SizedBox(height: 16),
+                                  ],
                                   _buildTextField(
-                                    controller: _nameController,
-                                    label: 'Full Name',
-                                    icon: Icons.person_outline,
-                                    autofillHints: const [AutofillHints.name],
+                                    controller: _emailController,
+                                    label: 'Email Address',
+                                    icon: Icons.email_outlined,
+                                    keyboardType: TextInputType.emailAddress,
+                                    autofillHints: const [AutofillHints.email],
                                     textInputAction: TextInputAction.next,
+                                    validator: (value) {
+                                      if (value == null ||
+                                          value.trim().isEmpty) {
+                                        return 'Email is required';
+                                      }
+                                      final emailRegex = RegExp(
+                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                      );
+                                      if (!emailRegex.hasMatch(value)) {
+                                        return 'Please enter a valid email';
+                                      }
+                                      return null;
+                                    },
                                   ),
                                   const SizedBox(height: 16),
+                                  _buildTextField(
+                                    controller: _passwordController,
+                                    label: 'Password',
+                                    icon: Icons.lock_outline,
+                                    isPassword: true,
+                                    autofillHints: const [
+                                      AutofillHints.password,
+                                    ],
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) => _handleEmailAuth(),
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Password is required';
+                                      }
+                                      if (value.length < 6) {
+                                        return 'Password must be at least 6 characters';
+                                      }
+                                      return null;
+                                    },
+                                  ),
                                 ],
-                                _buildTextField(
-                                  controller: _emailController,
-                                  label: 'Email Address',
-                                  icon: Icons.email_outlined,
-                                  keyboardType: TextInputType.emailAddress,
-                                  autofillHints: const [AutofillHints.email],
-                                  textInputAction: TextInputAction.next,
-                                ),
-                                const SizedBox(height: 16),
-                                _buildTextField(
-                                  controller: _passwordController,
-                                  label: 'Password',
-                                  icon: Icons.lock_outline,
-                                  isPassword: true,
-                                  autofillHints: const [AutofillHints.password],
-                                  textInputAction: TextInputAction.done,
-                                  onSubmitted: (_) => _handleEmailAuth(),
-                                ),
-                              ],
+                              ),
                             ),
                           ),
 
@@ -455,9 +473,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     Iterable<String>? autofillHints,
     TextInputAction? textInputAction,
     ValueChanged<String>? onSubmitted,
+    String? Function(String?)? validator,
   }) {
     return TextFormField(
       controller: controller,
+      validator: validator,
       obscureText: isPassword && !_isPasswordVisible,
       keyboardType: keyboardType,
       autofillHints: autofillHints,
