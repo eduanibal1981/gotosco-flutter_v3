@@ -93,8 +93,17 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen> {
 
   Widget _buildQuickStats(List<BookingModel> bookings) {
     // Determine counts based on status
-    final active = bookings.where((b) => b.status == 'accepted').length;
-    final requests = bookings.where((b) => b.status == 'pending').length;
+    final active = bookings
+        .where(
+          (b) =>
+              (b.status == 'confirmed' || b.status == 'accepted') &&
+              (b.subscriptionStatus == 'active' ||
+                  b.subscriptionStatus == null),
+        )
+        .length;
+    final requests = bookings
+        .where((b) => b.status == 'pending' || b.status == 'posted')
+        .length;
 
     return Row(
       children: [
@@ -288,13 +297,24 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen> {
     List<BookingModel> bookings,
   ) {
     // Group by status
-    final requests = bookings.where((b) => b.status == 'pending').toList();
-    final active = bookings.where((b) => b.status == 'accepted').toList();
-    // History includes rejected, completed, cancelled
+    final requests = bookings
+        .where((b) => b.status == 'pending' || b.status == 'posted')
+        .toList();
+    final active = bookings
+        .where(
+          (b) =>
+              (b.status == 'confirmed' || b.status == 'accepted') &&
+              (b.subscriptionStatus == 'active' ||
+                  b.subscriptionStatus == null),
+        )
+        .toList();
+    // History includes rejected, completed, cancelled, or expired subscriptions
     final history = bookings.where((b) {
-      return b.status == 'rejected' ||
+      return b.status == 'cancelled' ||
+          b.status == 'rejected' ||
           b.status == 'completed' ||
-          b.status == 'cancelled';
+          b.subscriptionStatus == 'expired' ||
+          b.subscriptionStatus == 'cancelled';
     }).toList();
 
     final List<Widget> items = [];

@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'driver_availability_controller.dart';
+import '../../profile/data/driver_profile_repository.dart';
 
 /// Bottom sheet for controlling driver availability settings
 class AvailabilityControlSheet extends ConsumerWidget {
@@ -42,6 +43,13 @@ class AvailabilityControlSheet extends ConsumerWidget {
   Widget _buildContent(BuildContext context, WidgetRef ref, dynamic settings) {
     final controller = ref.read(driverAvailabilityControllerProvider.notifier);
 
+    // Check for schedules to determine if Smart Mode should be enabled
+    final schedulesAsync = ref.watch(driverSchedulesProvider);
+    final hasSchedules = schedulesAsync.maybeWhen(
+      data: (s) => s.isNotEmpty,
+      orElse: () => false,
+    );
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -67,14 +75,14 @@ class AvailabilityControlSheet extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: settings.isOnline
+                  color: settings.isProfileOnline
                       ? Colors.green.shade100
                       : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  settings.isOnline ? Icons.wifi : Icons.wifi_off,
-                  color: settings.isOnline
+                  settings.isProfileOnline ? Icons.wifi : Icons.wifi_off,
+                  color: settings.isProfileOnline
                       ? Colors.green.shade700
                       : Colors.grey.shade600,
                 ),
@@ -112,7 +120,7 @@ class AvailabilityControlSheet extends ConsumerWidget {
           const SizedBox(height: 24),
 
           // Mode Selector
-          _buildModeSelector(context, ref, controller, settings),
+          _buildModeSelector(context, ref, controller, settings, hasSchedules),
 
           const SizedBox(height: 24),
 
@@ -137,67 +145,140 @@ class AvailabilityControlSheet extends ConsumerWidget {
     DriverAvailabilityController controller,
     dynamic settings,
   ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: settings.isOnline
-              ? [Colors.green.shade500, Colors.green.shade600]
-              : [Colors.grey.shade400, Colors.grey.shade500],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return Column(
+      children: [
+        // 1. Profile Visibility
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: settings.isProfileOnline
+                  ? [Colors.green.shade500, Colors.green.shade600]
+                  : [Colors.grey.shade400, Colors.grey.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: (settings.isProfileOnline ? Colors.green : Colors.grey)
+                    .withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      settings.isProfileOnline
+                          ? 'Profile is Visible'
+                          : 'Profile is Hidden',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      settings.isProfileOnline
+                          ? 'Parents can see you in search'
+                          : 'You are hidden from search',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Transform.scale(
+                scale: 1.2,
+                child: Switch(
+                  value: settings.isProfileOnline,
+                  onChanged: (_) => controller.toggleProfileVisibility(),
+                  activeColor: Colors.white,
+                  activeTrackColor: Colors.white.withOpacity(0.4),
+                  inactiveThumbColor: Colors.white,
+                  inactiveTrackColor: Colors.white.withOpacity(0.3),
+                ),
+              ),
+            ],
+          ),
         ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: (settings.isOnline ? Colors.green : Colors.grey).withValues(
-              alpha: 0.3,
+
+        const SizedBox(height: 12),
+
+        // 2. Live Tracking
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: settings.isTrackingActive
+                  ? [Colors.blue.shade500, Colors.blue.shade600]
+                  : [Colors.grey.shade400, Colors.grey.shade500],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: (settings.isTrackingActive ? Colors.blue : Colors.grey)
+                    .withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  settings.isOnline ? 'You are Online' : 'You are Offline',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      settings.isTrackingActive
+                          ? 'Tracking Active'
+                          : 'Tracking Disabled',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      settings.isTrackingActive
+                          ? 'Broadcasting live location'
+                          : 'Location sharing is off',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  settings.isOnline
-                      ? 'Parents can see you in search'
-                      : 'You are hidden from search',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: 13,
-                  ),
+              ),
+              Transform.scale(
+                scale: 1.2,
+                child: Switch(
+                  value: settings.isTrackingActive,
+                  onChanged: (_) => controller.toggleTracking(),
+                  activeColor: Colors.white,
+                  activeTrackColor: Colors.white.withOpacity(0.4),
+                  inactiveThumbColor: Colors.white,
+                  inactiveTrackColor: Colors.white.withOpacity(0.3),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-          Transform.scale(
-            scale: 1.2,
-            child: Switch(
-              value: settings.isOnline,
-              onChanged: (_) => controller.toggleOnline(),
-              activeColor: Colors.white,
-              activeTrackColor: Colors.white.withValues(alpha: 0.4),
-              inactiveThumbColor: Colors.white,
-              inactiveTrackColor: Colors.white.withValues(alpha: 0.3),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -206,6 +287,7 @@ class AvailabilityControlSheet extends ConsumerWidget {
     WidgetRef ref,
     DriverAvailabilityController controller,
     dynamic settings,
+    bool hasSchedules,
   ) {
     return Container(
       decoration: BoxDecoration(
@@ -219,7 +301,21 @@ class AvailabilityControlSheet extends ConsumerWidget {
               'Smart',
               Icons.auto_awesome,
               settings.isSmartMode,
-              () => controller.setMode('smart'),
+              () {
+                if (!hasSchedules) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Smart Mode requires a schedule. Please add one in Profile.',
+                      ),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                  return;
+                }
+                controller.setMode('smart');
+              },
+              enabled: hasSchedules,
             ),
           ),
           Expanded(
@@ -239,14 +335,17 @@ class AvailabilityControlSheet extends ConsumerWidget {
     String label,
     IconData icon,
     bool isSelected,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    bool enabled = true,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.teal.shade500 : Colors.transparent,
+          color: isSelected
+              ? Colors.teal.shade500
+              : (enabled ? Colors.transparent : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
@@ -255,14 +354,18 @@ class AvailabilityControlSheet extends ConsumerWidget {
             Icon(
               icon,
               size: 18,
-              color: isSelected ? Colors.white : Colors.grey.shade600,
+              color: isSelected
+                  ? Colors.white
+                  : (enabled ? Colors.grey.shade600 : Colors.grey.shade400),
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: isSelected ? Colors.white : Colors.grey.shade600,
+                color: isSelected
+                    ? Colors.white
+                    : (enabled ? Colors.grey.shade600 : Colors.grey.shade400),
               ),
             ),
           ],

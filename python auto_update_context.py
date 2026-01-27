@@ -9,7 +9,7 @@ from googleapiclient.discovery import build
 # 1. إعدادات المستندات (يجب تعديلها)
 # ==========================================
 DOCS_MAP = {
-    "DB":    "YOUR_DATABASE_DOC_ID_HERE",  # ضع ID مستند قاعدة البيانات هنا
+    "DB":    "1NHImIKLMSqeyEDmpV1dZsyvhetg7NH5vh2kP0TBKMBE",  # ضع ID مستند قاعدة البيانات هنا
     "LOGIC": "1fhFjNQoH2DT7ylyocJI_q9UvHkvMM_eWSU6ALsnMKT0",     # ضع ID مستند المنطق هنا
     "UI":    "1fBoTUXEq30TBGusdRTm-9hqQPbKHoWgrXsDiFO7It1M"         # ضع ID مستند الواجهة هنا
 }
@@ -113,7 +113,7 @@ def authenticate():
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
     return creds
-    
+
 def update_google_doc(service, doc_id, new_content):
     # تحقق من أن الـ ID صحيح وليس Placeholder
     if not doc_id or "YOUR_" in doc_id:

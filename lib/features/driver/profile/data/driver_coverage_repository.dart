@@ -33,6 +33,16 @@ Future<List<SchoolModel>> coverageSchools(
 }
 
 @riverpod
+Future<List<AreaModel>> coverageAllAreas(Ref ref) async {
+  return ref.read(driverCoverageRepositoryProvider).getAllAreas();
+}
+
+@riverpod
+Future<List<SchoolModel>> coverageAllSchools(Ref ref) async {
+  return ref.read(driverCoverageRepositoryProvider).getAllSchools();
+}
+
+@riverpod
 Future<Set<String>> driverCoverageAreaIds(Ref ref) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
   if (userId == null) return {};
@@ -59,17 +69,53 @@ class DriverCoverageController extends _$DriverCoverageController {
     if (userId == null) return;
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref.read(driverCoverageRepositoryProvider).setDriverCoverage(
+      await ref
+          .read(driverCoverageRepositoryProvider)
+          .setDriverCoverage(
             driverId: userId,
             areaIds: areaIds,
             schoolIds: schoolIds,
           );
+      _invalidateProviders();
+    });
+  }
+
+  Future<void> saveAreas(Set<String> areaIds) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(driverCoverageRepositoryProvider)
+          .saveAreaCoverage(driverId: userId, areaIds: areaIds);
       ref.invalidate(driverCoverageAreaIdsProvider);
+      ref.invalidate(currentDriverProfileProvider);
+      ref.invalidate(driverProfileProvider);
+      ref.invalidate(driverDashboardStateProvider);
+    });
+  }
+
+  Future<void> saveSchools(Set<String> schoolIds) async {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(driverCoverageRepositoryProvider)
+          .saveSchoolCoverage(driverId: userId, schoolIds: schoolIds);
       ref.invalidate(driverCoverageSchoolIdsProvider);
       ref.invalidate(currentDriverProfileProvider);
       ref.invalidate(driverProfileProvider);
       ref.invalidate(driverDashboardStateProvider);
     });
+  }
+
+  void _invalidateProviders() {
+    ref.invalidate(driverCoverageAreaIdsProvider);
+    ref.invalidate(driverCoverageSchoolIdsProvider);
+    ref.invalidate(currentDriverProfileProvider);
+    ref.invalidate(driverProfileProvider);
+    ref.invalidate(driverDashboardStateProvider);
   }
 }
 
@@ -190,11 +236,7 @@ class DriverCoverageRepository {
   }) async {
     final response = await _supabase
         .from('schools')
-        .insert({
-          'city_id': cityId,
-          'name': name,
-          'address': address,
-        })
+        .insert({'city_id': cityId, 'name': name, 'address': address})
         .select('id, name, address, city_id, latitude, longitude')
         .single();
 
@@ -206,5 +248,74 @@ class DriverCoverageRepository {
       'latitude': response['latitude'],
       'longitude': response['longitude'],
     });
+  }
+
+  Future<List<AreaModel>> getAllAreas() async {
+    final response = await _supabase
+        .from('areas')
+        .select('id, name, city_id')
+        .order('name');
+    return (response as List)
+        .map(
+          (row) => AreaModel.fromJson({
+            'id': row['id'],
+            'name': row['name'],
+            'cityId': row['city_id'],
+          }),
+        )
+        .toList();
+  }
+
+  Future<List<SchoolModel>> getAllSchools() async {
+    final response = await _supabase
+        .from('schools')
+        .select('id, name, address, city_id, latitude, longitude')
+        .order('name');
+    return (response as List)
+        .map(
+          (row) => SchoolModel.fromJson({
+            'id': row['id'],
+            'name': row['name'],
+            'address': row['address'],
+            'cityId': row['city_id'],
+            'latitude': row['latitude'],
+            'longitude': row['longitude'],
+          }),
+        )
+        .toList();
+  }
+
+  Future<void> saveAreaCoverage({
+    required String driverId,
+    required Set<String> areaIds,
+  }) async {
+    await _supabase
+        .from('driver_service_areas')
+        .delete()
+        .eq('driver_id', driverId);
+
+    if (areaIds.isNotEmpty) {
+      final rows = areaIds
+          .map((areaId) => {'driver_id': driverId, 'area_id': areaId})
+          .toList();
+      await _supabase.from('driver_service_areas').insert(rows);
+    }
+  }
+
+  Future<void> saveSchoolCoverage({
+    required String driverId,
+    required Set<String> schoolIds,
+  }) async {
+    await _supabase
+        .from('driver_covered_schools')
+        .delete()
+        .eq('driver_id', driverId);
+
+    if (schoolIds.isNotEmpty) {
+      final rows = schoolIds
+          .map((schoolId) => {'driver_id': driverId, 'school_id': schoolId})
+          .toList();
+      await _supabase.from('driver_covered_schools').insert(rows);
+    }
   }
 }

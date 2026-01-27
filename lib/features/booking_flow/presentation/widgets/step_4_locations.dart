@@ -11,15 +11,98 @@ import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/widgets/map_picker_screen.dart';
 import '../controllers/booking_flow_controller.dart';
+import '../../../auth/presentation/user_provider.dart';
 
 /// Step 4: Set pickup and dropoff locations
-class Step4Locations extends ConsumerWidget {
+class Step4Locations extends ConsumerStatefulWidget {
   const Step4Locations({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<Step4Locations> createState() => _Step4LocationsState();
+}
+
+class _Step4LocationsState extends ConsumerState<Step4Locations> {
+  bool _hasAttemptedAutoFill = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Attempt auto-fill on init, deferring to next frame to ensure providers are ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _attemptAutoFill();
+    });
+  }
+
+  void _attemptAutoFill() {
+    if (_hasAttemptedAutoFill) return;
+
+    final userState = ref.read(currentUserProfileProvider);
+    final controller = ref.read(bookingFlowControllerProvider.notifier);
+    final draft = ref.read(bookingFlowControllerProvider);
+
+    userState.whenData((user) {
+      if (user == null) return;
+
+      final homeText = user.locationText;
+      final homeLat = user.locationLat;
+      final homeLng = user.locationLng;
+
+      if (homeText != null &&
+          homeText.isNotEmpty &&
+          homeLat != null &&
+          homeLng != null) {
+        bool updated = false;
+
+        // Logic: Home is Pickup for (Two Way / One Way to School)
+        if (draft.bookingType == 'Two Way' ||
+            draft.bookingType == 'One Way to School') {
+          if (draft.pickupLocationText == null ||
+              draft.pickupLocationText!.isEmpty) {
+            controller.setPickupLocation(
+              locationText: homeText,
+              lat: homeLat,
+              lng: homeLng,
+            );
+            updated = true;
+          }
+        }
+        // Logic: Home is Dropoff for (One Way Back Home)
+        else if (draft.bookingType == 'One Way Back Home') {
+          if (draft.dropoffLocationText == null ||
+              draft.dropoffLocationText!.isEmpty) {
+            controller.setDropoffLocation(
+              locationText: homeText,
+              lat: homeLat,
+              lng: homeLng,
+            );
+            updated = true;
+          }
+        }
+
+        if (updated) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Home location auto-filled from profile'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+      _hasAttemptedAutoFill = true;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final bookingDraft = ref.watch(bookingFlowControllerProvider);
     final bookingType = bookingDraft.bookingType ?? '';
+
+    // Listen to user profile changes if it wasn't ready at init
+    ref.listen(currentUserProfileProvider, (previous, next) {
+      if (!_hasAttemptedAutoFill && next.hasValue && next.value != null) {
+        _attemptAutoFill();
+      }
+    });
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

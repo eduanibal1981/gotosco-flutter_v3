@@ -39,7 +39,7 @@ final class DriverAvailabilityControllerProvider
 }
 
 String _$driverAvailabilityControllerHash() =>
-    r'a17eecc271dd97066387a896b4fd503890259238';
+    r'9cf02a672b3867b6756498a5197b20ab83645bbb';
 
 abstract class _$DriverAvailabilityController
     extends $AsyncNotifier<DriverAvailabilitySettings> {

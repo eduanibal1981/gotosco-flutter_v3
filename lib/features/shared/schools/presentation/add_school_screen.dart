@@ -116,6 +116,12 @@ class _AddSchoolScreenState extends ConsumerState<AddSchoolScreen> {
           );
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('School added successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
         context.pop(school);
       }
     } catch (e) {

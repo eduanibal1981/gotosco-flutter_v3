@@ -32,7 +32,16 @@ class ProfileTab extends ConsumerWidget {
           );
 
           final activeBookings = bookingsAsync.when(
-            data: (b) => b.where((x) => x['status'] == 'accepted').length,
+            data: (b) => b
+                .where(
+                  (x) =>
+                      (x['status'] == 'accepted' ||
+                          x['status'] == 'confirmed' ||
+                          x['status'] == 'in_progress') &&
+                      (x['subscription_status'] == 'active' ||
+                          x['subscription_status'] == null),
+                )
+                .length,
             loading: () => 0,
             error: (_, __) => 0,
           );
@@ -216,6 +225,15 @@ class ProfileTab extends ConsumerWidget {
                         icon: Icons.email_outlined,
                         title: 'Email',
                         subtitle: user.email,
+                      ),
+                      _buildListTile(
+                        icon: Icons.location_on_outlined,
+                        title: 'Location',
+                        subtitle:
+                            (user.locationText == null ||
+                                user.locationText!.isEmpty)
+                            ? 'Not set'
+                            : user.locationText!,
                       ),
                       _buildListTile(
                         icon: Icons.edit_outlined,

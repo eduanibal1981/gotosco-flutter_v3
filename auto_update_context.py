@@ -10,7 +10,7 @@ from googleapiclient.discovery import build
 # 1. إعدادات المستندات (تم إضافة قسم جديد)
 # ==========================================
 DOCS_MAP = {
-    "DB":         "YOUR_DATABASE_DOC_ID_HERE",  
+    "DB":         "1NHImIKLMSqeyEDmpV1dZsyvhetg7NH5vh2kP0TBKMBE",  
     "LOGIC":      "1fhFjNQoH2DT7ylyocJI_q9UvHkvMM_eWSU6ALsnMKT0", # الـ ID القديم الخاص بالمنطق (يعمل بنجاح)
     
     # --- تم تقسيم الواجهة إلى قسمين ---

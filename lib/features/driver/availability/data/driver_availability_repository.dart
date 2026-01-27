@@ -57,11 +57,19 @@ class DriverAvailabilityRepository {
     );
   }
 
-  /// Set driver online/offline status
-  Future<void> setOnlineStatus(bool isOnline) async {
+  /// Set driver profile online status (Advertisement visibility)
+  Future<void> setProfileOnlineStatus(bool isOnline) async {
     await _supabase.rpc(
-      'set_driver_online_status',
+      'set_profile_online_status',
       params: {'p_is_online': isOnline},
+    );
+  }
+
+  /// Set driver tracking status (Live location sharing)
+  Future<void> setTrackingStatus(bool isTracking) async {
+    await _supabase.rpc(
+      'set_tracking_status',
+      params: {'p_is_tracking': isTracking},
     );
   }
 

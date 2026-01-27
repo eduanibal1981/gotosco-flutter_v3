@@ -248,16 +248,32 @@ class BookingFlowController extends _$BookingFlowController {
         // Check schedule type is selected and has required data
         if (state.isOneTime) {
           return state.scheduledPickupDatetime != null;
-        } else if (state.isRecurring) {
+        }
+
+        final bookingType = state.bookingType ?? 'Two Way';
+        final hasHomeTime =
+            state.homePickupTime != null && state.homePickupTime!.isNotEmpty;
+        final hasSchoolTime =
+            state.schoolPickupTime != null &&
+            state.schoolPickupTime!.isNotEmpty;
+
+        bool timeValid = false;
+        if (bookingType == 'Two Way') {
+          timeValid = hasHomeTime && hasSchoolTime;
+        } else if (bookingType == 'One Way to School') {
+          timeValid = hasHomeTime;
+        } else if (bookingType == 'One Way Back Home') {
+          timeValid = hasSchoolTime;
+        }
+
+        if (state.isRecurring) {
           return state.recurringDays != null &&
               state.recurringDays!.isNotEmpty &&
-              state.homePickupTime != null &&
-              state.homePickupTime!.isNotEmpty;
+              timeValid;
         } else if (state.isMonthlySubscription) {
           return state.contractStartDate != null &&
               state.contractEndDate != null &&
-              state.homePickupTime != null &&
-              state.homePickupTime!.isNotEmpty;
+              timeValid;
         }
         return false;
       default:
@@ -568,6 +584,26 @@ class BookingFlowController extends _$BookingFlowController {
     }
     print('📅 Dates - Start: $contractStartDate, End: $contractEndDate');
 
+    // Parse scheduled datetime for one-time trips
+    // Supabase stores timestamps in UTC, so convert to local time
+    DateTime? scheduledPickupDatetime;
+    DateTime? scheduledDropoffDatetime;
+    if (booking['scheduled_pickup_datetime'] != null) {
+      final parsed = DateTime.tryParse(
+        booking['scheduled_pickup_datetime'].toString(),
+      );
+      scheduledPickupDatetime = parsed?.toLocal();
+    }
+    if (booking['scheduled_dropoff_datetime'] != null) {
+      final parsed = DateTime.tryParse(
+        booking['scheduled_dropoff_datetime'].toString(),
+      );
+      scheduledDropoffDatetime = parsed?.toLocal();
+    }
+    print(
+      '🕐 Scheduled - Pickup: $scheduledPickupDatetime, Dropoff: $scheduledDropoffDatetime',
+    );
+
     // Parse recurring days
     List<String>? recurringDays;
     if (booking['recurring_days'] != null &&
@@ -639,6 +675,8 @@ class BookingFlowController extends _$BookingFlowController {
       isMonthlySubscription: booking['is_monthly_subscription'] == true,
       contractStartDate: contractStartDate,
       contractEndDate: contractEndDate,
+      scheduledPickupDatetime: scheduledPickupDatetime,
+      scheduledDropoffDatetime: scheduledDropoffDatetime,
       recurringDays: recurringDays,
       homePickupTime: homePickupTime,
       schoolPickupTime: schoolPickupTime,

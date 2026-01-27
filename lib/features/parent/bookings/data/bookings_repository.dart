@@ -25,6 +25,8 @@ class BookingsRepository {
     String? driverId, // Made nullable for Requests
     required List<String> childIds,
     required String bookingType,
+    String? tripCategory, // 'school', 'journey', 'other'
+    bool isForParent = false, // Parent booking for themselves
     String? schoolId,
     String? schoolName,
 
@@ -48,6 +50,10 @@ class BookingsRepository {
     bool isRecurring = false,
     List<String>? recurringDays,
     bool isMonthlySubscription = false,
+    // 🕐 One-time trip fields
+    bool isOneTime = false,
+    DateTime? scheduledPickupDatetime,
+    DateTime? scheduledDropoffDatetime,
 
     // 🏫 Multi-School
     List<Map<String, dynamic>>? multiSchoolData,
@@ -67,6 +73,8 @@ class BookingsRepository {
           'driver_id': driverId,
           'status': driverId == null ? 'posted' : 'pending', // 'posted' for Ad
           'booking_type': bookingType,
+          'trip_category': tripCategory ?? 'school',
+          'is_for_parent': isForParent,
           'school_id': schoolId,
           'school_name': schoolName,
           'is_multi_school':
@@ -93,6 +101,15 @@ class BookingsRepository {
           'is_recurring': isRecurring,
           'recurring_days': recurringDays,
           'is_monthly_subscription': isMonthlySubscription,
+
+          // 🕐 One-time
+          'is_one_time': isOneTime,
+          if (scheduledPickupDatetime != null)
+            'scheduled_pickup_datetime': scheduledPickupDatetime
+                .toIso8601String(),
+          if (scheduledDropoffDatetime != null)
+            'scheduled_dropoff_datetime': scheduledDropoffDatetime
+                .toIso8601String(),
         })
         .select()
         .single();

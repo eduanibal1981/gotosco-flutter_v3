@@ -1,0 +1,31 @@
+# GOTOSCO v3 - AI SYSTEM INSTRUCTIONS
+
+## 🧠 KNOWLEDGE BASE (CRITICAL)
+**YOU ARE CONNECTED TO NOTEBOOKLM.**
+Before generating code or answering architectural questions, you MUST query the project notebook for the latest DB schema, logic, and patterns.
+**Notebook URL:** https://notebooklm.google.com/notebook/9a5e5cde-2a69-4726-ae2d-5ec276e9a0bf
+
+## 🛠️ TECH STACK (STRICT)
+- **Framework:** Flutter (Latest Stable)
+- **Language:** Dart 3+ (Strict Null Safety)
+- **State Management:** Riverpod 2.x (Use `@riverpod` annotations & `AsyncNotifier`)
+- **Backend:** Supabase (PostgreSQL, Auth, Realtime)
+- **Routing:** GoRouter (Type-safe routes)
+- **Freezed:** MANDATORY for all Models and State classes.
+
+## 🏗️ ARCHITECTURE RULES
+1.  **Feature-First:** `lib/features/<feature_name>/{data, presentation, domain}`.
+2.  **Repository Pattern:** UI never talks to Supabase directly. UI -> Controller -> Repository -> Supabase.
+3.  **No Logic in UI:** Widgets only display data (`ref.watch`). Logic goes in `AsyncNotifier` controllers.
+4.  **Database:** respecting strictly `supabase/migrations`. Do not invent columns.
+
+## 📝 CODING STANDARDS
+- **Naming:** `user_repository.dart`, `UserRepository`, `fetchUserData()`.
+- **Error Handling:** Use `try/catch` in Repositories. Return custom Exceptions.
+- **UI:** responsive, use `AppTheme`, avoid hardcoded colors/sizes.
+
+## 🚀 BEHAVIOR PROTOCOL
+1.  **Check Context:** Search NotebookLM for similar implementations first.
+2.  **Think:** Plan the changes (DB -> Logic -> UI).
+3.  **Implement:** Write clean, annotated code.
+4.  **Verify:** Ensure no breaking changes to existing providers.

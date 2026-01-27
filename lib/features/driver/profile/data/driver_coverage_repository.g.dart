@@ -248,6 +248,87 @@ final class CoverageSchoolsFamily extends $Family
   String toString() => r'coverageSchoolsProvider';
 }
 
+@ProviderFor(coverageAllAreas)
+final coverageAllAreasProvider = CoverageAllAreasProvider._();
+
+final class CoverageAllAreasProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<AreaModel>>,
+          List<AreaModel>,
+          FutureOr<List<AreaModel>>
+        >
+    with $FutureModifier<List<AreaModel>>, $FutureProvider<List<AreaModel>> {
+  CoverageAllAreasProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'coverageAllAreasProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$coverageAllAreasHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<AreaModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<AreaModel>> create(Ref ref) {
+    return coverageAllAreas(ref);
+  }
+}
+
+String _$coverageAllAreasHash() => r'966d505d67957c27458bf3e80e026a5cfd7cbe6f';
+
+@ProviderFor(coverageAllSchools)
+final coverageAllSchoolsProvider = CoverageAllSchoolsProvider._();
+
+final class CoverageAllSchoolsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<SchoolModel>>,
+          List<SchoolModel>,
+          FutureOr<List<SchoolModel>>
+        >
+    with
+        $FutureModifier<List<SchoolModel>>,
+        $FutureProvider<List<SchoolModel>> {
+  CoverageAllSchoolsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'coverageAllSchoolsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$coverageAllSchoolsHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<SchoolModel>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<SchoolModel>> create(Ref ref) {
+    return coverageAllSchools(ref);
+  }
+}
+
+String _$coverageAllSchoolsHash() =>
+    r'8a5d68acbee916bfe539ff84728bc1e0d49dea27';
+
 @ProviderFor(driverCoverageAreaIds)
 final driverCoverageAreaIdsProvider = DriverCoverageAreaIdsProvider._();
 
@@ -353,7 +434,7 @@ final class DriverCoverageControllerProvider
 }
 
 String _$driverCoverageControllerHash() =>
-    r'7d33950dcde01b775053914d3ed0459b68b806f2';
+    r'8ea34faac03bb0b86ce70363941caf993597efec';
 
 abstract class _$DriverCoverageController extends $AsyncNotifier<void> {
   FutureOr<void> build();

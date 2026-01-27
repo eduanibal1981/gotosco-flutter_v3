@@ -95,6 +95,24 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             padding: const EdgeInsets.all(16.0),
             child: Column(
               children: [
+                // Close button
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      onPressed: () {
+                        ref
+                            .read(bookingFlowControllerProvider.notifier)
+                            .reset();
+                        Navigator.of(context).pop();
+                      },
+                      icon: const Icon(Icons.close, color: Colors.grey),
+                      tooltip: 'Cancel',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
                 // Progress Indicator
                 BookingProgressIndicator(
                   currentStep: bookingDraft.currentStep,
@@ -381,6 +399,8 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
           driverId: null, // Open Request
           childIds: selectedChildren.map((c) => c.id).toList(),
           bookingType: bookingDraft.bookingType ?? 'Two Way',
+          tripCategory: bookingDraft.tripCategory,
+          isForParent: bookingDraft.isForParent,
 
           schoolId: !bookingDraft.isMultiSchool
               ? (primaryChild.schoolId != null &&
@@ -416,6 +436,11 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
           recurringDays: bookingDraft.recurringDays,
           isMonthlySubscription: bookingDraft.isMonthlySubscription,
 
+          // One-time trip
+          isOneTime: bookingDraft.isOneTime,
+          scheduledPickupDatetime: bookingDraft.scheduledPickupDatetime,
+          scheduledDropoffDatetime: bookingDraft.scheduledDropoffDatetime,
+
           multiSchoolData: multiSchoolForBooking,
         );
 
@@ -427,6 +452,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
               backgroundColor: Colors.green,
             ),
           );
+          ref.invalidate(myBookingsProvider); // Refresh bookings list
           ref.read(bookingFlowControllerProvider.notifier).reset();
           Navigator.of(context).pop();
         }
@@ -529,19 +555,10 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         driverId: bookingDraft.driverId!,
         childIds: bookingDraft.studentIds,
         bookingType: bookingDraft.bookingType!,
+        tripCategory: bookingDraft.tripCategory,
+        isForParent: bookingDraft.isForParent,
 
         schoolId: bookingDraft.isMultiSchool ? null : resolvedSchoolId,
-        // Logic: if NOT multi-school, we usually set schoolId on the main booking row.
-        // Where do we get it? From the single child?
-        // But the repo takes schoolId/schoolName args.
-        // For now, let's leave main school_id null if multi-school OR if we don't have it easily.
-        // Ideally if single school, we find it.
-        // But let's rely on multiSchoolData for complex cases and repo handling.
-
-        // Actually, for single school, we should ideally set schoolId.
-        // But let's keep it simple: If multi-school, use table. If single, we might populate standard fields if we had them.
-        // But BookingDraft doesn't explicitly store "single school id" except inside children or location logic.
-        // We'll pass multiSchoolData if isMultiSchool.
         schoolName: bookingDraft.tripCategory == 'school' ? 'School' : null,
 
         homeLocation: bookingDraft.pickupLocationText,
@@ -555,13 +572,18 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         schoolPickupTime: parseTime(bookingDraft.schoolPickupTime),
 
         notes: bookingDraft.notes,
-        price: bookingDraft.estimatedPrice, // Pass the price to the new column
+        price: bookingDraft.estimatedPrice,
 
-        startDate: bookingDraft.contractStartDate ?? DateTime.now(), // Fallback
+        startDate: bookingDraft.contractStartDate ?? DateTime.now(),
         endDate: bookingDraft.contractEndDate ?? DateTime.now(),
         isRecurring: bookingDraft.isRecurring,
         recurringDays: bookingDraft.recurringDays,
         isMonthlySubscription: bookingDraft.isMonthlySubscription,
+
+        // One-time trip
+        isOneTime: bookingDraft.isOneTime,
+        scheduledPickupDatetime: bookingDraft.scheduledPickupDatetime,
+        scheduledDropoffDatetime: bookingDraft.scheduledDropoffDatetime,
 
         multiSchoolData: multiSchoolData,
       );
@@ -574,6 +596,9 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        ref.invalidate(myBookingsProvider); // Refresh bookings list
+        ref.read(bookingFlowControllerProvider.notifier).reset();
+        Navigator.of(context).pop(); // Close booking flow screen
       }
     } catch (e) {
       if (context.mounted) {
@@ -706,6 +731,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             backgroundColor: Colors.green,
           ),
         );
+        ref.invalidate(myBookingsProvider); // Refresh bookings list
         ref.read(bookingFlowControllerProvider.notifier).resetBookingFlow();
         Navigator.of(context).pop(); // Go back to bookings list
       }

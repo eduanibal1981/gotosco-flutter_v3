@@ -13,6 +13,7 @@ import 'package:gotosco_v3/core/widgets/map_picker_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import '../data/driver_profile_repository.dart';
+import 'widgets/coverage_summary_content.dart';
 import '../data/driver_profile_model.dart';
 import '../data/driver_schedule_model.dart';
 import '../../dashboard/data/driver_dashboard_repository.dart';
@@ -401,11 +402,11 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
               const SizedBox(height: 16),
 
-                // Location Settings Section
-                KeyedSubtree(
-                  key: _locationSettingsKey,
-                  child: _buildLocationSettingsSection(profile),
-                ),
+              // Location Settings Section
+              KeyedSubtree(
+                key: _locationSettingsKey,
+                child: _buildLocationSettingsSection(profile),
+              ),
 
               const SizedBox(height: 16),
 
@@ -414,80 +415,15 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
               const SizedBox(height: 16),
 
-                // Service Areas Section
-                KeyedSubtree(
-                  key: _serviceAreasKey,
-                  child: _buildSection(
-                    icon: Icons.location_on,
-                    title: 'Service Areas & Schools',
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: () => context.push('/driver-coverage'),
-                          icon: const Icon(Icons.tune, size: 18),
-                          label: const Text('Manage Coverage'),
-                        ),
-                      ),
-                      if (profile.serviceAreas.isEmpty &&
-                          profile.schools.isEmpty)
-                        Text(
-                          'No service areas or schools added yet.',
-                          style: TextStyle(
-                            color: Colors.grey.shade500,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        )
-                      else ...[
-                        if (profile.serviceAreas.isNotEmpty) ...[
-                          Text(
-                            'Areas:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: profile.serviceAreas
-                                .map(
-                                  (area) => Chip(
-                                    label: Text(area),
-                                    backgroundColor: Colors.teal.shade50,
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                        if (profile.schools.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Text(
-                            'Schools:',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: profile.schools
-                                .map(
-                                  (school) => Chip(
-                                    label: Text(school),
-                                    backgroundColor: Colors.blue.shade50,
-                                  ),
-                                )
-                                .toList(),
-                          ),
-                        ],
-                      ],
-                    ],
-                  ),
+              // Service Areas Section
+              KeyedSubtree(
+                key: _serviceAreasKey,
+                child: _buildSection(
+                  icon: Icons.location_on,
+                  title: 'Service Areas & Schools',
+                  children: [const CoverageSummaryContent()],
                 ),
+              ),
 
               const SizedBox(height: 16),
 
@@ -994,7 +930,9 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
         );
 
         final file = File(image.path);
-        final url = await ref.read(driverProfileRepositoryProvider).uploadDocument(
+        final url = await ref
+            .read(driverProfileRepositoryProvider)
+            .uploadDocument(
               driverId: profile.id,
               file: file,
               documentType: type,
@@ -1024,14 +962,12 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
   }
+
   /// Build the location settings section
   Widget _buildLocationSettingsSection(DriverProfileModel profile) {
     return Container(
@@ -1120,7 +1056,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                                 profile.locationText ??
                                 'No location set',
                             style: TextStyle(
-                              color: (_currentLocationText ??
+                              color:
+                                  (_currentLocationText ??
                                           profile.locationText) !=
                                       null
                                   ? Colors.grey.shade800
@@ -1591,8 +1528,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                             setState(() {
                               _expandedShiftType =
                                   (_expandedShiftType == shiftType)
-                                      ? null
-                                      : shiftType;
+                                  ? null
+                                  : shiftType;
                             });
                           },
                           children: [
@@ -1603,7 +1540,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                               headerBuilder: (context, isExpanded) {
                                 return ListTile(
                                   contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12),
+                                    horizontal: 12,
+                                  ),
                                   leading: Container(
                                     padding: const EdgeInsets.all(8),
                                     decoration: BoxDecoration(
@@ -1653,15 +1591,15 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                                                 Container(
                                                   padding:
                                                       const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 4,
-                                                  ),
+                                                        horizontal: 8,
+                                                        vertical: 4,
+                                                      ),
                                                   decoration: BoxDecoration(
                                                     color: Colors.teal.shade100,
                                                     borderRadius:
                                                         BorderRadius.circular(
-                                                      4,
-                                                    ),
+                                                          4,
+                                                        ),
                                                   ),
                                                   child: Text(
                                                     schedule.dayDisplayName
@@ -1688,7 +1626,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                                                 InkWell(
                                                   onTap: () =>
                                                       _showEditScheduleSheet(
-                                                          schedule),
+                                                        schedule,
+                                                      ),
                                                   child: Icon(
                                                     Icons.edit_outlined,
                                                     color: Colors.teal.shade600,
@@ -1698,7 +1637,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                                                 const SizedBox(width: 12),
                                                 InkWell(
                                                   onTap: () => _deleteSchedule(
-                                                      schedule.id),
+                                                    schedule.id,
+                                                  ),
                                                   child: Icon(
                                                     Icons.close,
                                                     color: Colors.red.shade400,
@@ -1923,9 +1863,7 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         borderRadius: widget.fullScreen
             ? BorderRadius.zero
             : const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: Colors.green.shade500, width: 3),
-        ),
+        border: Border(top: BorderSide(color: Colors.green.shade500, width: 3)),
       ),
       child: Column(
         children: [
@@ -2122,10 +2060,9 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
           decoration: InputDecoration(
             labelText: 'License Expiry Date',
             filled: true,
-            fillColor:
-                _licenseExpiry != null
-                    ? Colors.green.shade50
-                    : Colors.red.shade50,
+            fillColor: _licenseExpiry != null
+                ? Colors.green.shade50
+                : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.calendar_today),
           ),
@@ -2175,9 +2112,7 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
           decoration: InputDecoration(
             labelText: 'Location',
             filled: true,
-            fillColor: hasLocation
-                ? Colors.green.shade50
-                : Colors.red.shade50,
+            fillColor: hasLocation ? Colors.green.shade50 : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.map_outlined),
           ),
@@ -2458,9 +2393,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         borderRadius: widget.fullScreen
             ? BorderRadius.zero
             : const BorderRadius.vertical(top: Radius.circular(24)),
-        border: Border(
-          top: BorderSide(color: Colors.green.shade500, width: 3),
-        ),
+        border: Border(top: BorderSide(color: Colors.green.shade500, width: 3)),
       ),
       child: Column(
         children: [
@@ -2651,10 +2584,9 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
           decoration: InputDecoration(
             labelText: 'License Expiry Date',
             filled: true,
-            fillColor:
-                _licenseExpiry != null
-                    ? Colors.green.shade50
-                    : Colors.red.shade50,
+            fillColor: _licenseExpiry != null
+                ? Colors.green.shade50
+                : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.calendar_today),
           ),
@@ -2702,9 +2634,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
           decoration: InputDecoration(
             labelText: 'Location',
             filled: true,
-            fillColor: hasLocation
-                ? Colors.green.shade50
-                : Colors.red.shade50,
+            fillColor: hasLocation ? Colors.green.shade50 : Colors.red.shade50,
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             suffixIcon: const Icon(Icons.map_outlined),
           ),

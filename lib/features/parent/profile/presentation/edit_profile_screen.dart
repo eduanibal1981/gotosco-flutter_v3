@@ -257,9 +257,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Error updating profile: $e';
+        if (e.toString().contains('23505') ||
+            e.toString().contains('users_phone_key')) {
+          errorMessage =
+              'This phone number is already associated with another account.';
+        }
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Error updating profile: $e')));
+        ).showSnackBar(SnackBar(content: Text(errorMessage)));
       }
     } finally {
       if (mounted) setState(() => _isSaving = false);

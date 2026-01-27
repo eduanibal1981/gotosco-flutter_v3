@@ -12,21 +12,21 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
     return ref.watch(driverAvailabilitySettingsProvider.future);
   }
 
-  /// Toggle online/offline status
-  Future<void> toggleOnline() async {
+  /// Toggle profile visibility (Ad online/offline)
+  Future<void> toggleProfileVisibility() async {
     final current = state.value;
     if (current == null) return;
 
-    final newStatus = !current.isOnline;
+    final newStatus = !current.isProfileOnline;
 
     // Optimistic update
-    state = AsyncData(current.copyWith(isOnline: newStatus));
+    state = AsyncData(current.copyWith(isProfileOnline: newStatus));
 
     try {
       await ref
           .read(driverAvailabilityRepositoryProvider)
-          .setOnlineStatus(newStatus);
-      ref.invalidateSelf();
+          .setProfileOnlineStatus(newStatus);
+      ref.invalidate(driverAvailabilitySettingsProvider);
     } catch (e) {
       // Revert on error
       state = AsyncData(current);
@@ -34,18 +34,41 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
     }
   }
 
-  /// Set online status directly
-  Future<void> setOnline(bool isOnline) async {
+  /// Toggle tracking status
+  Future<void> toggleTracking() async {
     final current = state.value;
     if (current == null) return;
 
-    state = AsyncData(current.copyWith(isOnline: isOnline));
+    final newStatus = !current.isTrackingActive;
+
+    // Optimistic update
+    state = AsyncData(current.copyWith(isTrackingActive: newStatus));
 
     try {
       await ref
           .read(driverAvailabilityRepositoryProvider)
-          .setOnlineStatus(isOnline);
-      ref.invalidateSelf();
+          .setTrackingStatus(newStatus);
+      ref.invalidate(driverAvailabilitySettingsProvider);
+    } catch (e) {
+      // Revert on error
+      state = AsyncData(current);
+      rethrow;
+    }
+  }
+
+  /// Set tracking status directly
+  Future<void> setTracking(bool isTracking) async {
+    final current = state.value;
+    if (current == null) return;
+
+    // Optimistic update
+    state = AsyncData(current.copyWith(isTrackingActive: isTracking));
+
+    try {
+      await ref
+          .read(driverAvailabilityRepositoryProvider)
+          .setTrackingStatus(isTracking);
+      ref.invalidate(driverAvailabilitySettingsProvider);
     } catch (e) {
       state = AsyncData(current);
       rethrow;
@@ -63,7 +86,7 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
       await ref
           .read(driverAvailabilityRepositoryProvider)
           .updateSettings(availabilityMode: mode);
-      ref.invalidateSelf();
+      ref.invalidate(driverAvailabilitySettingsProvider);
     } catch (e) {
       state = AsyncData(current);
       rethrow;
@@ -81,7 +104,7 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
       await ref
           .read(driverAvailabilityRepositoryProvider)
           .updateSettings(autoOfflineAfterTrip: enabled);
-      ref.invalidateSelf();
+      ref.invalidate(driverAvailabilitySettingsProvider);
     } catch (e) {
       state = AsyncData(current);
       rethrow;
@@ -108,7 +131,7 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
             autoOnlineBeforeTrip: enabled,
             autoOnlineMinutesBefore: minutesBefore,
           );
-      ref.invalidateSelf();
+      ref.invalidate(driverAvailabilitySettingsProvider);
     } catch (e) {
       state = AsyncData(current);
       rethrow;
@@ -122,7 +145,7 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
           .read(driverAvailabilityRepositoryProvider)
           .checkAndAutoOnline();
       if (result) {
-        ref.invalidateSelf();
+        ref.invalidate(driverAvailabilitySettingsProvider);
       }
       return result;
     } catch (e) {

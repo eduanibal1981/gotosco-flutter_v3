@@ -68,4 +68,30 @@ class DriverLocation {
   @override
   String toString() =>
       'DriverLocation(driverId: $driverId, lat: $latitude, lng: $longitude, heading: $heading, tripType: $tripType)';
+
+  DriverLocation copyWith({
+    String? driverId,
+    double? latitude,
+    double? longitude,
+    double? heading,
+    double? speed,
+    String? tripType,
+    bool? isOnline,
+    int? etaMinutes,
+    String? nextStopId,
+    DateTime? updatedAt,
+  }) {
+    return DriverLocation(
+      driverId: driverId ?? this.driverId,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      heading: heading ?? this.heading,
+      speed: speed ?? this.speed,
+      tripType: tripType ?? this.tripType,
+      isOnline: isOnline ?? this.isOnline,
+      etaMinutes: etaMinutes ?? this.etaMinutes,
+      nextStopId: nextStopId ?? this.nextStopId,
+      updatedAt: updatedAt ?? this.updatedAt,
+    );
+  }
 }

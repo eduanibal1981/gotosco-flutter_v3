@@ -39,31 +39,83 @@ class TrackingRepository {
   /// Uses Supabase Realtime to listen for changes to the driver_locations table.
   /// Only returns data when driver is online.
   Stream<DriverLocation> getDriverLocationStream(String driverId) {
-    return _supabase
-        .from('driver_locations')
-        .stream(primaryKey: ['driver_id'])
-        .eq('driver_id', driverId)
-        .map((data) {
-          if (data.isEmpty) {
-            throw Exception('No location data found for driver: $driverId');
-          }
-          final location = DriverLocation.fromMap(data.first);
-          // Allow offline status to pass through so UI can update immediately
-          // without entering error state.
-          return location;
-        });
+    // Manually merge streams since we don't have RxDart
+    late StreamController<DriverLocation> controller;
+    StreamSubscription? locationSub;
+    StreamSubscription? driverSub;
+
+    DriverLocation? lastLocation;
+    bool isOnline = false;
+
+    void emit() {
+      if (lastLocation != null && !controller.isClosed) {
+        controller.add(lastLocation!.copyWith(isOnline: isOnline));
+      }
+    }
+
+    controller = StreamController<DriverLocation>(
+      onListen: () {
+        // 1. Listen to Data (High Frequency)
+        locationSub = _supabase
+            .from('driver_locations')
+            .stream(primaryKey: ['driver_id'])
+            .eq('driver_id', driverId)
+            .listen((data) {
+              if (data.isNotEmpty) {
+                lastLocation = DriverLocation.fromMap(data.first);
+                emit();
+              }
+            }, onError: controller.addError);
+
+        // 2. Listen to Status (Low Frequency)
+        driverSub = _supabase
+            .from('drivers')
+            .stream(primaryKey: ['user_id'])
+            .eq('user_id', driverId)
+            .listen(
+              (data) {
+                if (data.isNotEmpty) {
+                  isOnline = data.first['is_online'] as bool? ?? false;
+                  if (lastLocation != null) emit();
+                }
+              },
+              onError: (e) {
+                // Log but don't crash main stream
+                print('Error streaming driver status: $e');
+              },
+            );
+      },
+      onCancel: () {
+        locationSub?.cancel();
+        driverSub?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   /// Fetches the latest driver location (one-time read).
   Future<DriverLocation?> getDriverLocation(String driverId) async {
-    final response = await _supabase
-        .from('driver_locations')
-        .select()
-        .eq('driver_id', driverId)
-        .maybeSingle();
+    final results = await Future.wait([
+      _supabase
+          .from('driver_locations')
+          .select()
+          .eq('driver_id', driverId)
+          .maybeSingle(),
+      _supabase
+          .from('drivers')
+          .select('is_profile_online')
+          .eq('user_id', driverId)
+          .maybeSingle(),
+    ]);
 
-    if (response == null) return null;
-    return DriverLocation.fromMap(response);
+    final locData = results[0];
+    final driverData = results[1];
+
+    if (locData == null) return null;
+
+    final isOnline = driverData?['is_profile_online'] as bool? ?? false;
+    return DriverLocation.fromMap(locData).copyWith(isOnline: isOnline);
   }
 
   /// Fetches home and school locations from a booking.

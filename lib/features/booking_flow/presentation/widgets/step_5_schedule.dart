@@ -311,84 +311,91 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
 
         const SizedBox(height: 20),
 
-        // Pickup Time
-        const Text(
-          'Go Pickup Time (Morning)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _pickTime(isPickup: true),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
+        if (bookingDraft.bookingType != 'One Way Back Home') ...[
+          // Pickup Time
+          const Text(
+            'Go Pickup Time (Morning)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
-            child: Row(
-              children: [
-                Icon(Icons.wb_sunny_outlined, color: Colors.orange.shade600),
-                const SizedBox(width: 12),
-                Text(
-                  bookingDraft.homePickupTime ?? 'Select morning pickup time',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: bookingDraft.homePickupTime != null
-                        ? Colors.black87
-                        : Colors.grey.shade500,
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => _pickTime(isPickup: true),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.wb_sunny_outlined, color: Colors.orange.shade600),
+                  const SizedBox(width: 12),
+                  Text(
+                    bookingDraft.homePickupTime ?? 'Select morning pickup time',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: bookingDraft.homePickupTime != null
+                          ? Colors.black87
+                          : Colors.grey.shade500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+        ],
 
-        const SizedBox(height: 12),
+        if (bookingDraft.bookingType != 'One Way to School') ...[
+          const SizedBox(height: 12),
 
-        // Return Pickup Time
-        const Text(
-          'Return Pickup Time (Afternoon)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _pickTime(isPickup: false),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
+          // Return Pickup Time
+          const Text(
+            'Return Pickup Time (Afternoon)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
-            child: Row(
-              children: [
-                Icon(Icons.nights_stay_outlined, color: Colors.indigo.shade600),
-                const SizedBox(width: 12),
-                Text(
-                  bookingDraft.schoolPickupTime ??
-                      'Select afternoon pickup time',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: bookingDraft.schoolPickupTime != null
-                        ? Colors.black87
-                        : Colors.grey.shade500,
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => _pickTime(isPickup: false),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.nights_stay_outlined,
+                    color: Colors.indigo.shade600,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Text(
+                    bookingDraft.schoolPickupTime ??
+                        'Select afternoon pickup time',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: bookingDraft.schoolPickupTime != null
+                          ? Colors.black87
+                          : Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -477,84 +484,91 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
 
         const SizedBox(height: 20),
 
-        // Go Pickup Time (Morning)
-        const Text(
-          'Go Pickup Time (Morning)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _pickTime(isPickup: true),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
+        if (bookingDraft.bookingType != 'One Way Back Home') ...[
+          // Go Pickup Time (Morning)
+          const Text(
+            'Go Pickup Time (Morning)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
-            child: Row(
-              children: [
-                Icon(Icons.wb_sunny_outlined, color: Colors.orange.shade600),
-                const SizedBox(width: 12),
-                Text(
-                  bookingDraft.homePickupTime ?? 'Select morning pickup time',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: bookingDraft.homePickupTime != null
-                        ? Colors.black87
-                        : Colors.grey.shade500,
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => _pickTime(isPickup: true),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.wb_sunny_outlined, color: Colors.orange.shade600),
+                  const SizedBox(width: 12),
+                  Text(
+                    bookingDraft.homePickupTime ?? 'Select morning pickup time',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: bookingDraft.homePickupTime != null
+                          ? Colors.black87
+                          : Colors.grey.shade500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+        ],
 
-        const SizedBox(height: 12),
+        if (bookingDraft.bookingType != 'One Way to School') ...[
+          const SizedBox(height: 12),
 
-        // Return Pickup Time (Afternoon)
-        const Text(
-          'Return Pickup Time (Afternoon)',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 8),
-        InkWell(
-          onTap: () => _pickTime(isPickup: false),
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-              color: Colors.white,
+          // Return Pickup Time (Afternoon)
+          const Text(
+            'Return Pickup Time (Afternoon)',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
             ),
-            child: Row(
-              children: [
-                Icon(Icons.nights_stay_outlined, color: Colors.indigo.shade600),
-                const SizedBox(width: 12),
-                Text(
-                  bookingDraft.schoolPickupTime ??
-                      'Select afternoon pickup time',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: bookingDraft.schoolPickupTime != null
-                        ? Colors.black87
-                        : Colors.grey.shade500,
+          ),
+          const SizedBox(height: 8),
+          InkWell(
+            onTap: () => _pickTime(isPickup: false),
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey.shade300),
+                borderRadius: BorderRadius.circular(12),
+                color: Colors.white,
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.nights_stay_outlined,
+                    color: Colors.indigo.shade600,
                   ),
-                ),
-              ],
+                  const SizedBox(width: 12),
+                  Text(
+                    bookingDraft.schoolPickupTime ??
+                        'Select afternoon pickup time',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: bookingDraft.schoolPickupTime != null
+                          ? Colors.black87
+                          : Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -605,7 +619,9 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
     );
 
     if (pickedTime != null && mounted) {
-      final timeString = pickedTime.format(context);
+      // Store in 24-hour format (HH:mm) for reliable parsing
+      final timeString =
+          '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}';
       final bookingDraft = ref.read(bookingFlowControllerProvider);
 
       if (bookingDraft.isRecurring) {

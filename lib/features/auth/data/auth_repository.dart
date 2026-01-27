@@ -218,7 +218,7 @@ class AuthRepository {
       'updated_at': DateTime.now().toIso8601String(),
     };
     if (fullName != null) updates['full_name'] = fullName;
-    if (phone != null) updates['phone'] = phone;
+    if (phone != null) updates['phone'] = phone.isEmpty ? null : phone;
     if (photoUrl != null) updates['photo_url'] = photoUrl;
     if (locationText != null) updates['location_text'] = locationText;
     if (locationLat != null && locationLng != null) {

@@ -143,6 +143,16 @@ class Step6Review extends ConsumerWidget {
     String type = 'Not selected';
     String desc = '';
 
+    String times = '';
+    if (bookingDraft.bookingType == 'One Way to School') {
+      times = 'Go: ${bookingDraft.homePickupTime ?? 'Not set'}';
+    } else if (bookingDraft.bookingType == 'One Way Back Home') {
+      times = 'Return: ${bookingDraft.schoolPickupTime ?? 'Not set'}';
+    } else {
+      times =
+          'Go: ${bookingDraft.homePickupTime ?? 'Not set'}\nReturn: ${bookingDraft.schoolPickupTime ?? 'Not set'}';
+    }
+
     if (bookingDraft.isOneTime) {
       type = 'One-Time Trip';
       if (bookingDraft.scheduledPickupDatetime != null) {
@@ -152,13 +162,12 @@ class Step6Review extends ConsumerWidget {
       }
     } else if (bookingDraft.isRecurring) {
       type = 'Recurring Trip';
-      desc =
-          '${bookingDraft.recurringDays?.join(", ") ?? ""} \nPickup: ${bookingDraft.homePickupTime ?? ""}';
+      desc = '${bookingDraft.recurringDays?.join(", ") ?? ""} \n$times';
     } else if (bookingDraft.isMonthlySubscription) {
       type = 'Monthly Subscription';
       if (bookingDraft.contractStartDate != null) {
         desc =
-            '${DateFormat('MMM dd').format(bookingDraft.contractStartDate!)} - ${DateFormat('MMM dd, yyyy').format(bookingDraft.contractEndDate!)}\nDaily pickup: ${bookingDraft.homePickupTime ?? 'Not set'}';
+            '${DateFormat('MMM dd').format(bookingDraft.contractStartDate!)} - ${DateFormat('MMM dd, yyyy').format(bookingDraft.contractEndDate!)}\n$times';
       }
     }
     return {'type': type, 'desc': desc};

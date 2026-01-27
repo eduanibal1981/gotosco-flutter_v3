@@ -1,461 +1,166 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'areas_coverage_screen.dart';
+import 'schools_coverage_screen.dart';
 
-import '../data/area_model.dart';
-import '../data/city_model.dart';
-import '../data/driver_coverage_repository.dart';
-import '../data/school_model.dart';
-
-class DriverCoverageScreen extends ConsumerStatefulWidget {
+class DriverCoverageScreen extends ConsumerWidget {
   const DriverCoverageScreen({super.key});
 
   @override
-  ConsumerState<DriverCoverageScreen> createState() =>
-      _DriverCoverageScreenState();
-}
-
-class _DriverCoverageScreenState extends ConsumerState<DriverCoverageScreen> {
-  String? _selectedCityId;
-  final _areaSearchController = TextEditingController();
-  final _schoolSearchController = TextEditingController();
-  final _selectedAreaIds = <String>{};
-  final _selectedSchoolIds = <String>{};
-  bool _initialSelectionLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadInitialSelection();
-  }
-
-  Future<void> _loadInitialSelection() async {
-    final areaIds = await ref.read(driverCoverageAreaIdsProvider.future);
-    final schoolIds = await ref.read(driverCoverageSchoolIdsProvider.future);
-    if (!mounted) return;
-    setState(() {
-      _selectedAreaIds.addAll(areaIds);
-      _selectedSchoolIds.addAll(schoolIds);
-      _initialSelectionLoaded = true;
-    });
-  }
-
-  @override
-  void dispose() {
-    _areaSearchController.dispose();
-    _schoolSearchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final citiesAsync = ref.watch(coverageCitiesProvider);
-    final saveState = ref.watch(driverCoverageControllerProvider);
-
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Coverage'),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
+        elevation: 1,
+        title: const Text(
+          'Manage Coverage',
+          style: TextStyle(
+            color: Colors.black,
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
-      backgroundColor: Colors.grey.shade50,
-      body: citiesAsync.when(
-        data: (cities) {
-          if (_selectedCityId == null && cities.isNotEmpty) {
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted && _selectedCityId == null) {
-                setState(() => _selectedCityId = cities.first.id);
-              }
-            });
-          }
-
-          return Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: _buildCityPicker(cities),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Description Card
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCCFBF1),
+                border: Border.all(color: const Color(0xFF99F6E4)),
+                borderRadius: BorderRadius.circular(12),
               ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: _selectedCityId == null
-                    ? const Center(child: Text('Select a city to continue'))
-                    : _buildCoverageLists(context, cities),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: saveState.isLoading ? null : _handleSaveCoverage,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF14B8A6),
+                      shape: BoxShape.circle,
                     ),
-                    child: saveState.isLoading
-                        ? const SizedBox(
-                            height: 18,
-                            width: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Save Coverage',
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
+                    child: const Icon(
+                      Icons.info_outline,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text(
+                      'Configure where you can provide transportation services',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF374151)),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (err, _) => Center(child: Text('Failed to load cities: $err')),
-      ),
-    );
-  }
-
-  Widget _buildCityPicker(List<CityModel> cities) {
-    return InputDecorator(
-      decoration: InputDecoration(
-        labelText: 'City',
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          isExpanded: true,
-          value: _selectedCityId,
-          items: cities
-              .map(
-                (city) => DropdownMenuItem(
-                  value: city.id,
-                  child: Text(city.name),
-                ),
-              )
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() {
-              _selectedCityId = value;
-            });
-          },
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCoverageLists(BuildContext context, List<CityModel> cities) {
-    final cityId = _selectedCityId!;
-    final cityName = cities
-        .firstWhere((c) => c.id == cityId, orElse: () => cities.first)
-        .name;
-    final areasAsync = ref.watch(coverageAreasProvider(cityId: cityId));
-    final schoolsAsync = ref.watch(coverageSchoolsProvider(cityId: cityId));
-
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      children: [
-        _buildSectionHeader(
-          title: 'Covered Areas',
-          subtitle: 'Choose neighborhoods you can reach easily.',
-          trailing: _buildSelectionCount(_selectedAreaIds.length),
-        ),
-        const SizedBox(height: 8),
-        _buildSearchField(
-          controller: _areaSearchController,
-          hintText: 'Search areas',
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: 12),
-        areasAsync.when(
-          data: (areas) => _buildAreasList(areas),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Text('Failed to load areas: $err'),
-        ),
-        const SizedBox(height: 20),
-        _buildSectionHeader(
-          title: 'Covered Schools',
-          subtitle: 'Select schools you can serve in $cityName.',
-          trailing: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildSelectionCount(_selectedSchoolIds.length),
-              const SizedBox(width: 8),
-              TextButton.icon(
-                onPressed: () => _openAddSchoolDialog(context, cityId),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add School'),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        _buildSearchField(
-          controller: _schoolSearchController,
-          hintText: 'Search schools',
-          onChanged: (_) => setState(() {}),
-        ),
-        const SizedBox(height: 12),
-        schoolsAsync.when(
-          data: (schools) => _buildSchoolsList(schools),
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, _) => Text('Failed to load schools: $err'),
-        ),
-        const SizedBox(height: 12),
-      ],
-    );
-  }
-
-  Widget _buildAreasList(List<AreaModel> areas) {
-    final query = _areaSearchController.text.trim().toLowerCase();
-    final filtered = query.isEmpty
-        ? areas
-        : areas
-            .where((area) => area.name.toLowerCase().contains(query))
-            .toList();
-
-    if (filtered.isEmpty) {
-      return _buildEmptyHint('No areas found for this city.');
-    }
-
-    return Column(
-      children: filtered.map((area) {
-        final selected = _selectedAreaIds.contains(area.id);
-        return CheckboxListTile(
-          value: selected,
-          onChanged: (value) {
-            setState(() {
-              if (value == true) {
-                _selectedAreaIds.add(area.id);
-              } else {
-                _selectedAreaIds.remove(area.id);
-              }
-            });
-          },
-          title: Text(area.name),
-          controlAffinity: ListTileControlAffinity.leading,
-          activeColor: Colors.teal,
-          contentPadding: EdgeInsets.zero,
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildSchoolsList(List<SchoolModel> schools) {
-    final query = _schoolSearchController.text.trim().toLowerCase();
-    final filtered = query.isEmpty
-        ? schools
-        : schools
-            .where((school) => school.name.toLowerCase().contains(query))
-            .toList();
-
-    if (filtered.isEmpty) {
-      return _buildEmptyHint('No schools found for this city.');
-    }
-
-    return Column(
-      children: filtered.map((school) {
-        final selected = _selectedSchoolIds.contains(school.id);
-        return CheckboxListTile(
-          value: selected,
-          onChanged: (value) {
-            setState(() {
-              if (value == true) {
-                _selectedSchoolIds.add(school.id);
-              } else {
-                _selectedSchoolIds.remove(school.id);
-              }
-            });
-          },
-          title: Text(school.name),
-          subtitle: school.address != null && school.address!.isNotEmpty
-              ? Text(school.address!)
-              : null,
-          controlAffinity: ListTileControlAffinity.leading,
-          activeColor: Colors.teal,
-          contentPadding: EdgeInsets.zero,
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-    Widget? trailing,
-  }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              ),
-            ],
-          ),
-        ),
-        if (trailing != null) trailing,
-      ],
-    );
-  }
-
-  Widget _buildSelectionCount(int count) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.teal.shade50,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        '$count selected',
-        style: TextStyle(
-          color: Colors.teal.shade700,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchField({
-    required TextEditingController controller,
-    required String hintText,
-    required ValueChanged<String> onChanged,
-  }) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        hintText: hintText,
-        prefixIcon: const Icon(Icons.search),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
-
-  Widget _buildEmptyHint(String message) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        message,
-        style: TextStyle(color: Colors.grey.shade600),
-      ),
-    );
-  }
-
-  Future<void> _handleSaveCoverage() async {
-    if (!_initialSelectionLoaded) return;
-
-    final controller = ref.read(driverCoverageControllerProvider.notifier);
-    await controller.saveCoverage(
-      areaIds: _selectedAreaIds,
-      schoolIds: _selectedSchoolIds,
-    );
-
-    if (!mounted) return;
-
-    final state = ref.read(driverCoverageControllerProvider);
-    if (state.hasError) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error saving coverage: ${state.error}'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Coverage updated'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
-
-  Future<void> _openAddSchoolDialog(BuildContext context, String cityId) async {
-    final nameController = TextEditingController();
-    final addressController = TextEditingController();
-
-    final created = await showDialog<SchoolModel>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add School'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'School name'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: addressController,
-                decoration: const InputDecoration(labelText: 'Address'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                final name = nameController.text.trim();
-                if (name.isEmpty) return;
-                final school =
-                    await ref.read(driverCoverageRepositoryProvider).addSchool(
-                          cityId: cityId,
-                          name: name,
-                          address: addressController.text.trim().isEmpty
-                              ? null
-                              : addressController.text.trim(),
-                        );
-                if (context.mounted) {
-                  Navigator.pop(context, school);
-                }
+            const SizedBox(height: 24),
+
+            // Areas Coverage Card
+            _buildCoverageOptionCard(
+              context: context,
+              title: 'Areas Coverage',
+              subtitle: 'Select neighborhoods and locations you serve',
+              icon: Icons.location_on,
+              iconColor: const Color(0xFF3B82F6),
+              iconBgColor: const Color(0xFFDBEAFE),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AreasCoverageScreen(),
+                  ),
+                );
               },
-              child: const Text('Add'),
+            ),
+            const SizedBox(height: 16),
+
+            // Schools Coverage Card
+            _buildCoverageOptionCard(
+              context: context,
+              title: 'Schools Coverage',
+              subtitle: 'Select schools you can serve',
+              icon: Icons.school,
+              iconColor: const Color(0xFF8B5CF6),
+              iconBgColor: const Color(0xFFEDE9FE),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SchoolsCoverageScreen(),
+                  ),
+                );
+              },
             ),
           ],
-        );
-      },
+        ),
+      ),
     );
+  }
 
-    nameController.dispose();
-    addressController.dispose();
-
-    if (created == null) return;
-    if (!mounted) return;
-    ref.invalidate(coverageSchoolsProvider(cityId: cityId));
-    setState(() {
-      _selectedSchoolIds.add(created.id);
-    });
+  Widget _buildCoverageOptionCard({
+    required BuildContext context,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color iconColor,
+    required Color iconBgColor,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey[200]!),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: iconBgColor,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: Colors.grey, size: 24),
+          ],
+        ),
+      ),
+    );
   }
 }

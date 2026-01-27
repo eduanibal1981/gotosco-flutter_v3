@@ -91,8 +91,15 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   }
 
   Widget _buildQuickStats(List<Map<String, dynamic>> bookings) {
-    final active = bookings.where((b) => b['status'] == 'accepted').length;
-    final pending = bookings.where((b) => b['status'] == 'pending').length;
+    final active = bookings.where((b) {
+      final status = b['status'];
+      final subStatus = b['subscription_status'];
+      return (status == 'confirmed' || status == 'accepted') &&
+          (subStatus == 'active' || subStatus == null);
+    }).length;
+    final pending = bookings
+        .where((b) => b['status'] == 'pending' || b['status'] == 'posted')
+        .length;
 
     return Row(
       children: [
@@ -258,24 +265,43 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
     List<Map<String, dynamic>> bookings,
   ) {
     // Group by status
-    final accepted = bookings.where((b) => b['status'] == 'accepted').toList();
-    final pending = bookings.where((b) => b['status'] == 'pending').toList();
+    final activeBookings = bookings.where((b) {
+      final status = b['status'];
+      final subStatus = b['subscription_status'];
+      return (status == 'confirmed' || status == 'accepted') &&
+          (subStatus == 'active' || subStatus == null);
+    }).toList();
+
+    final pending = bookings
+        .where((b) => b['status'] == 'pending' || b['status'] == 'posted')
+        .toList();
+
     final completed = bookings
         .where((b) => b['status'] == 'completed')
         .toList();
-    final rejected = bookings
-        .where((b) => b['status'] == 'rejected' || b['status'] == 'cancelled')
-        .toList();
+
+    final cancelled = bookings.where((b) {
+      final status = b['status'];
+      final subStatus = b['subscription_status'];
+      return status == 'cancelled' ||
+          status == 'rejected' ||
+          subStatus == 'cancelled' ||
+          subStatus == 'expired';
+    }).toList();
 
     final List<Widget> items = [];
 
     // Active bookings
-    if (accepted.isNotEmpty &&
+    if (activeBookings.isNotEmpty &&
         (_selectedFilter == 'all' || _selectedFilter == 'active')) {
       items.add(
-        _buildSectionHeader('Active Bookings', Colors.green, accepted.length),
+        _buildSectionHeader(
+          'Active Bookings',
+          Colors.green,
+          activeBookings.length,
+        ),
       );
-      for (var booking in accepted) {
+      for (var booking in activeBookings) {
         items.add(
           _buildBookingCard(
             context,
@@ -321,9 +347,9 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
     }
 
     // Rejected/Cancelled
-    if (rejected.isNotEmpty && _selectedFilter == 'all') {
-      items.add(_buildSectionHeader('Cancelled', Colors.red, rejected.length));
-      for (var booking in rejected) {
+    if (cancelled.isNotEmpty && _selectedFilter == 'all') {
+      items.add(_buildSectionHeader('Cancelled', Colors.red, cancelled.length));
+      for (var booking in cancelled) {
         items.add(
           _buildBookingCard(
             context,
@@ -406,32 +432,30 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
         ? DateTime.tryParse(booking['created_at'])
         : null;
 
+    final isAccepted = status == 'accepted' || status == 'confirmed';
+
     Color statusColor;
     IconData statusIcon;
-    switch (status) {
-      case 'accepted':
-        statusColor = Colors.green;
-        statusIcon = Icons.check_circle;
-        break;
-      case 'pending':
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
-        break;
-      case 'completed':
-        statusColor = Colors.grey;
-        statusIcon = Icons.task_alt;
-        break;
-      default:
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
+    if (isAccepted) {
+      statusColor = Colors.green;
+      statusIcon = Icons.check_circle;
+    } else if (status == 'pending' || status == 'posted') {
+      statusColor = Colors.orange;
+      statusIcon = Icons.hourglass_empty;
+    } else if (status == 'completed') {
+      statusColor = Colors.grey;
+      statusIcon = Icons.task_alt;
+    } else {
+      statusColor = Colors.red;
+      statusIcon = Icons.cancel;
     }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: status == 'accepted' ? 3 : 1,
+      elevation: isAccepted ? 3 : 1,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: status == 'accepted'
+        side: isAccepted
             ? BorderSide(color: Colors.green.shade200, width: 1)
             : BorderSide.none,
       ),
@@ -617,7 +641,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
                           color: Colors.red,
                         ),
                         label: Text(
-                          status == 'accepted' ? 'Manage' : 'Cancel',
+                          isAccepted ? 'Cancel' : 'Cancel',
                           style: const TextStyle(color: Colors.red),
                         ),
                         style: OutlinedButton.styleFrom(

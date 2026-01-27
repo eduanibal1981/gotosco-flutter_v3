@@ -6,14 +6,16 @@ class DriverAvailabilitySettings {
   final bool autoOnlineBeforeTrip;
   final int autoOnlineMinutesBefore;
   final String availabilityMode; // 'smart' | 'manual'
-  final bool isOnline;
+  final bool isProfileOnline;
+  final bool isTrackingActive;
 
   const DriverAvailabilitySettings({
     this.autoOfflineAfterTrip = true,
     this.autoOnlineBeforeTrip = true,
     this.autoOnlineMinutesBefore = 15,
     this.availabilityMode = 'smart',
-    this.isOnline = false,
+    this.isProfileOnline = false,
+    this.isTrackingActive = false,
   });
 
   /// Creates settings from Supabase RPC response
@@ -23,7 +25,8 @@ class DriverAvailabilitySettings {
       autoOnlineBeforeTrip: map['auto_online_before_trip'] as bool? ?? true,
       autoOnlineMinutesBefore: map['auto_online_minutes_before'] as int? ?? 15,
       availabilityMode: map['availability_mode'] as String? ?? 'smart',
-      isOnline: map['is_online'] as bool? ?? false,
+      isProfileOnline: map['is_profile_online'] as bool? ?? false,
+      isTrackingActive: map['is_tracking_active'] as bool? ?? false,
     );
   }
 
@@ -39,7 +42,8 @@ class DriverAvailabilitySettings {
     bool? autoOnlineBeforeTrip,
     int? autoOnlineMinutesBefore,
     String? availabilityMode,
-    bool? isOnline,
+    bool? isProfileOnline,
+    bool? isTrackingActive,
   }) {
     return DriverAvailabilitySettings(
       autoOfflineAfterTrip: autoOfflineAfterTrip ?? this.autoOfflineAfterTrip,
@@ -47,11 +51,12 @@ class DriverAvailabilitySettings {
       autoOnlineMinutesBefore:
           autoOnlineMinutesBefore ?? this.autoOnlineMinutesBefore,
       availabilityMode: availabilityMode ?? this.availabilityMode,
-      isOnline: isOnline ?? this.isOnline,
+      isProfileOnline: isProfileOnline ?? this.isProfileOnline,
+      isTrackingActive: isTrackingActive ?? this.isTrackingActive,
     );
   }
 
   @override
   String toString() =>
-      'DriverAvailabilitySettings(mode: $availabilityMode, online: $isOnline, autoOff: $autoOfflineAfterTrip, autoOn: $autoOnlineBeforeTrip @ $autoOnlineMinutesBefore min)';
+      'DriverAvailabilitySettings(mode: $availabilityMode, profileOnline: $isProfileOnline, tracking: $isTrackingActive)';
 }

@@ -187,14 +187,14 @@ class DriverDashboardRepository {
         profile['license_number'] != null &&
         (profile['license_number'] as String).isNotEmpty;
 
-    // Check schedules - driver must have at least one active schedule
-    final hasSchedule = await hasSchedules();
+    // Check schedules - driver schedule is now OPTIONAL (as per advanced logic)
+    // We allow Manual Mode by default for new drivers.
+    // final hasSchedule = await hasSchedules();
 
     return hasVehicleType &&
         hasVehicleNumber &&
         hasVehicleCapacity &&
-        hasLicenseNumber &&
-        hasSchedule;
+        hasLicenseNumber;
   }
 
   /// Determine the current dashboard state
@@ -522,7 +522,7 @@ class DriverDashboardRepository {
   Future<void> setOnlineStatus(bool isOnline) async {
     await _supabase
         .from('drivers')
-        .update({'is_online': isOnline})
+        .update({'is_profile_online': isOnline})
         .eq('user_id', _driverId);
   }
 

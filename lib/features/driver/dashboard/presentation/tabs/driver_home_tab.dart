@@ -459,6 +459,28 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               const SizedBox(height: 20),
 
+              // Ad/Online Button (Only if Offline)
+              Consumer(
+                builder: (context, ref, child) {
+                  final availabilityAsync = ref.watch(
+                    driverAvailabilityControllerProvider,
+                  );
+                  return availabilityAsync.when(
+                    data: (settings) {
+                      if (!settings.isProfileOnline) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: _buildGoOnlineButton(),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
+
               // Quick Actions
               _buildSectionTitle('Quick Actions'),
               const SizedBox(height: 12),
@@ -514,6 +536,89 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
+  Widget _buildGoOnlineButton() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.teal.shade600, Colors.teal.shade500],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.teal.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () async {
+            await ref
+                .read(driverAvailabilityControllerProvider.notifier)
+                .toggleProfileVisibility();
+            if (context.mounted) {
+              _refreshDashboard();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Your Ad is online! Parents can now see you.'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.rocket_launch,
+                    color: Colors.white,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Go Your Ad Online',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Become visible to parents',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // STATE 3: HAS REQUESTS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -530,7 +635,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
             loading: () => 'Welcome!',
             error: (_, __) => 'Welcome!',
           ),
-          subtitle: 'ONLINE ✓',
+          subtitle: 'GoToSco wish you the best day!',
           showOnlineToggle: true,
         ),
         SliverPadding(
@@ -586,19 +691,19 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               const SizedBox(height: 12),
 
               // Capacity Card
-                statsAsync.when(
-                  data: (stats) =>
-                      _buildCapacityCard(stats['active_students'] ?? 0, 8),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-                const SizedBox(height: 24),
-                _buildTransportRequestsPreview(),
-              ]),
-            ),
+              statsAsync.when(
+                data: (stats) =>
+                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 24),
+              _buildTransportRequestsPreview(),
+            ]),
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -676,19 +781,19 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               const SizedBox(height: 12),
 
               // Capacity
-                statsAsync.when(
-                  data: (stats) =>
-                      _buildCapacityCard(stats['active_students'] ?? 0, 8),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-                const SizedBox(height: 24),
-                _buildTransportRequestsPreview(),
-              ]),
-            ),
+              statsAsync.when(
+                data: (stats) =>
+                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
+              ),
+              const SizedBox(height: 24),
+              _buildTransportRequestsPreview(),
+            ]),
           ),
-        ],
-      );
+        ),
+      ],
+    );
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -784,27 +889,32 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
     return availabilityAsync.when(
       data: (settings) => GestureDetector(
-        onTap: () => ref
-            .read(driverAvailabilityControllerProvider.notifier)
-            .toggleOnline(),
+        onTap: () async {
+          await ref
+              .read(driverAvailabilityControllerProvider.notifier)
+              .toggleProfileVisibility();
+          if (context.mounted) _refreshDashboard();
+        },
         onLongPress: () => AvailabilityControlSheet.show(context),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
-            color: settings.isOnline ? Colors.green : Colors.grey.shade600,
+            color: settings.isProfileOnline
+                ? Colors.green
+                : Colors.grey.shade600,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                settings.isOnline ? Icons.circle : Icons.circle_outlined,
+                settings.isProfileOnline ? Icons.circle : Icons.circle_outlined,
                 size: 10,
                 color: Colors.white,
               ),
               const SizedBox(width: 6),
               Text(
-                settings.isOnline ? 'Online' : 'Offline',
+                settings.isProfileOnline ? 'Visible' : 'Hidden',
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
@@ -1278,12 +1388,10 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 children: items.map((request) {
                   final parentName =
                       request['parent_name'] as String? ?? 'Parent';
-                  final childName =
-                      request['child_name'] as String? ?? 'Child';
+                  final childName = request['child_name'] as String? ?? 'Child';
                   final schoolName =
                       request['school_name'] as String? ?? 'School';
-                  final bookingType =
-                      request['booking_type'] as String? ?? '';
+                  final bookingType = request['booking_type'] as String? ?? '';
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
                     padding: const EdgeInsets.all(12),
@@ -1293,33 +1401,33 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       border: Border.all(color: Colors.grey.shade200),
                     ),
                     child: Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 18,
-                            backgroundColor: Colors.teal.shade50,
-                            child: Text(
-                              parentName.isNotEmpty
-                                  ? parentName[0].toUpperCase()
-                                  : 'P',
-                              style: TextStyle(color: Colors.teal.shade700),
-                            ),
+                      children: [
+                        CircleAvatar(
+                          radius: 18,
+                          backgroundColor: Colors.teal.shade50,
+                          child: Text(
+                            parentName.isNotEmpty
+                                ? parentName[0].toUpperCase()
+                                : 'P',
+                            style: TextStyle(color: Colors.teal.shade700),
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  parentName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                parentName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
                                 ),
-                                Text(
-                                  '$childName · $schoolName',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
+                              ),
+                              Text(
+                                '$childName · $schoolName',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontSize: 12,
                                 ),

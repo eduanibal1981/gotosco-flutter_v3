@@ -102,7 +102,7 @@ class DriverBookingsRepository {
   Future<void> acceptBooking(String bookingId) async {
     final response = await _supabase
         .from('bookings')
-        .update({'status': 'accepted'})
+        .update({'status': 'confirmed', 'subscription_status': 'active'})
         .eq('id', bookingId)
         .select();
 
@@ -114,7 +114,7 @@ class DriverBookingsRepository {
   Future<void> rejectBooking(String bookingId) async {
     final response = await _supabase
         .from('bookings')
-        .update({'status': 'rejected'})
+        .update({'status': 'cancelled'})
         .eq('id', bookingId)
         .select();
 
