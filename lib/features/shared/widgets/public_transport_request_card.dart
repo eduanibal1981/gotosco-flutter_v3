@@ -107,7 +107,7 @@ class PublicTransportRequestCard extends StatelessWidget {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
@@ -236,9 +236,19 @@ class PublicTransportRequestCard extends StatelessWidget {
             bookingType: request['booking_type'] ?? '',
             locations: [
               if (request['hometxt_location'] != null)
-                {'label': 'Pickup From', 'value': request['hometxt_location']},
+                {
+                  'label': 'Pickup From',
+                  'value': request['hometxt_location'],
+                  'lat': request['home_lat'],
+                  'lng': request['home_lng'],
+                },
               if (request['schooltxt_location'] != null)
-                {'label': 'Dropoff To', 'value': request['schooltxt_location']},
+                {
+                  'label': 'Dropoff To',
+                  'value': request['schooltxt_location'],
+                  'lat': request['school_lat'],
+                  'lng': request['school_lng'],
+                },
             ],
             // Use same schedule description logic as Parent View or similar
             scheduleType:
@@ -278,7 +288,7 @@ class PublicTransportRequestCard extends StatelessWidget {
       String desc = '';
       if (req['start_date'] != null) {
         final start = DateTime.parse(req['start_date']);
-        desc = '${_formatDate(start)}';
+        desc = _formatDate(start);
         if (req['end_date'] != null) {
           final end = DateTime.parse(req['end_date']);
           desc += ' - ${_formatDate(end)}';

@@ -24,7 +24,7 @@ class TransportRequestCard extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.indigo.withOpacity(0.18),
+            color: Colors.indigo.withValues(alpha: 0.18),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -67,7 +67,7 @@ class TransportRequestCard extends ConsumerWidget {
               Text(
                 "Post a request and let drivers contact you with offers.",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                  color: Colors.white.withValues(alpha: 0.9),
                   fontSize: 13,
                 ),
               ),
@@ -75,7 +75,7 @@ class TransportRequestCard extends ConsumerWidget {
               Text(
                 "Tip: add the price you want in the notes.",
                 style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
+                  color: Colors.white.withValues(alpha: 0.8),
                   fontSize: 12,
                 ),
               ),
@@ -127,7 +127,7 @@ class TransportRequestCard extends ConsumerWidget {
         const SizedBox(height: 6),
         Text(
           "Add another request if you need more routes.",
-          style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 12),
+          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12),
         ),
         const SizedBox(height: 12),
         ListView.separated(
@@ -196,9 +196,9 @@ class TransportRequestCard extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.15),
+          color: Colors.white.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.2)),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
@@ -219,7 +219,7 @@ class TransportRequestCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 12,
                     ),
                   ),
@@ -275,9 +275,19 @@ class TransportRequestCard extends ConsumerWidget {
 
             locations: [
               if (request['hometxt_location'] != null)
-                {'label': 'Pickup From', 'value': request['hometxt_location']},
+                {
+                  'label': 'Pickup From',
+                  'value': request['hometxt_location'],
+                  'lat': request['home_lat'],
+                  'lng': request['home_lng'],
+                },
               if (request['schooltxt_location'] != null)
-                {'label': 'Dropoff To', 'value': request['schooltxt_location']},
+                {
+                  'label': 'Dropoff To',
+                  'value': request['schooltxt_location'],
+                  'lat': request['school_lat'],
+                  'lng': request['school_lng'],
+                },
             ],
             scheduleType:
                 request['schedule_type'] ??
@@ -355,9 +365,9 @@ class TransportRequestCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
       ),
       child: Text(
         label,
@@ -374,7 +384,7 @@ class TransportRequestCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.2),
+        color: Colors.white.withValues(alpha: 0.2),
         shape: BoxShape.circle,
       ),
       child: const Icon(Icons.campaign_outlined, color: Colors.white, size: 32),

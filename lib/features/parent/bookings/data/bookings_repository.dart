@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/geo_parsing.dart';
 
 part 'bookings_repository.g.dart';
 
@@ -305,7 +306,9 @@ class BookingsRepository {
     // 1. Fetch basic bookings
     final bookings = await _supabase
         .from('bookings')
-        .select()
+        .select(
+          '*, homegeo_location:homegeo_location::text, schoolgeo_location:schoolgeo_location::text',
+        )
         .eq('parent_id', userId)
         .order('created_at', ascending: false);
 
@@ -414,6 +417,14 @@ class BookingsRepository {
 
       newMap['home_location'] = b['hometxt_location'];
       newMap['school_location'] = b['schooltxt_location'];
+
+      final homeGeo = parseGeoLocation(b['homegeo_location']);
+      final schoolGeo = parseGeoLocation(b['schoolgeo_location']);
+
+      newMap['home_lat'] = homeGeo?['lat'];
+      newMap['home_lng'] = homeGeo?['lng'];
+      newMap['school_lat'] = schoolGeo?['lat'];
+      newMap['school_lng'] = schoolGeo?['lng'];
 
       return newMap;
     }).toList();
