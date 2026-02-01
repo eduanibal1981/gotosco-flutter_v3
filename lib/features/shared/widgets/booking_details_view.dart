@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BookingDetailsView extends StatelessWidget {
   final String title;
@@ -8,8 +9,8 @@ class BookingDetailsView extends StatelessWidget {
   final String tripCategory;
   final String bookingType;
   final bool isMultiSchool;
-  final List<Map<String, String>>
-  locations; // [{'label': 'Pickup', 'value': '...'}, ...]
+  final List<Map<String, dynamic>>
+  locations; // [{'label': 'Pickup', 'value': '...', 'lat': ..., 'lng': ...}, ...]
   final String scheduleType;
   final String scheduleDescription;
   final double? price;
@@ -259,7 +260,7 @@ class BookingDetailsView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(icon, color: iconColor, size: 20),
@@ -313,7 +314,7 @@ class BookingDetailsView extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.green.withOpacity(0.1),
+                color: Colors.green.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
@@ -344,6 +345,8 @@ class BookingDetailsView extends StatelessWidget {
             _buildLocationItem(
               locations.first['label'] ?? 'Pickup',
               locations.first['value'] ?? '',
+              lat: locations.first['lat'],
+              lng: locations.first['lng'],
             ),
 
           // Schools
@@ -351,6 +354,8 @@ class BookingDetailsView extends StatelessWidget {
             (s) => _buildLocationItem(
               'School',
               '${s['name'] ?? 'School'}${s['address'] != null ? '\n${s['address']}' : ''}',
+              lat: s['latitude'],
+              lng: s['longitude'],
             ),
           ),
         ] else
@@ -358,35 +363,74 @@ class BookingDetailsView extends StatelessWidget {
           ...locations.map((loc) {
             final label = loc['label'] ?? '';
             final val = loc['value'] ?? '';
-            return _buildLocationItem(label, val);
+            return _buildLocationItem(
+              label,
+              val,
+              lat: loc['lat'],
+              lng: loc['lng'],
+            );
           }),
       ],
     );
   }
 
-  Widget _buildLocationItem(String label, String val) {
+  Widget _buildLocationItem(
+    String label,
+    String val, {
+    dynamic lat,
+    dynamic lng,
+  }) {
     return Padding(
       padding: const EdgeInsets.only(left: 40, bottom: 8),
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (label.isNotEmpty)
-            Text(
-              label,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          if (label.isNotEmpty) const SizedBox(height: 2),
-          Text(
-            val,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (label.isNotEmpty)
+                  Text(
+                    label,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                if (label.isNotEmpty) const SizedBox(height: 2),
+                Text(
+                  val,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
             ),
           ),
+          if (lat != null && lng != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: IconButton(
+                icon: const Icon(
+                  Icons.map,
+                  color: Colors.blue,
+                ), // Map button added
+                tooltip: 'Open in Maps',
+                onPressed: () => _openMap(lat, lng),
+              ),
+            ),
         ],
       ),
     );
+  }
+
+  Future<void> _openMap(dynamic lat, dynamic lng) async {
+    if (lat == null || lng == null) return;
+    final uri = Uri.parse(
+      "https://www.google.com/maps/search/?api=1&query=$lat,$lng",
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Widget _buildNotesSection() {
@@ -455,7 +499,7 @@ class BookingDetailsView extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.indigo.withOpacity(0.3),
+            color: Colors.indigo.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -478,7 +522,7 @@ class BookingDetailsView extends StatelessWidget {
             Text(
               'Note: add your chat agreed price with the driver or your suggested price',
               style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 12,
                 fontStyle: FontStyle.italic,
               ),
@@ -500,9 +544,9 @@ class BookingDetailsView extends StatelessWidget {
                 suffixText: 'OMR',
                 suffixStyle: const TextStyle(color: Colors.white70),
                 hintText: '0.00',
-                hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
                 filled: true,
-                fillColor: Colors.white.withOpacity(0.2),
+                fillColor: Colors.white.withValues(alpha: 0.2),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,

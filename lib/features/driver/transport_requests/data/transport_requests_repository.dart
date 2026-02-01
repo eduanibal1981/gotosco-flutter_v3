@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/geo_parsing.dart';
 
 part 'transport_requests_repository.g.dart';
 
@@ -50,7 +51,12 @@ class DriverTransportRequestsRepository {
   }) async {
     // Query BOOKINGS instead of transport_requests
     // Open requests have driver_id == null OR status == 'posted'
-    var query = _supabase.from('bookings').select().isFilter('driver_id', null);
+    var query = _supabase
+        .from('bookings')
+        .select(
+          '*, homegeo_location:homegeo_location::text, schoolgeo_location:schoolgeo_location::text',
+        )
+        .isFilter('driver_id', null);
 
     if (status != null && status != 'all') {
       if (status == 'open') {
@@ -219,6 +225,12 @@ class DriverTransportRequestsRepository {
 
         'hometxt_location': b['hometxt_location'],
         'schooltxt_location': b['schooltxt_location'],
+
+        'home_lat': parseGeoLocation(b['homegeo_location'])?['lat'],
+        'home_lng': parseGeoLocation(b['homegeo_location'])?['lng'],
+        'school_lat': parseGeoLocation(b['schoolgeo_location'])?['lat'],
+        'school_lng': parseGeoLocation(b['schoolgeo_location'])?['lng'],
+
         'notes': b['notes'],
         'status': b['status'] == 'posted' ? 'open' : b['status'],
         'created_at': b['created_at'],

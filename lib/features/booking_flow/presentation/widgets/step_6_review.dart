@@ -95,8 +95,8 @@ class Step6Review extends ConsumerWidget {
     return {};
   }
 
-  List<Map<String, String>> _formatLocations(dynamic bookingDraft) {
-    final list = <Map<String, String>>[];
+  List<Map<String, dynamic>> _formatLocations(dynamic bookingDraft) {
+    final list = <Map<String, dynamic>>[];
 
     if (bookingDraft.isMultiSchool) {
       if (bookingDraft.pickupLocationText != null &&
@@ -104,21 +104,35 @@ class Step6Review extends ConsumerWidget {
         list.add({
           'label': 'Pickup (Home)',
           'value': bookingDraft.pickupLocationText!,
+          'lat': bookingDraft.pickupLat,
+          'lng': bookingDraft.pickupLng,
         });
       }
       if (bookingDraft.bookingType != 'One Way Back Home') {
         for (var s in bookingDraft.schoolLocations) {
-          list.add({'label': 'Dropoff (School)', 'value': s.schoolName});
+          list.add({
+            'label': 'Dropoff (School)',
+            'value': s.schoolName,
+            'lat': s.latitude,
+            'lng': s.longitude,
+          });
         }
       }
       if (bookingDraft.bookingType == 'One Way Back Home') {
         for (var s in bookingDraft.schoolLocations) {
-          list.add({'label': 'Pickup (School)', 'value': s.schoolName});
+          list.add({
+            'label': 'Pickup (School)',
+            'value': s.schoolName,
+            'lat': s.latitude,
+            'lng': s.longitude,
+          });
         }
         if (bookingDraft.dropoffLocationText != null) {
           list.add({
             'label': 'Dropoff (Home)',
             'value': bookingDraft.dropoffLocationText!,
+            'lat': bookingDraft.dropoffLat,
+            'lng': bookingDraft.dropoffLng,
           });
         }
       }
@@ -127,12 +141,16 @@ class Step6Review extends ConsumerWidget {
         list.add({
           'label': 'Pickup',
           'value': bookingDraft.pickupLocationText!,
+          'lat': bookingDraft.pickupLat,
+          'lng': bookingDraft.pickupLng,
         });
       }
       if (bookingDraft.dropoffLocationText != null) {
         list.add({
           'label': 'Dropoff',
           'value': bookingDraft.dropoffLocationText!,
+          'lat': bookingDraft.dropoffLat,
+          'lng': bookingDraft.dropoffLng,
         });
       }
     }
