@@ -58,6 +58,20 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     context.push('/driver-profile-edit', extra: profile);
   }
 
+  Future<void> _openVehicleDetails(BuildContext context) async {
+    final profile = await ref.read(currentDriverProfileProvider.future);
+    if (!context.mounted) {
+      return;
+    }
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile not found. Please try again.')),
+      );
+      return;
+    }
+    context.push('/vehicle-details', extra: profile);
+  }
+
   void _openProfileSection(DriverProfileScrollTarget target) {
     ref
         .read(driverProfileScrollTargetControllerProvider.notifier)
@@ -507,7 +521,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                   _buildSmallAction(
                     Icons.directions_bus,
                     'View Vehicle',
-                    () {},
+                    () => _openVehicleDetails(context),
                   ),
                 ],
               ),
@@ -703,7 +717,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               // Capacity Card
               statsAsync.when(
                 data: (stats) =>
-                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                    _buildCapacityCard(stats['active_students'] ?? 0, 8, onTap: () => _openVehicleDetails(context)),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
@@ -793,7 +807,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               // Capacity
               statsAsync.when(
                 data: (stats) =>
-                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                    _buildCapacityCard(stats['active_students'] ?? 0, 8, onTap: () => _openVehicleDetails(context)),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
@@ -1553,46 +1567,53 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  Widget _buildCapacityCard(int filled, int total) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.airline_seat_recline_normal,
-            color: Colors.purple.shade600,
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Capacity',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              Text(
-                '$filled/$total slots filled',
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-              ),
-            ],
-          ),
-          const Spacer(),
-          Text(
-            '$filled',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+  Widget _buildCapacityCard(int filled, int total, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.airline_seat_recline_normal,
               color: Colors.purple.shade600,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Capacity',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  '$filled/$total slots filled',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Text(
+              '$filled',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.purple.shade600,
+              ),
+            ),
+            if (onTap != null) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.chevron_right, color: Colors.grey.shade400),
+            ],
+          ],
+        ),
       ),
     );
   }
