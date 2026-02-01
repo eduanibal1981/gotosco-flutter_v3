@@ -153,7 +153,7 @@ class CoverageSummaryContent extends ConsumerWidget {
                     children: myAreas
                         .map(
                           (area) => Chip(
-                            label: Text(area.name),
+                            label: Text('${area.name} ($cityName)'),
                             backgroundColor: Colors.teal.shade50,
                           ),
                         )
@@ -209,7 +209,7 @@ class CoverageSummaryContent extends ConsumerWidget {
                     children: mySchools
                         .map(
                           (school) => Chip(
-                            label: Text(school.name),
+                            label: Text('${school.name} ($cityName)'),
                             backgroundColor: Colors.blue.shade50,
                           ),
                         )
