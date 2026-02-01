@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "sessionId": "e4fe9966-b131-432f-8c96-0f6a58dfc780",
+      "fullPath": "C:\\Users\\abdal\\.claude\\projects\\C--Users-abdal\\e4fe9966-b131-432f-8c96-0f6a58dfc780.jsonl",
+      "fileMtime": 1769946432831,
+      "firstPrompt": "run /init",
+      "summary": "Analyzed codebase, created CLAUDE.md development guide",
+      "messageCount": 4,
+      "created": "2026-02-01T11:39:12.722Z",
+      "modified": "2026-02-01T11:40:08.296Z",
+      "gitBranch": "",
+      "projectPath": "C:\\Users\\abdal",
+      "isSidechain": false
+    }
+  ],
+  "originalPath": "C:\\Users\\abdal"
+}
