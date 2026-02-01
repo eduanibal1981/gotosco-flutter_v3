@@ -362,6 +362,20 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                     '${profile.vehicleCapacity} children',
                   ),
                   const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.push('/vehicle-details', extra: profile),
+                      icon: const Icon(Icons.info_outline, size: 18),
+                      label: const Text('More Details & Pictures'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.teal.shade200),
+                        foregroundColor: Colors.teal.shade700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   _buildDocumentUploadRow(
                     label: 'Upload Car Mulkia',
                     hint: 'Vehicle registration document',
