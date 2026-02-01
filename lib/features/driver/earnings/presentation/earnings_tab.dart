@@ -109,7 +109,7 @@ class EarningsTab extends ConsumerWidget {
               delegate: SliverChildListDelegate([
                 // Stats Row
                 statsAsync.when(
-                  data: (stats) => _buildStatsRow(stats),
+                  data: (stats) => _buildStatsRow(context, stats),
                   loading: () => const Center(
                     child: Padding(
                       padding: EdgeInsets.all(20),
@@ -186,7 +186,7 @@ class EarningsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsRow(Map<String, dynamic> stats) {
+  Widget _buildStatsRow(BuildContext context, Map<String, dynamic> stats) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
@@ -194,7 +194,7 @@ class EarningsTab extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -217,10 +217,16 @@ class EarningsTab extends ConsumerWidget {
           ),
           _buildDivider(),
           _buildStatItem(
-            icon: Icons.trending_up,
-            value: '+12%',
-            label: 'vs Last Mo.',
-            color: Colors.green,
+            icon: Icons.account_balance,
+            value: 'Manage',
+            label: 'Payments',
+            color: Colors.teal,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                    content: Text('Payment methods management coming soon')),
+              );
+            },
           ),
         ],
       ),
@@ -232,26 +238,42 @@ class EarningsTab extends ConsumerWidget {
     required String value,
     required String label,
     required Color color,
+    VoidCallback? onTap,
   }) {
+    Widget content = Column(
+      children: [
+        Icon(icon, color: color, size: 22),
+        const SizedBox(height: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+        ),
+      ],
+    );
+
+    if (onTap != null) {
+      return Expanded(
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: content,
+          ),
+        ),
+      );
+    }
+
     return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-          ),
-        ],
-      ),
+      child: content,
     );
   }
 
