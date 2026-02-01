@@ -1,0 +1,496 @@
+2026-02-01T11:33:44.956Z [DEBUG] Watching for changes in setting files C:\Users\abdal\.claude, C:\Users\abdal\.claude...
+2026-02-01T11:33:44.968Z [DEBUG] [init] configureGlobalMTLS starting
+2026-02-01T11:33:44.968Z [DEBUG] [init] configureGlobalMTLS complete
+2026-02-01T11:33:44.968Z [DEBUG] [init] configureGlobalAgents starting
+2026-02-01T11:33:44.968Z [DEBUG] [init] configureGlobalAgents complete
+2026-02-01T11:33:45.006Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-02-01T11:33:45.015Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-02-01T11:33:45.016Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-02-01T11:33:45.016Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-02-01T11:33:45.021Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-02-01T11:33:45.023Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-02-01T11:33:45.023Z [DEBUG] Total LSP servers loaded: 0
+2026-02-01T11:33:45.023Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-02-01T11:33:45.023Z [DEBUG] LSP manager initialized with 0 servers
+2026-02-01T11:33:45.023Z [DEBUG] [STARTUP] MCP configs loaded in 2ms
+2026-02-01T11:33:45.023Z [DEBUG] LSP server manager initialized successfully
+2026-02-01T11:33:45.024Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-02-01T11:33:45.024Z [DEBUG] [STARTUP] Running setup()...
+2026-02-01T11:33:45.097Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\abdal\.claude\skills, project=[]
+2026-02-01T11:33:45.803Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-02-01T11:33:45.828Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude\todos\e4fe9966-b131-432f-8c96-0f6a58dfc780-agent-e4fe9966-b131-432f-8c96-0f6a58dfc780.json.tmp.36204.1769945625828
+2026-02-01T11:33:45.830Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-02-01T11:33:45.830Z [DEBUG] Renaming C:\Users\abdal\.claude\todos\e4fe9966-b131-432f-8c96-0f6a58dfc780-agent-e4fe9966-b131-432f-8c96-0f6a58dfc780.json.tmp.36204.1769945625828 to C:\Users\abdal\.claude\todos\e4fe9966-b131-432f-8c96-0f6a58dfc780-agent-e4fe9966-b131-432f-8c96-0f6a58dfc780.json
+2026-02-01T11:33:45.831Z [DEBUG] File C:\Users\abdal\.claude\todos\e4fe9966-b131-432f-8c96-0f6a58dfc780-agent-e4fe9966-b131-432f-8c96-0f6a58dfc780.json written atomically
+2026-02-01T11:33:45.862Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-02-01T11:33:45.862Z [DEBUG] Total plugin skills loaded: 0
+2026-02-01T11:33:45.862Z [DEBUG] Total plugin commands loaded: 0
+2026-02-01T11:33:45.862Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-02-01T11:33:45.894Z [DEBUG] Loaded 0 unique skills (managed: 0, user: 0, project: 0, legacy commands: 0)
+2026-02-01T11:33:45.896Z [DEBUG] [STARTUP] setup() completed in 872ms
+2026-02-01T11:33:45.896Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-02-01T11:33:45.896Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 0 bundled skills
+2026-02-01T11:33:45.898Z [DEBUG] Total plugin agents loaded: 0
+2026-02-01T11:33:45.898Z [DEBUG] [STARTUP] Commands and agents loaded in 2ms
+2026-02-01T11:33:45.898Z [DEBUG] [STARTUP] Running showSetupScreens()...
+2026-02-01T11:33:45.964Z [DEBUG] [render] initYoga starting
+2026-02-01T11:33:45.979Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945625979
+2026-02-01T11:33:45.979Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:33:45.980Z [DEBUG] Temp file written successfully, size: 867 bytes
+2026-02-01T11:33:45.981Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:33:45.981Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945625979 to C:\Users\abdal\.claude.json
+2026-02-01T11:33:45.981Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:33:45.998Z [DEBUG] [render] initYoga complete
+2026-02-01T11:33:46.004Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945626004
+2026-02-01T11:33:46.004Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:33:46.005Z [DEBUG] Temp file written successfully, size: 866 bytes
+2026-02-01T11:33:46.005Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:33:46.005Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945626004 to C:\Users\abdal\.claude.json
+2026-02-01T11:33:46.006Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:33:46.020Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945626020
+2026-02-01T11:33:46.020Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:33:46.021Z [DEBUG] Temp file written successfully, size: 911 bytes
+2026-02-01T11:33:46.022Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:33:46.022Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945626020 to C:\Users\abdal\.claude.json
+2026-02-01T11:33:46.022Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:33:46.062Z [DEBUG] [keybindings] KeybindingSetup initialized with 39 bindings, 0 warnings
+2026-02-01T11:33:46.154Z [DEBUG] [keybindings] Skipping file watcher - user customization disabled
+2026-02-01T11:33:46.192Z [DEBUG] Creating shell snapshot for bash (C:\Program Files\Git\bin\bash.exe)
+2026-02-01T11:33:46.193Z [DEBUG] Looking for shell config file: C:\Users\abdal\.bashrc
+2026-02-01T11:33:46.193Z [DEBUG] Shell config file not found: C:\Users\abdal\.bashrc, creating snapshot with Claude Code defaults only
+2026-02-01T11:33:46.193Z [DEBUG] Snapshots directory: C:\Users\abdal\.claude\shell-snapshots
+2026-02-01T11:33:46.230Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945626230
+2026-02-01T11:33:46.230Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:33:46.232Z [DEBUG] Temp file written successfully, size: 978 bytes
+2026-02-01T11:33:46.232Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:33:46.232Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945626230 to C:\Users\abdal\.claude.json
+2026-02-01T11:33:46.233Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:33:46.396Z [DEBUG] Creating snapshot at: C:\Users\abdal\.claude\shell-snapshots\snapshot-bash-1769945626193-xrn857.sh
+2026-02-01T11:33:46.396Z [DEBUG] Shell binary exists: true
+2026-02-01T11:33:46.396Z [DEBUG] Execution timeout: 10000ms
+2026-02-01T11:33:46.429Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945626429
+2026-02-01T11:33:46.429Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:33:46.431Z [DEBUG] Temp file written successfully, size: 978 bytes
+2026-02-01T11:33:46.431Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:33:46.431Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945626429 to C:\Users\abdal\.claude.json
+2026-02-01T11:33:46.432Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:33:47.282Z [DEBUG] Shell snapshot created successfully (430 bytes)
+2026-02-01T11:37:05.904Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945825904
+2026-02-01T11:37:05.905Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:05.906Z [DEBUG] Temp file written successfully, size: 978 bytes
+2026-02-01T11:37:05.906Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:05.906Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945825904 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:05.906Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:05.909Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945825909
+2026-02-01T11:37:05.909Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:05.911Z [DEBUG] Temp file written successfully, size: 978 bytes
+2026-02-01T11:37:05.911Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:05.911Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945825909 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:05.912Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:18.693Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945838693
+2026-02-01T11:37:18.693Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:18.695Z [DEBUG] Temp file written successfully, size: 1048 bytes
+2026-02-01T11:37:18.695Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:18.695Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945838693 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:18.695Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:18.708Z [DEBUG] [render] initYoga starting
+2026-02-01T11:37:18.708Z [DEBUG] [render] initYoga complete
+2026-02-01T11:37:18.712Z [DEBUG] [keybindings] KeybindingSetup initialized with 39 bindings, 0 warnings
+2026-02-01T11:37:18.733Z [DEBUG] [keybindings] Skipping file watcher - user customization disabled
+2026-02-01T11:37:36.854Z [DEBUG] Metrics opt-out check failed: No API key available
+2026-02-01T11:37:36.868Z [DEBUG] Metrics check failed, defaulting to disabled
+2026-02-01T11:37:36.900Z [DEBUG] [STARTUP] showSetupScreens() completed in 231002ms
+2026-02-01T11:37:37.020Z [DEBUG] Initialized versioned plugins system with 0 plugins
+2026-02-01T11:37:37.026Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857026
+2026-02-01T11:37:37.026Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.028Z [DEBUG] Temp file written successfully, size: 1068 bytes
+2026-02-01T11:37:37.029Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.029Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857026 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.030Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.053Z [DEBUG] Getting matching hook commands for SessionStart with query: startup
+2026-02-01T11:37:37.053Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:37.053Z [DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+2026-02-01T11:37:37.057Z [DEBUG] [render] initYoga starting
+2026-02-01T11:37:37.057Z [DEBUG] [render] initYoga complete
+2026-02-01T11:37:37.062Z [DEBUG] [MCP CLI Endpoint] Started on http://127.0.0.1:61042
+2026-02-01T11:37:37.063Z [DEBUG] [MCP CLI Endpoint] Started at http://127.0.0.1:61042
+2026-02-01T11:37:37.133Z [DEBUG] Git remote URL: null
+2026-02-01T11:37:37.133Z [DEBUG] No git remote URL found
+2026-02-01T11:37:37.133Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-02-01T11:37:37.187Z [DEBUG] [keybindings] KeybindingSetup initialized with 39 bindings, 0 warnings
+2026-02-01T11:37:37.254Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857254
+2026-02-01T11:37:37.254Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.256Z [DEBUG] Temp file written successfully, size: 1125 bytes
+2026-02-01T11:37:37.256Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.256Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857254 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.258Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.282Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857282
+2026-02-01T11:37:37.282Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.284Z [DEBUG] Temp file written successfully, size: 1198 bytes
+2026-02-01T11:37:37.284Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.284Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857282 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.285Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.305Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857305
+2026-02-01T11:37:37.305Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.306Z [DEBUG] Temp file written successfully, size: 1246 bytes
+2026-02-01T11:37:37.307Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.307Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857305 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.308Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.335Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857335
+2026-02-01T11:37:37.335Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.336Z [DEBUG] Temp file written successfully, size: 1281 bytes
+2026-02-01T11:37:37.336Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.336Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857335 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.338Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.357Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857357
+2026-02-01T11:37:37.357Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.359Z [DEBUG] Temp file written successfully, size: 1692 bytes
+2026-02-01T11:37:37.359Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.359Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857357 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.360Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.379Z [DEBUG] [keybindings] Skipping file watcher - user customization disabled
+2026-02-01T11:37:37.379Z [DEBUG] [REPL:mount] REPL mounted, disabled=false
+2026-02-01T11:37:37.383Z [DEBUG] performStartupChecks called
+2026-02-01T11:37:37.383Z [DEBUG] Starting background plugin installations
+2026-02-01T11:37:37.384Z [DEBUG] performBackgroundPluginInstallations called
+2026-02-01T11:37:37.387Z [DEBUG] AutoUpdaterWrapper: Installation type: native
+2026-02-01T11:37:37.394Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857394
+2026-02-01T11:37:37.394Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.396Z [DEBUG] Temp file written successfully, size: 1732 bytes
+2026-02-01T11:37:37.396Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.396Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857394 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.445Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.456Z [DEBUG] Setting installation status: 0 marketplaces, 0 installable plugins, 0 uninstallable plugins
+2026-02-01T11:37:37.458Z [DEBUG] Attempting to auto-install official marketplace
+2026-02-01T11:37:37.474Z [DEBUG] Loaded plugins - Enabled: 0, Disabled: 0, Commands: 0, Agents: 0, Errors: 0
+2026-02-01T11:37:37.477Z [DEBUG] Getting matching hook commands for SubagentStart with query: Explore
+2026-02-01T11:37:37.477Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:37.477Z [DEBUG] Matched 0 unique hooks for query "Explore" (0 before deduplication)
+2026-02-01T11:37:37.478Z [DEBUG] Getting matching hook commands for SubagentStart with query: Plan
+2026-02-01T11:37:37.478Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:37.478Z [DEBUG] Matched 0 unique hooks for query "Plan" (0 before deduplication)
+2026-02-01T11:37:37.479Z [DEBUG] Getting matching hook commands for SubagentStart with query: Bash
+2026-02-01T11:37:37.479Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:37.479Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-02-01T11:37:37.494Z [DEBUG] Skills and commands included in Skill tool:
+2026-02-01T11:37:37.533Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:37:37.533Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:37:37.533Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:37:37.574Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857574
+2026-02-01T11:37:37.574Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.577Z [DEBUG] Temp file written successfully, size: 1913 bytes
+2026-02-01T11:37:37.577Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.577Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857574 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.578Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.644Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857644
+2026-02-01T11:37:37.644Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.645Z [DEBUG] Temp file written successfully, size: 1959 bytes
+2026-02-01T11:37:37.646Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.646Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857644 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.646Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.666Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:37:37.667Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:37:37.667Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:37:37.673Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857673
+2026-02-01T11:37:37.673Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.675Z [DEBUG] Temp file written successfully, size: 2026 bytes
+2026-02-01T11:37:37.675Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.675Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857673 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.676Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.698Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:37:37.698Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:37:37.698Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:37:37.700Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:37:37.700Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:37:37.701Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:37:37.701Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:37:37.705Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857705
+2026-02-01T11:37:37.705Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.707Z [DEBUG] Temp file written successfully, size: 2072 bytes
+2026-02-01T11:37:37.707Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.707Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857705 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.708Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:37.725Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:37:37.725Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:37:37.778Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945857778
+2026-02-01T11:37:37.779Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:37.781Z [DEBUG] Temp file written successfully, size: 2072 bytes
+2026-02-01T11:37:37.781Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:37.781Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945857778 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:37.782Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:38.061Z [ERROR] Error: Error: 501 {"type":"error","error":{"type":"not_implemented","message":"Token counting is not implemented. Use /v1/messages with max_tokens or configure your client to skip token counting."}}
+    at generate (B:/~BUN/root/claude.exe:439:33874)
+    at makeRequest (B:/~BUN/root/claude.exe:855:5435)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:37:38.061Z [DEBUG] countTokensWithFallback: API returned null, trying haiku fallback (17 tools)
+2026-02-01T11:37:38.061Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:37:38.061Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:37:38.062Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:37:38.065Z [DEBUG] countTokensWithFallback: haiku fallback failed: undefined is not an object (evaluating 'U.input_tokens')
+2026-02-01T11:37:38.065Z [ERROR] TypeError: TypeError: undefined is not an object (evaluating 'U.input_tokens')
+    at bOD (B:/~BUN/root/claude.exe:1101:4786)
+    at async vjH (B:/~BUN/root/claude.exe:3186:10059)
+    at async kjH (B:/~BUN/root/claude.exe:3186:10483)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:37:38.065Z [DEBUG] countToolDefinitionTokens returned null for 17 tools: Task, TaskOutput, Bash, Glob, Grep, ExitPlanMode, Read, Edit, Write, NotebookEdit, WebFetch, TodoWri...
+2026-02-01T11:37:38.379Z [DEBUG] Checking for native installer update to version 2.1.29
+2026-02-01T11:37:38.385Z [DEBUG] Downloading native installer version 2.1.29
+2026-02-01T11:37:38.651Z [INFO] SSH not configured for GitHub, using HTTPS for anthropics/claude-plugins-official
+2026-02-01T11:37:40.076Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:37:40.184Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:37:40.994Z [DEBUG] Added marketplace source: claude-plugins-official
+2026-02-01T11:37:40.994Z [DEBUG] Successfully auto-installed official marketplace
+2026-02-01T11:37:40.998Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945860998
+2026-02-01T11:37:40.998Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:37:41.000Z [DEBUG] Temp file written successfully, size: 2167 bytes
+2026-02-01T11:37:41.000Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:37:41.000Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945860998 to C:\Users\abdal\.claude.json
+2026-02-01T11:37:41.001Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:37:41.015Z [DEBUG] Showing marketplace installation success notification
+2026-02-01T11:37:41.888Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:37:42.319Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-02-01T11:37:42.319Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:42.319Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-02-01T11:37:42.890Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-02-01T11:37:42.890Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:42.890Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-02-01T11:37:48.753Z [DEBUG] Getting matching hook commands for SubagentStop with query: undefined
+2026-02-01T11:37:48.753Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:37:48.753Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-02-01T11:37:58.305Z [DEBUG] Atomically installed binary to C:\Users\abdal\.local\share\claude\versions\2.1.29
+2026-02-01T11:37:58.394Z [DEBUG] Successfully updated to version 2.1.29
+2026-02-01T11:39:12.578Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:39:12.579Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:39:12.579Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:39:12.579Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:39:12.734Z [DEBUG] Getting matching hook commands for UserPromptSubmit with query: undefined
+2026-02-01T11:39:12.735Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:12.735Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-02-01T11:39:12.738Z [DEBUG] FileHistory: Added snapshot for 2dea5cf2-524c-45fb-875d-145df4af7e52, tracking 0 files
+2026-02-01T11:39:12.772Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:39:12.774Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:39:12.774Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:39:12.775Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:39:12.776Z [DEBUG] Total plugin output styles loaded: 0
+2026-02-01T11:39:12.806Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:39:12.825Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:39:12.825Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:39:12.825Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:39:14.026Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:39:15.018Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:39:16.111Z [DEBUG] executePreToolHooks called for tool: Skill
+2026-02-01T11:39:16.127Z [DEBUG] Getting matching hook commands for PreToolUse with query: Skill
+2026-02-01T11:39:16.127Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:16.127Z [DEBUG] Matched 0 unique hooks for query "Skill" (0 before deduplication)
+2026-02-01T11:39:16.156Z [DEBUG] Permission suggestions for Skill: [
+  {
+    "type": "addRules",
+    "rules": [
+      {
+        "toolName": "Skill",
+        "ruleContent": "init"
+      }
+    ],
+    "behavior": "allow",
+    "destination": "localSettings"
+  },
+  {
+    "type": "addRules",
+    "rules": [
+      {
+        "toolName": "Skill",
+        "ruleContent": "init:*"
+      }
+    ],
+    "behavior": "allow",
+    "destination": "localSettings"
+  }
+]
+2026-02-01T11:39:16.196Z [DEBUG] executePermissionRequestHooks called for tool: Skill
+2026-02-01T11:39:16.200Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945956200
+2026-02-01T11:39:16.200Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:39:16.201Z [DEBUG] Temp file written successfully, size: 2207 bytes
+2026-02-01T11:39:16.201Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:39:16.201Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945956200 to C:\Users\abdal\.claude.json
+2026-02-01T11:39:16.202Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:39:16.222Z [DEBUG] Getting matching hook commands for PermissionRequest with query: Skill
+2026-02-01T11:39:16.222Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:16.222Z [DEBUG] Matched 0 unique hooks for query "Skill" (0 before deduplication)
+2026-02-01T11:39:22.239Z [DEBUG] Getting matching hook commands for Notification with query: permission_prompt
+2026-02-01T11:39:22.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:22.239Z [DEBUG] Matched 0 unique hooks for query "permission_prompt" (0 before deduplication)
+2026-02-01T11:39:36.409Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769945976409
+2026-02-01T11:39:36.409Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:39:36.411Z [DEBUG] Temp file written successfully, size: 2307 bytes
+2026-02-01T11:39:36.411Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:39:36.411Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769945976409 to C:\Users\abdal\.claude.json
+2026-02-01T11:39:36.411Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:39:36.423Z [DEBUG] Metadata string for init:
+2026-02-01T11:39:36.423Z [DEBUG] <command-message>init</command-message>
+<command-name>/init</command-name>
+2026-02-01T11:39:36.423Z [DEBUG] command-message tags in metadata: 1
+2026-02-01T11:39:36.447Z [DEBUG] AutoUpdaterWrapper: Installation type: native
+2026-02-01T11:39:36.447Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:39:36.447Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:39:36.447Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:39:36.447Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:39:36.468Z [DEBUG] processPromptSlashCommand creating 3 messages for init
+2026-02-01T11:39:36.468Z [DEBUG] Message 1: <command-message>init</command-message>
+<command-name>/init</command-name>
+2026-02-01T11:39:36.468Z [DEBUG] Message 2 [META]: [{"type":"text","text":"Please analyze this codebase and create a CLAUDE.md file, which will be given to future instances of Claude Code to operate in this repository.\n\nWhat to add:\n1. Commands tha
+2026-02-01T11:39:36.468Z [DEBUG] Message 3: [ATTACHMENT]
+2026-02-01T11:39:36.468Z [DEBUG] SkillTool returning 2 newMessages for skill init
+2026-02-01T11:39:36.468Z [DEBUG] newMessage 1: [{"type":"text","text":"Please analyze this codebase and create a CLAUDE.md file, which will be given to future instances of Claude Code to operate in...
+2026-02-01T11:39:36.488Z [DEBUG] Getting matching hook commands for PostToolUse with query: Skill
+2026-02-01T11:39:36.488Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:36.488Z [DEBUG] Matched 0 unique hooks for query "Skill" (0 before deduplication)
+2026-02-01T11:39:36.499Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:39:36.499Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:39:36.499Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:39:36.499Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:39:36.529Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:39:36.542Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:39:36.542Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:39:36.542Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:39:36.985Z [DEBUG] Checking for native installer update to version 2.1.29
+2026-02-01T11:39:36.987Z [DEBUG] Version 2.1.29 already installed, updating symlink
+2026-02-01T11:39:36.988Z [DEBUG] Successfully updated to version 2.1.29
+2026-02-01T11:39:38.627Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:39:43.207Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.207Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.208Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.208Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.208Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.208Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.209Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:43.239Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:39:43.239Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:39:43.239Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:39:54.369Z [DEBUG] Ripgrep first use test: PASSED (mode=builtin, path=C:\Users\abdal\.local\bin\claude.exe)
+2026-02-01T11:40:01.646Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.646Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob CLAUDE.md --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.649Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.649Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob README.md --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.666Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.666Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.666Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.667Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.667Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob .cursorrules --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.701Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.701Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.701Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.719Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.719Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob .cursor/rules/**/* --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.753Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.753Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.753Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.754Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.754Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob pubspec.yaml --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.756Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.756Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob .github/copilot-instructions.md --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.772Z [DEBUG] rg error (signal=SIGTERM, code=null, stderr: ), 0 results
+2026-02-01T11:40:01.772Z [ERROR] Error: Error: Command failed: C:\Users\abdal\.local\bin\claude.exe --ripgrep --files --glob package.json --sort=modified --no-ignore --hidden C:\Users\abdal
+    at genericNodeError (node:child_process:1010:22)
+    at exitHandler (node:child_process:103:28)
+    at emit (node:events:98:22)
+    at #maybeClose (node:child_process:778:16)
+    at #handleOnExit (node:child_process:532:72)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:01.803Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.804Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.804Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.851Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.851Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.852Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.852Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.852Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.852Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.852Z [DEBUG] Getting matching hook commands for PostToolUse with query: Glob
+2026-02-01T11:40:01.852Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:40:01.852Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:40:01.902Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:40:01.902Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:40:01.902Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:40:01.902Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:40:01.950Z [DEBUG] Tool search disabled: MCPSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:40:01.972Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:40:01.972Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:40:01.972Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:40:04.292Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:40:08.294Z [DEBUG] Streaming aborted by user: Request was aborted.
+2026-02-01T11:40:08.294Z [ERROR] Error in non-streaming fallback: Request was aborted.
+2026-02-01T11:40:08.295Z [ERROR] Error: Error: Request was aborted.
+    at _createMessage (B:/~BUN/root/claude.exe:443:3157)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:40:08.345Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769946008345
+2026-02-01T11:40:08.345Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:40:08.347Z [DEBUG] Temp file written successfully, size: 2356 bytes
+2026-02-01T11:40:08.347Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:40:08.347Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769946008345 to C:\Users\abdal\.claude.json
+2026-02-01T11:40:08.347Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:40:08.378Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769946008378
+2026-02-01T11:40:08.378Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:40:08.380Z [DEBUG] Temp file written successfully, size: 2394 bytes
+2026-02-01T11:40:08.380Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:40:08.380Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769946008378 to C:\Users\abdal\.claude.json
+2026-02-01T11:40:08.380Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:40:08.399Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.36204.1769946008399
+2026-02-01T11:40:08.399Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:40:08.400Z [DEBUG] Temp file written successfully, size: 2419 bytes
+2026-02-01T11:40:08.400Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:40:08.400Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.36204.1769946008399 to C:\Users\abdal\.claude.json
+2026-02-01T11:40:08.401Z [DEBUG] File C:\Users\abdal\.claude.json written atomically

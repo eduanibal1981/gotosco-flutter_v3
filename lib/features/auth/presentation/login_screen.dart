@@ -81,9 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   // ============== EMAIL/PASSWORD HANDLER ==============
   Future<void> _handleEmailAuth() async {
-    if (_formKey.currentState != null && !_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -204,9 +202,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           const SizedBox(height: 24),
 
                           // Fields
-                          Form(
-                            key: _formKey,
-                            child: AutofillGroup(
+                          AutofillGroup(
+                            child: Form(
+                              key: _formKey,
                               child: Column(
                                 children: [
                                   if (!_isLogin) ...[
@@ -236,9 +234,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     validator: (value) {
                                       if (value == null ||
                                           value.trim().isEmpty) {
-                                        return 'Please enter your email';
+                                        return 'Email is required';
                                       }
-                                      if (!value.contains('@')) {
+                                      final emailRegex = RegExp(
+                                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                                      );
+                                      if (!emailRegex.hasMatch(value)) {
                                         return 'Please enter a valid email';
                                       }
                                       return null;
@@ -250,12 +251,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     label: 'Password',
                                     icon: Icons.lock_outline,
                                     isPassword: true,
-                                    autofillHints: const [AutofillHints.password],
+                                    autofillHints: const [
+                                      AutofillHints.password,
+                                    ],
                                     textInputAction: TextInputAction.done,
                                     onSubmitted: (_) => _handleEmailAuth(),
                                     validator: (value) {
                                       if (value == null || value.isEmpty) {
-                                        return 'Please enter your password';
+                                        return 'Password is required';
                                       }
                                       if (value.length < 6) {
                                         return 'Password must be at least 6 characters';

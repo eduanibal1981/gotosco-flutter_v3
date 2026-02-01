@@ -1,0 +1,409 @@
+2026-02-01T11:47:02.177Z [DEBUG] [init] configureGlobalMTLS starting
+2026-02-01T11:47:02.177Z [DEBUG] [init] configureGlobalMTLS complete
+2026-02-01T11:47:02.177Z [DEBUG] [init] configureGlobalAgents starting
+2026-02-01T11:47:02.177Z [DEBUG] [init] configureGlobalAgents complete
+2026-02-01T11:47:02.206Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-02-01T11:47:02.215Z [DEBUG] [STARTUP] Loading MCP configs...
+2026-02-01T11:47:02.218Z [DEBUG] [ToolSearch:optimistic] mode=mcp-cli, ENABLE_TOOL_SEARCH=undefined, result=false
+2026-02-01T11:47:02.219Z [DEBUG] [STARTUP] Running setup()...
+2026-02-01T11:47:02.220Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-02-01T11:47:02.221Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\abdal\.claude\skills, project=[]
+2026-02-01T11:47:02.222Z [DEBUG] Error log sink initialized
+2026-02-01T11:47:02.224Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-02-01T11:47:02.224Z [DEBUG] Total plugin skills loaded: 0
+2026-02-01T11:47:02.224Z [DEBUG] Total plugin commands loaded: 0
+2026-02-01T11:47:02.224Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-02-01T11:47:02.228Z [DEBUG] [STARTUP] setup() completed in 9ms
+2026-02-01T11:47:02.228Z [DEBUG] [STARTUP] Loading commands and agents...
+2026-02-01T11:47:02.235Z [DEBUG] Total plugin agents loaded: 0
+2026-02-01T11:47:02.235Z [DEBUG] Loaded 0 unique skills (managed: 0, user: 0, project: 0, legacy commands: 0)
+2026-02-01T11:47:02.236Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 1 bundled skills
+2026-02-01T11:47:02.238Z [DEBUG] [STARTUP] Commands and agents loaded in 10ms
+2026-02-01T11:47:02.239Z [DEBUG] [STARTUP] Running showSetupScreens()...
+2026-02-01T11:47:02.239Z [DEBUG] [render] initLayout starting
+2026-02-01T11:47:02.239Z [DEBUG] Layout engine: yoga
+2026-02-01T11:47:02.241Z [DEBUG] [Claude in Chrome] Found chrome profiles: Default, Profile 1, Profile 16, Profile 17, Profile 20, Profile 28, Profile 29, Profile 31, Profile 33, Profile 34, Profile 5, Profile 7
+2026-02-01T11:47:02.267Z [DEBUG] [render] initLayout complete
+2026-02-01T11:47:02.271Z [DEBUG] [render] first ink render: 529ms since process start
+2026-02-01T11:47:02.274Z [DEBUG] [keybindings] KeybindingSetup initialized with 99 bindings, 0 warnings
+2026-02-01T11:47:02.323Z [DEBUG] [keybindings] Watching for changes to C:\Users\abdal\.claude\keybindings.json
+2026-02-01T11:47:02.327Z [DEBUG] [Claude in Chrome] Found edge profiles: Default, Profile 1, Profile 2, Profile 3
+2026-02-01T11:47:02.328Z [DEBUG] [Claude in Chrome] Extension not found in any browser
+2026-02-01T11:47:03.721Z [DEBUG] [Perfetto] initializePerfettoTracing called, env value: undefined
+2026-02-01T11:47:03.735Z [DEBUG] [STARTUP] showSetupScreens() completed in 1496ms
+2026-02-01T11:47:03.735Z [DEBUG] [LSP MANAGER] initializeLspServerManager() called
+2026-02-01T11:47:03.735Z [DEBUG] [LSP MANAGER] Created manager instance, state=pending
+2026-02-01T11:47:03.735Z [DEBUG] [LSP MANAGER] Starting async initialization (generation 1)
+2026-02-01T11:47:03.736Z [DEBUG] Total LSP servers loaded: 0
+2026-02-01T11:47:03.736Z [DEBUG] [STARTUP] MCP configs loaded in 1521ms
+2026-02-01T11:47:03.753Z [DEBUG] [Reconnection] computeInitialTeamContext: No teammate context set (not a teammate)
+2026-02-01T11:47:03.759Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.35704.1769946423759
+2026-02-01T11:47:03.759Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:47:03.760Z [DEBUG] Temp file written successfully, size: 3805 bytes
+2026-02-01T11:47:03.760Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:47:03.760Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.35704.1769946423759 to C:\Users\abdal\.claude.json
+2026-02-01T11:47:03.761Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:47:03.776Z [DEBUG] [LSP SERVER MANAGER] getAllLspServers returned 0 server(s)
+2026-02-01T11:47:03.776Z [DEBUG] LSP manager initialized with 0 servers
+2026-02-01T11:47:03.776Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-02-01T11:47:03.776Z [DEBUG] Initialized versioned plugins system with 0 plugins
+2026-02-01T11:47:03.777Z [DEBUG] Getting matching hook commands for SessionStart with query: startup
+2026-02-01T11:47:03.777Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:03.777Z [DEBUG] Matched 0 unique hooks for query "startup" (0 before deduplication)
+2026-02-01T11:47:03.777Z [DEBUG] LSP server manager initialized successfully
+2026-02-01T11:47:03.777Z [DEBUG] LSP notification handlers registered successfully for all 0 server(s)
+2026-02-01T11:47:03.778Z [DEBUG] [render] initLayout starting
+2026-02-01T11:47:03.778Z [DEBUG] [render] initLayout complete
+2026-02-01T11:47:03.779Z [DEBUG] [render] first ink render: 2037ms since process start
+2026-02-01T11:47:03.797Z [DEBUG] Watching for changes in setting files C:\Users\abdal\.claude\settings.json, C:\Users\abdal\.claude\settings.local.json...
+2026-02-01T11:47:03.803Z [DEBUG] [MCP CLI Endpoint] Started on http://127.0.0.1:51290
+2026-02-01T11:47:03.804Z [DEBUG] [MCP CLI Endpoint] Started at http://127.0.0.1:51290
+2026-02-01T11:47:03.833Z [DEBUG] Git remote URL: null
+2026-02-01T11:47:03.833Z [DEBUG] No git remote URL found
+2026-02-01T11:47:03.833Z [DEBUG] Not in a GitHub repository, skipping path mapping update
+2026-02-01T11:47:03.851Z [DEBUG] [keybindings] KeybindingSetup initialized with 99 bindings, 0 warnings
+2026-02-01T11:47:03.902Z [DEBUG] [REPL:mount] REPL mounted, disabled=false
+2026-02-01T11:47:03.904Z [DEBUG] Official marketplace auto-install skipped: already_attempted
+2026-02-01T11:47:03.905Z [DEBUG] performStartupChecks called
+2026-02-01T11:47:03.905Z [DEBUG] Starting background plugin installations
+2026-02-01T11:47:03.905Z [DEBUG] performBackgroundPluginInstallations called
+2026-02-01T11:47:03.975Z [DEBUG] [claudeai-mcp] Checking gate (cached)...
+2026-02-01T11:47:03.975Z [DEBUG] [claudeai-mcp] Gate returned: false
+2026-02-01T11:47:03.975Z [DEBUG] [claudeai-mcp] Disabled via gate
+2026-02-01T11:47:03.976Z [DEBUG] Setting installation status: 0 marketplaces, 0 installable plugins, 0 uninstallable plugins
+2026-02-01T11:47:03.977Z [DEBUG] Loaded plugins - Enabled: 0, Disabled: 0, Commands: 0, Agents: 0, Errors: 0
+2026-02-01T11:47:03.977Z [DEBUG] AutoUpdaterWrapper: Installation type: native
+2026-02-01T11:47:03.991Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:03.991Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:03.991Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:04.058Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.35704.1769946424058
+2026-02-01T11:47:04.058Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:47:04.060Z [DEBUG] Temp file written successfully, size: 3805 bytes
+2026-02-01T11:47:04.060Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:47:04.060Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.35704.1769946424058 to C:\Users\abdal\.claude.json
+2026-02-01T11:47:04.061Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:47:04.387Z [ERROR] Error: Error: 501 {"type":"error","error":{"type":"not_implemented","message":"Token counting is not implemented. Use /v1/messages with max_tokens or configure your client to skip token counting."}}
+    at generate (B:/~BUN/root/claude.exe:361:8942)
+    at makeRequest (B:/~BUN/root/claude.exe:378:5435)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:47:04.388Z [DEBUG] countTokensWithFallback: API returned null, trying haiku fallback (20 tools)
+2026-02-01T11:47:04.388Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:04.388Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:04.388Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:04.391Z [DEBUG] countTokensWithFallback: haiku fallback failed: undefined is not an object (evaluating 'B.input_tokens')
+2026-02-01T11:47:04.391Z [ERROR] TypeError: TypeError: undefined is not an object (evaluating 'B.input_tokens')
+    at CwI (B:/~BUN/root/claude.exe:3224:19598)
+    at async zvH (B:/~BUN/root/claude.exe:3224:3995)
+    at async rg (B:/~BUN/root/claude.exe:3224:4418)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:47:04.391Z [DEBUG] countToolDefinitionTokens returned null for 20 tools: Task, TaskOutput, Bash, Glob, Grep, ExitPlanMode, Read, Edit, Write, NotebookEdit, WebFetch, WebSear...
+2026-02-01T11:47:04.627Z [DEBUG] Checking for native installer update to version 2.1.29
+2026-02-01T11:47:04.628Z [DEBUG] Found 2.1.29 at C:\Users\abdal\.local\bin\claude.exe, skipping install
+2026-02-01T11:47:10.680Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:47:10.680Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:47:10.737Z [DEBUG] Sending 1 skills via attachment (initial, 1 total sent)
+2026-02-01T11:47:10.737Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:47:10.737Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:47:10.740Z [DEBUG] Getting matching hook commands for UserPromptSubmit with query: undefined
+2026-02-01T11:47:10.740Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:10.740Z [DEBUG] Matched 0 unique hooks for query "no match query" (0 before deduplication)
+2026-02-01T11:47:10.743Z [DEBUG] FileHistory: Added snapshot for 32eb9666-d182-4235-a65d-2b532e3d11c6, tracking 0 files
+2026-02-01T11:47:10.789Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude\todos\cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c-agent-cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c.json.tmp.35704.1769946430789
+2026-02-01T11:47:10.791Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-02-01T11:47:10.791Z [DEBUG] Renaming C:\Users\abdal\.claude\todos\cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c-agent-cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c.json.tmp.35704.1769946430789 to C:\Users\abdal\.claude\todos\cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c-agent-cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c.json
+2026-02-01T11:47:10.791Z [DEBUG] File C:\Users\abdal\.claude\todos\cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c-agent-cb33c2c6-81c4-4ac8-8186-3c9ca5f1057c.json written atomically
+2026-02-01T11:47:10.820Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:47:10.824Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:10.824Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:10.825Z [DEBUG] Total plugin output styles loaded: 0
+2026-02-01T11:47:10.826Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:10.835Z [DEBUG] Summarizing all 18 messages (~1111 tokens)
+2026-02-01T11:47:10.836Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:47:10.838Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:10.838Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:10.840Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:10.848Z [DEBUG] Stats cache does not exist, returning empty cache
+2026-02-01T11:47:10.849Z [DEBUG] Stats cache empty, processing all historical data in background
+2026-02-01T11:47:10.868Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:47:10.880Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:10.880Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:10.881Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:11.720Z [DEBUG] Successfully refreshed marketplace: claude-plugins-official
+2026-02-01T11:47:11.720Z [DEBUG] Plugin autoupdate: checking installed plugins
+2026-02-01T11:47:12.102Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:47:12.110Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:47:12.832Z [DEBUG] Generated summary for session e4fe9966-b131-432f-8c96-0f6a58dfc780: "Analyzed codebase, created CLAUDE.md development guide"
+2026-02-01T11:47:12.834Z [DEBUG] Session index: added 1, updated 0, removed 0, summaries generated 1 (total: 1)
+2026-02-01T11:47:14.170Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:47:15.134Z [DEBUG] executePreToolHooks called for tool: Skill
+2026-02-01T11:47:15.135Z [DEBUG] Getting matching hook commands for PreToolUse with query: Skill
+2026-02-01T11:47:15.135Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:15.135Z [DEBUG] Matched 0 unique hooks for query "Skill" (0 before deduplication)
+2026-02-01T11:47:15.140Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.35704.1769946435140
+2026-02-01T11:47:15.141Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:47:15.142Z [DEBUG] Temp file written successfully, size: 3805 bytes
+2026-02-01T11:47:15.142Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:47:15.142Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.35704.1769946435140 to C:\Users\abdal\.claude.json
+2026-02-01T11:47:15.142Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:47:15.157Z [DEBUG] Metadata string for init:
+2026-02-01T11:47:15.157Z [DEBUG] <command-message>init</command-message>
+<command-name>/init</command-name>
+2026-02-01T11:47:15.157Z [DEBUG] command-message tags in metadata: 1
+2026-02-01T11:47:15.158Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:47:15.158Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:47:15.224Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:47:15.224Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:47:15.288Z [DEBUG] processPromptSlashCommand creating 3 messages for init
+2026-02-01T11:47:15.289Z [DEBUG] Message 1: <command-message>init</command-message>
+<command-name>/init</command-name>
+2026-02-01T11:47:15.289Z [DEBUG] Message 2 [META]: [{"type":"text","text":"Please analyze this codebase and create a CLAUDE.md file, which will be given to future instances of Claude Code to operate in this repository.\n\nWhat to add:\n1. Commands tha
+2026-02-01T11:47:15.289Z [DEBUG] Message 3: [ATTACHMENT]
+2026-02-01T11:47:15.289Z [DEBUG] SkillTool returning 2 newMessages for skill init
+2026-02-01T11:47:15.289Z [DEBUG] newMessage 1: [{"type":"text","text":"Please analyze this codebase and create a CLAUDE.md file, which will be given to future instances of Claude Code to operate in...
+2026-02-01T11:47:15.291Z [DEBUG] Getting matching hook commands for PostToolUse with query: Skill
+2026-02-01T11:47:15.291Z [DEBUG] Found 5 hook matchers in settings
+2026-02-01T11:47:15.291Z [DEBUG] Matched 0 unique hooks for query "Skill" (0 before deduplication)
+2026-02-01T11:47:15.294Z [DEBUG] Hooks: Found 0 total hooks in registry
+2026-02-01T11:47:15.294Z [DEBUG] Hooks: checkForNewResponses returning 0 responses
+2026-02-01T11:47:15.412Z [DEBUG] LSP Diagnostics: getLSPDiagnosticAttachments called
+2026-02-01T11:47:15.412Z [DEBUG] LSP Diagnostics: Checking registry - 0 pending
+2026-02-01T11:47:15.414Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:47:15.421Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:15.421Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:15.422Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:16.219Z [ERROR] SyntaxError: SyntaxError: JSON Parse error: Unexpected identifier "I"
+    at <parse> (:0)
+    at parse (unknown)
+    at <anonymous> (B:/~BUN/root/claude.exe:69:855)
+    at A (B:/~BUN/root/claude.exe:11:7244)
+    at G2D (B:/~BUN/root/claude.exe:781:91331)
+    at processTicksAndRejections (native:7:39)
+2026-02-01T11:47:16.649Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:47:22.185Z [DEBUG] executePreToolHooks called for tool: Task
+2026-02-01T11:47:22.186Z [DEBUG] Getting matching hook commands for PreToolUse with query: Task
+2026-02-01T11:47:22.186Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:22.186Z [DEBUG] Matched 0 unique hooks for query "Task" (0 before deduplication)
+2026-02-01T11:47:22.225Z [DEBUG] High write ratio: blit=0, write=1257 (100.0% writes), screen=34x120
+2026-02-01T11:47:22.241Z [DEBUG] Getting matching hook commands for SubagentStart with query: Explore
+2026-02-01T11:47:22.241Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:22.241Z [DEBUG] Matched 0 unique hooks for query "Explore" (0 before deduplication)
+2026-02-01T11:47:22.269Z [DEBUG] High write ratio: blit=0, write=1359 (100.0% writes), screen=35x120
+2026-02-01T11:47:22.299Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:47:22.305Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:22.305Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:22.306Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:23.880Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:47:25.355Z [DEBUG] High write ratio: blit=0, write=1386 (100.0% writes), screen=36x120
+2026-02-01T11:47:25.697Z [DEBUG] executePreToolHooks called for tool: Bash
+2026-02-01T11:47:25.698Z [DEBUG] Getting matching hook commands for PreToolUse with query: Bash
+2026-02-01T11:47:25.698Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:25.698Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-02-01T11:47:25.747Z [DEBUG] High write ratio: blit=0, write=1403 (100.0% writes), screen=36x120
+2026-02-01T11:47:25.754Z [DEBUG] tree-sitter: loaded from embedded
+2026-02-01T11:47:25.763Z [DEBUG] Creating shell snapshot for bash (C:\Program Files\Git\bin\bash.exe)
+2026-02-01T11:47:25.763Z [DEBUG] Looking for shell config file: C:\Users\abdal\.bashrc
+2026-02-01T11:47:25.763Z [DEBUG] Shell config file not found: C:\Users\abdal\.bashrc, creating snapshot with Claude Code defaults only
+2026-02-01T11:47:25.763Z [DEBUG] Snapshots directory: C:\Users\abdal\.claude\shell-snapshots
+2026-02-01T11:47:25.851Z [DEBUG] Creating snapshot at: C:\Users\abdal\.claude\shell-snapshots\snapshot-bash-1769946445763-y6lhe0.sh
+2026-02-01T11:47:25.851Z [DEBUG] Shell binary exists: true
+2026-02-01T11:47:25.851Z [DEBUG] Execution timeout: 10000ms
+2026-02-01T11:47:25.988Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:47:25.988Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:47:25.988Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:25.988Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:27.233Z [DEBUG] High write ratio: blit=0, write=1423 (100.0% writes), screen=37x120
+2026-02-01T11:47:27.242Z [DEBUG] Shell snapshot created successfully (456 bytes)
+2026-02-01T11:47:27.406Z [DEBUG] Session environment not yet supported on Windows
+2026-02-01T11:47:27.421Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:47:27.422Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:47:27.422Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:27.422Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:28.897Z [DEBUG] High write ratio: blit=0, write=1364 (100.0% writes), screen=38x120
+2026-02-01T11:47:28.910Z [DEBUG] Tool search disabled: ToolSearchTool is not available (may have been disallowed via disallowedTools).
+2026-02-01T11:47:28.912Z [DEBUG] [API:request] Creating client, ANTHROPIC_CUSTOM_HEADERS present: false, has Authorization header: false
+2026-02-01T11:47:28.912Z [DEBUG] [API:auth] OAuth token check starting
+2026-02-01T11:47:28.914Z [DEBUG] Getting matching hook commands for PostToolUse with query: Bash
+2026-02-01T11:47:28.914Z [DEBUG] Found 5 hook matchers in settings
+2026-02-01T11:47:28.914Z [DEBUG] Matched 0 unique hooks for query "Bash" (0 before deduplication)
+2026-02-01T11:47:28.914Z [DEBUG] [API:auth] OAuth token check complete
+2026-02-01T11:47:28.917Z [DEBUG] Ripgrep first use test: PASSED (mode=builtin, path=C:\Users\abdal\.local\bin\claude.exe)
+2026-02-01T11:47:28.935Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:47:28.936Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:47:28.936Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:28.936Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:30.401Z [DEBUG] Stream started - received first chunk
+2026-02-01T11:47:30.428Z [DEBUG] High write ratio: blit=0, write=1376 (100.0% writes), screen=38x120
+2026-02-01T11:47:30.474Z [DEBUG] High write ratio: blit=0, write=1356 (100.0% writes), screen=38x120
+2026-02-01T11:47:30.521Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:47:30.522Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:47:30.522Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:30.522Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:32.149Z [DEBUG] High write ratio: blit=0, write=1363 (100.0% writes), screen=38x120
+2026-02-01T11:47:32.173Z [DEBUG] executePreToolHooks called for tool: Glob
+2026-02-01T11:47:32.174Z [DEBUG] Getting matching hook commands for PreToolUse with query: Glob
+2026-02-01T11:47:32.174Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:32.174Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:33.923Z [DEBUG] High write ratio: blit=0, write=1366 (100.0% writes), screen=38x120
+2026-02-01T11:47:37.439Z [DEBUG] rg error (signal=undefined, code=ABORT_ERR, stderr: ), 0 results
+2026-02-01T11:47:37.440Z [ERROR] AbortError: AbortError: The operation was aborted.
+    at unknown
+    at abortChildProcess (node:child_process:947:42)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:6046)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:2369)
+    at f (B:/~BUN/root/claude.exe:733:3218)
+    at emit (B:/~BUN/root/claude.exe:722:1583)
+2026-02-01T11:47:37.441Z [DEBUG] rg error (signal=undefined, code=ABORT_ERR, stderr: ), 0 results
+2026-02-01T11:47:37.441Z [ERROR] AbortError: AbortError: The operation was aborted.
+    at unknown
+    at abortChildProcess (node:child_process:947:42)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:6046)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:2369)
+    at f (B:/~BUN/root/claude.exe:733:3218)
+    at emit (B:/~BUN/root/claude.exe:722:1583)
+2026-02-01T11:47:37.441Z [DEBUG] rg error (signal=undefined, code=ABORT_ERR, stderr: ), 0 results
+2026-02-01T11:47:37.441Z [ERROR] AbortError: AbortError: The operation was aborted.
+    at unknown
+    at abortChildProcess (node:child_process:947:42)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:6046)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:2369)
+    at f (B:/~BUN/root/claude.exe:733:3218)
+    at emit (B:/~BUN/root/claude.exe:722:1583)
+2026-02-01T11:47:37.442Z [DEBUG] rg error (signal=undefined, code=ABORT_ERR, stderr: ), 0 results
+2026-02-01T11:47:37.442Z [ERROR] AbortError: AbortError: The operation was aborted.
+    at unknown
+    at abortChildProcess (node:child_process:947:42)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:6046)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:2369)
+    at f (B:/~BUN/root/claude.exe:733:3218)
+    at emit (B:/~BUN/root/claude.exe:722:1583)
+2026-02-01T11:47:37.442Z [DEBUG] rg error (signal=undefined, code=ABORT_ERR, stderr: ), 0 results
+2026-02-01T11:47:37.442Z [ERROR] AbortError: AbortError: The operation was aborted.
+    at unknown
+    at abortChildProcess (node:child_process:947:42)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:6046)
+    at <anonymous> (B:/~BUN/root/claude.exe:733:2369)
+    at f (B:/~BUN/root/claude.exe:733:3218)
+    at emit (B:/~BUN/root/claude.exe:722:1583)
+2026-02-01T11:47:37.445Z [DEBUG] Glob tool error (10290ms): Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+2026-02-01T11:47:37.445Z [ERROR] RipgrepTimeoutError: RipgrepTimeoutError: Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+    at I (B:/~BUN/root/claude.exe:73:189)
+    at <anonymous> (B:/~BUN/root/claude.exe:73:403)
+    at exitHandler (node:child_process:109:27)
+    at errorHandler (node:child_process:118:16)
+    at emitError (node:events:43:23)
+    at abortChildProcess (node:child_process:947:17)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+2026-02-01T11:47:37.446Z [DEBUG] Glob tool error (8609ms): Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+2026-02-01T11:47:37.446Z [ERROR] RipgrepTimeoutError: RipgrepTimeoutError: Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+    at I (B:/~BUN/root/claude.exe:73:189)
+    at <anonymous> (B:/~BUN/root/claude.exe:73:403)
+    at exitHandler (node:child_process:109:27)
+    at errorHandler (node:child_process:118:16)
+    at emitError (node:events:43:23)
+    at abortChildProcess (node:child_process:947:17)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+2026-02-01T11:47:37.447Z [DEBUG] Glob tool error (7067ms): Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+2026-02-01T11:47:37.447Z [ERROR] RipgrepTimeoutError: RipgrepTimeoutError: Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+    at I (B:/~BUN/root/claude.exe:73:189)
+    at <anonymous> (B:/~BUN/root/claude.exe:73:403)
+    at exitHandler (node:child_process:109:27)
+    at errorHandler (node:child_process:118:16)
+    at emitError (node:events:43:23)
+    at abortChildProcess (node:child_process:947:17)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+2026-02-01T11:47:37.447Z [DEBUG] Glob tool error (5374ms): Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+2026-02-01T11:47:37.447Z [ERROR] RipgrepTimeoutError: RipgrepTimeoutError: Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+    at I (B:/~BUN/root/claude.exe:73:189)
+    at <anonymous> (B:/~BUN/root/claude.exe:73:403)
+    at exitHandler (node:child_process:109:27)
+    at errorHandler (node:child_process:118:16)
+    at emitError (node:events:43:23)
+    at abortChildProcess (node:child_process:947:17)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+2026-02-01T11:47:37.448Z [DEBUG] Glob tool error (3574ms): Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+2026-02-01T11:47:37.448Z [ERROR] RipgrepTimeoutError: RipgrepTimeoutError: Ripgrep search timed out after 20 seconds. The search may have matched files but did not complete in time. Try searching a more specific path or pattern.
+    at I (B:/~BUN/root/claude.exe:73:189)
+    at <anonymous> (B:/~BUN/root/claude.exe:73:403)
+    at exitHandler (node:child_process:109:27)
+    at errorHandler (node:child_process:118:16)
+    at emitError (node:events:43:23)
+    at abortChildProcess (node:child_process:947:17)
+    at onAbortListener2 (node:child_process:35:24)
+    at abort (unknown)
+    at hV (B:/~BUN/root/claude.exe:6140:57095)
+    at <anonymous> (B:/~BUN/root/claude.exe:6119:4427)
+2026-02-01T11:47:37.452Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Glob
+2026-02-01T11:47:37.452Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:37.453Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:37.453Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Glob
+2026-02-01T11:47:37.453Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:37.453Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:37.453Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Glob
+2026-02-01T11:47:37.453Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:37.453Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:37.453Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Glob
+2026-02-01T11:47:37.453Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:37.453Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:37.453Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Glob
+2026-02-01T11:47:37.453Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:37.453Z [DEBUG] Matched 0 unique hooks for query "Glob" (0 before deduplication)
+2026-02-01T11:47:37.484Z [DEBUG] High write ratio: blit=0, write=1342 (100.0% writes), screen=36x120
+2026-02-01T11:47:37.519Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.35704.1769946457519
+2026-02-01T11:47:37.519Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:47:37.523Z [DEBUG] Temp file written successfully, size: 3827 bytes
+2026-02-01T11:47:37.523Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:47:37.523Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.35704.1769946457519 to C:\Users\abdal\.claude.json
+2026-02-01T11:47:37.524Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:47:37.591Z [DEBUG] High write ratio: blit=0, write=1391 (100.0% writes), screen=37x120
+2026-02-01T11:47:37.642Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.35704.1769946457642
+2026-02-01T11:47:37.643Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:47:37.644Z [DEBUG] Temp file written successfully, size: 3850 bytes
+2026-02-01T11:47:37.644Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:47:37.644Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.35704.1769946457642 to C:\Users\abdal\.claude.json
+2026-02-01T11:47:37.645Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:47:37.676Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.35704.1769946457676
+2026-02-01T11:47:37.676Z [DEBUG] Preserving file permissions: 100666
+2026-02-01T11:47:37.677Z [DEBUG] Temp file written successfully, size: 3887 bytes
+2026-02-01T11:47:37.677Z [DEBUG] Applied original permissions to temp file
+2026-02-01T11:47:37.677Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.35704.1769946457676 to C:\Users\abdal\.claude.json
+2026-02-01T11:47:37.678Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-02-01T11:47:37.891Z [DEBUG] Getting matching hook commands for PostToolUseFailure with query: Task
+2026-02-01T11:47:37.891Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:47:37.891Z [DEBUG] Matched 0 unique hooks for query "Task" (0 before deduplication)
+2026-02-01T11:47:37.905Z [DEBUG] High write ratio: blit=0, write=1364 (100.0% writes), screen=36x120
+2026-02-01T11:47:55.600Z [DEBUG] High write ratio: blit=0, write=1364 (100.0% writes), screen=36x120
+2026-02-01T11:48:37.895Z [DEBUG] Getting matching hook commands for Notification with query: idle_prompt
+2026-02-01T11:48:37.895Z [DEBUG] Found 0 hook matchers in settings
+2026-02-01T11:48:37.895Z [DEBUG] Matched 0 unique hooks for query "idle_prompt" (0 before deduplication)
