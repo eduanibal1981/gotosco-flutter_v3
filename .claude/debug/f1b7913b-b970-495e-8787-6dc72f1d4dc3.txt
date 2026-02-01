@@ -1,0 +1,143 @@
+2026-01-11T01:25:26.051Z [ERROR] Failed to save config with lock: Error: ENOENT: no such file or directory, lstat 'C:\Users\abdal\.claude.json'
+2026-01-11T01:25:26.053Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726053
+2026-01-11T01:25:26.053Z [DEBUG] Setting permissions for new file: 600
+2026-01-11T01:25:26.058Z [DEBUG] Temp file written successfully, size: 82 bytes
+2026-01-11T01:25:26.058Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726053 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.059Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.077Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726077
+2026-01-11T01:25:26.077Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.079Z [DEBUG] Temp file written successfully, size: 130 bytes
+2026-01-11T01:25:26.079Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.079Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726077 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.080Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.080Z [DEBUG] [init] configureGlobalMTLS starting
+2026-01-11T01:25:26.080Z [DEBUG] [init] configureGlobalMTLS complete
+2026-01-11T01:25:26.080Z [DEBUG] [init] configureGlobalAgents starting
+2026-01-11T01:25:26.080Z [DEBUG] [init] configureGlobalAgents complete
+2026-01-11T01:25:26.113Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-01-11T01:25:26.117Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726117
+2026-01-11T01:25:26.117Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.119Z [DEBUG] Temp file written successfully, size: 167 bytes
+2026-01-11T01:25:26.119Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.119Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726117 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.120Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.134Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726134
+2026-01-11T01:25:26.134Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.135Z [DEBUG] Temp file written successfully, size: 202 bytes
+2026-01-11T01:25:26.135Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.135Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726134 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.136Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.150Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726150
+2026-01-11T01:25:26.150Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.152Z [DEBUG] Temp file written successfully, size: 239 bytes
+2026-01-11T01:25:26.152Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.152Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726150 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.153Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.191Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\abdal\.claude\skills, project=[]
+2026-01-11T01:25:26.664Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-01-11T01:25:26.686Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude\todos\f1b7913b-b970-495e-8787-6dc72f1d4dc3-agent-f1b7913b-b970-495e-8787-6dc72f1d4dc3.json.tmp.31452.1768094726686
+2026-01-11T01:25:26.687Z [DEBUG] Temp file written successfully, size: 2 bytes
+2026-01-11T01:25:26.687Z [DEBUG] Renaming C:\Users\abdal\.claude\todos\f1b7913b-b970-495e-8787-6dc72f1d4dc3-agent-f1b7913b-b970-495e-8787-6dc72f1d4dc3.json.tmp.31452.1768094726686 to C:\Users\abdal\.claude\todos\f1b7913b-b970-495e-8787-6dc72f1d4dc3-agent-f1b7913b-b970-495e-8787-6dc72f1d4dc3.json
+2026-01-11T01:25:26.687Z [DEBUG] File C:\Users\abdal\.claude\todos\f1b7913b-b970-495e-8787-6dc72f1d4dc3-agent-f1b7913b-b970-495e-8787-6dc72f1d4dc3.json written atomically
+2026-01-11T01:25:26.714Z [DEBUG] [render] initYoga starting
+2026-01-11T01:25:26.716Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-01-11T01:25:26.725Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-01-11T01:25:26.725Z [DEBUG] Total plugin skills loaded: 0
+2026-01-11T01:25:26.725Z [DEBUG] Total plugin commands loaded: 0
+2026-01-11T01:25:26.725Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-01-11T01:25:26.732Z [DEBUG] Loaded 0 unique skills (managed: 0, user: 0, project: 0, legacy commands: 0)
+2026-01-11T01:25:26.734Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 0 bundled skills
+2026-01-11T01:25:26.740Z [DEBUG] [render] initYoga complete
+2026-01-11T01:25:26.746Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726746
+2026-01-11T01:25:26.747Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.748Z [DEBUG] Temp file written successfully, size: 415 bytes
+2026-01-11T01:25:26.748Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.748Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726746 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.749Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.762Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726762
+2026-01-11T01:25:26.762Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.764Z [DEBUG] Temp file written successfully, size: 451 bytes
+2026-01-11T01:25:26.764Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.764Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726762 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.764Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.779Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726779
+2026-01-11T01:25:26.779Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.780Z [DEBUG] Temp file written successfully, size: 479 bytes
+2026-01-11T01:25:26.780Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.780Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726779 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.781Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.793Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726793
+2026-01-11T01:25:26.794Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.795Z [DEBUG] Temp file written successfully, size: 518 bytes
+2026-01-11T01:25:26.795Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.795Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726793 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.796Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.808Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726808
+2026-01-11T01:25:26.808Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.809Z [DEBUG] Temp file written successfully, size: 556 bytes
+2026-01-11T01:25:26.809Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.809Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726808 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.810Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.823Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726823
+2026-01-11T01:25:26.823Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.824Z [DEBUG] Temp file written successfully, size: 595 bytes
+2026-01-11T01:25:26.824Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.824Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726823 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.825Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.840Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726840
+2026-01-11T01:25:26.840Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.841Z [DEBUG] Temp file written successfully, size: 625 bytes
+2026-01-11T01:25:26.841Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.841Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726840 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.841Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.854Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726854
+2026-01-11T01:25:26.855Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.856Z [DEBUG] Temp file written successfully, size: 655 bytes
+2026-01-11T01:25:26.856Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.856Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726854 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.856Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.870Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094726870
+2026-01-11T01:25:26.870Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:26.873Z [DEBUG] Temp file written successfully, size: 680 bytes
+2026-01-11T01:25:26.873Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:26.873Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094726870 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:26.874Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:26.918Z [DEBUG] Creating shell snapshot for bash (C:\Program Files\Git\bin\bash.exe)
+2026-01-11T01:25:26.918Z [DEBUG] Looking for shell config file: C:\Users\abdal\.bashrc
+2026-01-11T01:25:26.918Z [DEBUG] Shell config file not found: C:\Users\abdal\.bashrc, creating snapshot with Claude Code defaults only
+2026-01-11T01:25:26.918Z [DEBUG] Snapshots directory: C:\Users\abdal\.claude\shell-snapshots
+2026-01-11T01:25:26.930Z [DEBUG] Install: Starting installation process (force=false, target=latest)
+2026-01-11T01:25:26.934Z [DEBUG] Install: Calling installLatest(channelOrVersion=latest, force=true, forceReinstall=false)
+2026-01-11T01:25:26.951Z [DEBUG] Creating snapshot at: C:\Users\abdal\.claude\shell-snapshots\snapshot-bash-1768094726918-tdevm0.sh
+2026-01-11T01:25:26.951Z [DEBUG] Shell binary exists: true
+2026-01-11T01:25:26.951Z [DEBUG] Execution timeout: 10000ms
+2026-01-11T01:25:27.145Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094727145
+2026-01-11T01:25:27.145Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:27.147Z [DEBUG] Temp file written successfully, size: 721 bytes
+2026-01-11T01:25:27.147Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:27.147Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094727145 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:27.148Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:27.787Z [DEBUG] Shell snapshot created successfully (306 bytes)
+2026-01-11T01:25:28.142Z [DEBUG] Checking for native installer update to version 2.1.4
+2026-01-11T01:25:28.147Z [DEBUG] Downloading native installer version 2.1.4
+2026-01-11T01:25:42.337Z [DEBUG] Atomically installed binary to C:\Users\abdal\.local\share\claude\versions\2.1.4
+2026-01-11T01:25:42.340Z [DEBUG] Could not remove empty directory at C:\Users\abdal\.local\bin\claude.exe: Error: ENOENT: no such file or directory, stat 'C:\Users\abdal\.local\bin\claude.exe'
+2026-01-11T01:25:42.434Z [DEBUG] Successfully updated to version 2.1.4
+2026-01-11T01:25:42.437Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude.json.tmp.31452.1768094742437
+2026-01-11T01:25:42.437Z [DEBUG] Preserving file permissions: 100666
+2026-01-11T01:25:42.439Z [DEBUG] Temp file written successfully, size: 815 bytes
+2026-01-11T01:25:42.439Z [DEBUG] Applied original permissions to temp file
+2026-01-11T01:25:42.439Z [DEBUG] Renaming C:\Users\abdal\.claude.json.tmp.31452.1768094742437 to C:\Users\abdal\.claude.json
+2026-01-11T01:25:42.439Z [DEBUG] File C:\Users\abdal\.claude.json written atomically
+2026-01-11T01:25:42.440Z [DEBUG] Native installer: Set installMethod to "native" and disabled legacy auto-updater for protection
+2026-01-11T01:25:42.452Z [DEBUG] Install: installLatest returned version=2.1.4, wasUpdated=true, lockFailed=false
+2026-01-11T01:25:42.463Z [DEBUG] Install: Setup launcher completed with 0 messages
+2026-01-11T01:25:42.463Z [DEBUG] Install: Cleaning up npm installations after successful install
+2026-01-11T01:25:43.650Z [DEBUG] Removed global npm installation of @anthropic-ai/claude-code
+2026-01-11T01:25:43.650Z [DEBUG] Cleaned up 1 npm installation(s)
+2026-01-11T01:25:43.651Z [DEBUG] Writing to temp file: C:\Users\abdal\.claude\settings.json.tmp.31452.1768094743651
+2026-01-11T01:25:43.653Z [DEBUG] Temp file written successfully, size: 37 bytes
+2026-01-11T01:25:43.653Z [DEBUG] Renaming C:\Users\abdal\.claude\settings.json.tmp.31452.1768094743651 to C:\Users\abdal\.claude\settings.json
+2026-01-11T01:25:43.654Z [DEBUG] File C:\Users\abdal\.claude\settings.json written atomically
+2026-01-11T01:25:43.654Z [DEBUG] Install: Saved autoUpdatesChannel=latest to user settings
+2026-01-11T01:25:43.654Z [DEBUG] Install: Shell PATH already configured

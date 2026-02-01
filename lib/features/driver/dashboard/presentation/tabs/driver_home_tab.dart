@@ -330,6 +330,16 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                         profile?['license_number'] != null &&
                             (profile!['license_number'] as String).isNotEmpty,
                       ),
+                      _buildChecklistItem(
+                        'License Picture',
+                        profile?['license_image_url'] != null &&
+                            (profile!['license_image_url'] as String).isNotEmpty,
+                      ),
+                      _buildChecklistItem(
+                        'Registration Picture (Mulkia)',
+                        profile?['mulkia_image_url'] != null &&
+                            (profile!['mulkia_image_url'] as String).isNotEmpty,
+                      ),
                       // Schedule check - use separate FutureBuilder
                       FutureBuilder<List>(
                         future: ref.read(driverSchedulesProvider.future),
