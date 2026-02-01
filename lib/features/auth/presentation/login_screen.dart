@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart'; // For kDebugMode
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'auth_controller.dart';
@@ -182,7 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.indigo.withOpacity(0.1),
+                            color: Colors.indigo.withValues(alpha: 0.1),
                             blurRadius: 20,
                             offset: const Offset(0, 10),
                           ),
@@ -435,7 +434,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           decoration: BoxDecoration(
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.2),
+                color: Colors.black.withValues(alpha: 0.2),
                 blurRadius: 20,
                 offset: const Offset(0, 10),
               ),
@@ -458,7 +457,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _isLogin
               ? 'Safe journeys for your children.'
               : 'Join the community today.',
-          style: TextStyle(fontSize: 16, color: Colors.white.withOpacity(0.9)),
+          style: TextStyle(
+              fontSize: 16, color: Colors.white.withValues(alpha: 0.9)),
         ),
       ],
     );
@@ -532,7 +532,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         gradient: LinearGradient(colors: [_primaryDark, _primaryLight]),
         boxShadow: [
           BoxShadow(
-            color: _primaryLight.withOpacity(0.3),
+            color: _primaryLight.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
