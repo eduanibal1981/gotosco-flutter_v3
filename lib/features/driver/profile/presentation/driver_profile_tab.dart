@@ -1939,6 +1939,11 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
                     controller: _experienceController,
                     label: 'Years of Experience',
                     keyboardType: TextInputType.number,
+                    fillColor:
+                        (int.tryParse(_experienceController.text) ?? 0) < 1
+                            ? Colors.grey.shade200
+                            : null,
+                    onChanged: (value) => setState(() {}),
                   ),
                   _buildTextField(
                     controller: _licenseNumberController,
@@ -2018,6 +2023,8 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
     required String label,
     TextInputType? keyboardType,
     int maxLines = 1,
+    Color? fillColor,
+    void Function(String)? onChanged,
   }) {
     final hasValue = controller.text.trim().isNotEmpty;
     return Padding(
@@ -2026,10 +2033,12 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
-          fillColor: hasValue ? Colors.green.shade50 : Colors.red.shade50,
+          fillColor: fillColor ??
+              (hasValue ? Colors.green.shade50 : Colors.red.shade50),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
@@ -2481,6 +2490,11 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
                     controller: _experienceController,
                     label: 'Years of Experience',
                     keyboardType: TextInputType.number,
+                    fillColor:
+                        (int.tryParse(_experienceController.text) ?? 0) < 1
+                            ? Colors.grey.shade200
+                            : null,
+                    onChanged: (value) => setState(() {}),
                   ),
                   _buildTextField(
                     controller: _licenseNumberController,
@@ -2543,6 +2557,8 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
     required String label,
     TextInputType? keyboardType,
     int maxLines = 1,
+    Color? fillColor,
+    void Function(String)? onChanged,
   }) {
     final hasValue = controller.text.trim().isNotEmpty;
     return Padding(
@@ -2551,10 +2567,12 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        onChanged: onChanged,
         decoration: InputDecoration(
           labelText: label,
           filled: true,
-          fillColor: hasValue ? Colors.green.shade50 : Colors.red.shade50,
+          fillColor: fillColor ??
+              (hasValue ? Colors.green.shade50 : Colors.red.shade50),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 16,
