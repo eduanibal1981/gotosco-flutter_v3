@@ -22,6 +22,7 @@ import 'package:gotosco_v3/features/driver/messages/presentation/driver_messages
 import 'package:gotosco_v3/features/driver/transport_requests/presentation/driver_transport_requests_screen.dart';
 import 'package:gotosco_v3/features/driver/profile/presentation/driver_profile_tab.dart';
 import 'package:gotosco_v3/features/driver/profile/presentation/driver_coverage_screen.dart';
+import 'package:gotosco_v3/features/driver/profile/presentation/vehicle_details_screen.dart';
 import 'package:gotosco_v3/features/driver/profile/data/driver_profile_model.dart';
 import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
@@ -132,6 +133,13 @@ GoRouter router(Ref ref) {
       GoRoute(
         path: '/driver-coverage',
         builder: (context, state) => const DriverCoverageScreen(),
+      ),
+      GoRoute(
+        path: '/vehicle-details',
+        builder: (context, state) {
+          final profile = state.extra as DriverProfileModel;
+          return VehicleDetailsScreen(profile: profile);
+        },
       ),
       GoRoute(
         path: '/driver-transport-requests',
