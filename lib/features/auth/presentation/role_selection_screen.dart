@@ -289,8 +289,8 @@ class _RoleCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      selected: isSelected,
       button: true,
+      selected: isSelected,
       child: Material(
         color: isSelected ? Colors.indigo.shade50 : Colors.white,
         shape: RoundedRectangleBorder(
@@ -300,17 +300,20 @@ class _RoleCard extends StatelessWidget {
             width: isSelected ? 2 : 1,
           ),
         ),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
+          splashColor: Colors.indigo.withValues(alpha: 0.1),
+          highlightColor: Colors.indigo.withValues(alpha: 0.05),
+          child: Container(
             padding: const EdgeInsets.all(24),
             child: Row(
               children: [
                 Icon(
                   icon,
                   size: 48,
-                  color: isSelected ? Colors.indigo.shade900 : Colors.grey.shade600,
+                  color:
+                      isSelected ? Colors.indigo.shade900 : Colors.grey.shade600,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -320,24 +323,28 @@ class _RoleCard extends StatelessWidget {
                       Text(
                         title,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: isSelected
-                              ? Colors.indigo.shade900
-                              : Colors.black87,
-                        ),
+                              fontWeight: FontWeight.bold,
+                              color: isSelected
+                                  ? Colors.indigo.shade900
+                                  : Colors.black87,
+                            ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey.shade600,
-                        ),
+                              color: Colors.grey.shade600,
+                            ),
                       ),
                     ],
                   ),
                 ),
                 if (isSelected)
-                  Icon(Icons.check_circle, color: Colors.indigo.shade900, size: 32),
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.indigo.shade900,
+                    size: 32,
+                  ),
               ],
             ),
           ),

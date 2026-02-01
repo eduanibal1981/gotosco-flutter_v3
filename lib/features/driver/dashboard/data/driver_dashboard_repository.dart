@@ -169,7 +169,8 @@ class DriverDashboardRepository {
   }
 
   /// Check if driver profile has all required fields filled
-  /// Required: vehicle_type, vehicle_number, vehicle_capacity, license_number, AND at least one schedule
+  /// Required: vehicle_type, vehicle_number, vehicle_capacity, license_number,
+  /// license_image_url, mulkia_image_url
   Future<bool> isProfileComplete(Map<String, dynamic> profile) async {
     // Check vehicle details
     final hasVehicleType =
@@ -187,6 +188,14 @@ class DriverDashboardRepository {
         profile['license_number'] != null &&
         (profile['license_number'] as String).isNotEmpty;
 
+    // Check document uploads (license and registration pictures)
+    final hasLicenseImage =
+        profile['license_image_url'] != null &&
+        (profile['license_image_url'] as String).isNotEmpty;
+    final hasMulkiaImage =
+        profile['mulkia_image_url'] != null &&
+        (profile['mulkia_image_url'] as String).isNotEmpty;
+
     // Check schedules - driver schedule is now OPTIONAL (as per advanced logic)
     // We allow Manual Mode by default for new drivers.
     // final hasSchedule = await hasSchedules();
@@ -194,7 +203,9 @@ class DriverDashboardRepository {
     return hasVehicleType &&
         hasVehicleNumber &&
         hasVehicleCapacity &&
-        hasLicenseNumber;
+        hasLicenseNumber &&
+        hasLicenseImage &&
+        hasMulkiaImage;
   }
 
   /// Determine the current dashboard state
