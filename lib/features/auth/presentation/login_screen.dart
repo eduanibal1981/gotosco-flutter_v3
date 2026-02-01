@@ -24,6 +24,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
 
+  final _formKey = GlobalKey<FormState>();
+
   // Professional Color Palette used in this screen
   final Color _primaryDark = Colors.indigo.shade900;
   final Color _primaryLight = Colors.indigo.shade500;
