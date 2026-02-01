@@ -102,7 +102,15 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
         'Profile',
         style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
       ),
-      actions: [_buildVerificationBadge(profile), const SizedBox(width: 16)],
+      actions: [
+        _buildVerificationBadge(profile),
+        IconButton(
+          onPressed: () => _showEditProfileSheet(profile),
+          icon: const Icon(Icons.edit, color: Colors.black87),
+          tooltip: 'Edit Profile',
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 
