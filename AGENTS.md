@@ -38,3 +38,34 @@ Before writing code or answering architectural questions, you **MUST** follow th
 
 ---
 *For complex scenarios or anti-patterns, query the "Project Constitution" in NotebookLM.*
+
+---
+
+## 🤖 JULES HANDOVER PROTOCOL (AGENT-TO-AGENT)
+
+**Trigger Phrase:** "Handover to Jules" or "Give this to Jules"
+
+When the user invokes this trigger, you act as the **Technical Architect** and **Context Manager**. You must **NOT** implement the code yourself. Instead, you prepare the work for Jules (The Builder).
+
+### EXECUTION STEPS:
+1.  **GATHER CONTEXT (NotebookLM):**
+    *   Query NotebookLM for architectural patterns, rules, and existing business logic relevant to the requested task.
+    *   *Goal:* Ensure Jules follows the project's "Constitution" effectively.
+
+2.  **VERIFY SCHEMA (Supabase MCP):**
+    *   Use `supabase-mcp` to verify database tables/columns exist or identify what needs modification.
+    *   *Goal:* Prevent hallucinated database references.
+
+3.  **DRAFT THE SPEC (The "Brain"):**
+    *   Create a concise but highly technical summary (The Spec).
+    *   *Include:* Files to modify, Schema changes, Logic flows, and "Gotchas".
+
+4.  **GENERATE JULES COMMAND:**
+    *   Construct the precise CLI command for the user to run.
+    *   **Format:**
+        ```bash
+        jules remote new \
+          --repo <repo_name> \
+          --session "TASK: <User_Task_Name> | CONTEXT: <The_Spec_You_Drafted>"
+        ```
+    *   *Note:* Ensure the "Context" string is escaped properly if it contains complex characters, or suggest passing it via a temporary file if it's too long.
