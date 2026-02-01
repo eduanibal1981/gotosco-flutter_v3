@@ -838,6 +838,12 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Logout button (Moved to left side)
+                IconButton(
+                  onPressed: () => _showLogoutDialog(context),
+                  icon: const Icon(Icons.logout, color: Colors.red),
+                  tooltip: 'Logout',
+                ),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,12 +879,6 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                         color: Colors.white,
                       ),
                       tooltip: 'Messages',
-                    ),
-                    // Logout button for testing
-                    IconButton(
-                      onPressed: () => _showLogoutDialog(context),
-                      icon: const Icon(Icons.logout, color: Colors.white),
-                      tooltip: 'Logout',
                     ),
                     if (showOnlineToggle) ...[
                       const SizedBox(width: 8),
