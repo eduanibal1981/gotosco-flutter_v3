@@ -314,6 +314,7 @@ class TripsTab extends ConsumerWidget {
                           );
                         }
                       }
+
                     }
                   : null,
               icon: const Icon(Icons.auto_fix_high),
@@ -499,44 +500,31 @@ class TripsTab extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             if (status == 'scheduled')
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () async {
-                    await ref
-                        .read(driverDashboardRepositoryProvider)
-                        .startTrip(trip['id']);
-                    ref.invalidate(todaysTripsProvider);
-                    ref.invalidate(driverDashboardStateProvider);
-                  },
-                  icon: const Icon(Icons.play_arrow, size: 18),
-                  label: const Text('Start Trip'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.teal,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
+              _TripActionButton(
+                label: 'Start Trip',
+                icon: Icons.play_arrow,
+                color: Colors.teal,
+                onPressed: () async {
+                  await ref
+                      .read(driverDashboardRepositoryProvider)
+                      .startTrip(trip['id']);
+                  ref.invalidate(todaysTripsProvider);
+                  ref.invalidate(driverDashboardStateProvider);
+                },
               )
             else if (status == 'in_progress')
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: () async {
-                    await ref
-                        .read(driverDashboardRepositoryProvider)
-                        .endTrip(trip['id']);
-                    ref.invalidate(todaysTripsProvider);
-                    ref.invalidate(driverDashboardStateProvider);
-                  },
-                  icon: const Icon(Icons.stop, size: 18),
-                  label: const Text('End Trip'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.red,
-                    side: const BorderSide(color: Colors.red),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
+              _TripActionButton(
+                label: 'End Trip',
+                icon: Icons.stop,
+                color: Colors.red,
+                isOutlined: true,
+                onPressed: () async {
+                  await ref
+                      .read(driverDashboardRepositoryProvider)
+                      .endTrip(trip['id']);
+                  ref.invalidate(todaysTripsProvider);
+                  ref.invalidate(driverDashboardStateProvider);
+                },
               ),
           ],
         ),
@@ -667,6 +655,98 @@ class TripsTab extends ConsumerWidget {
             child: const Text('Regenerate'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _TripActionButton extends StatefulWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final Future<void> Function() onPressed;
+  final bool isOutlined;
+
+  const _TripActionButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.onPressed,
+    this.isOutlined = false,
+  });
+
+  @override
+  State<_TripActionButton> createState() => _TripActionButtonState();
+}
+
+class _TripActionButtonState extends State<_TripActionButton> {
+  bool _isLoading = false;
+
+  Future<void> _handlePress() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await widget.onPressed();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isOutlined) {
+      return SizedBox(
+        width: double.infinity,
+        child: OutlinedButton.icon(
+          onPressed: _isLoading ? null : _handlePress,
+          icon: _isLoading
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: widget.color,
+                  ),
+                )
+              : Icon(widget.icon, size: 18),
+          label: Text(widget.label),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: widget.color,
+            side: BorderSide(color: widget.color),
+            padding: const EdgeInsets.symmetric(vertical: 10),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: _isLoading ? null : _handlePress,
+        icon: _isLoading
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Colors.white,
+                ),
+              )
+            : Icon(widget.icon, size: 18),
+        label: Text(widget.label),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: widget.color,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 10),
+        ),
       ),
     );
   }

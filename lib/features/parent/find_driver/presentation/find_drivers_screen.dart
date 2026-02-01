@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/filter_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/favorites_screen.dart';
-import '../data/drivers_repository.dart';
 import 'widgets/driver_ad_card.dart';
 import 'drivers_controller.dart';
 
@@ -21,6 +20,8 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   bool _locationDenied = false;
   bool _locationServiceDisabled = false;
   Timer? _searchDebounce;
+  final TextEditingController _searchController = TextEditingController();
+  bool _showClearButton = false;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -34,6 +35,7 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
   @override
   void dispose() {
     _searchDebounce?.cancel();
+    _searchController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -126,7 +128,21 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
     ref.read(driversFilterControllerProvider.notifier).clearFilters();
   }
 
+  void _clearSearch() {
+    _searchController.clear();
+    _onSearchChanged('');
+    setState(() {
+      _showClearButton = false;
+    });
+  }
+
   void _onSearchChanged(String value) {
+    if (_showClearButton != value.isNotEmpty) {
+      setState(() {
+        _showClearButton = value.isNotEmpty;
+      });
+    }
+
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
       ref
@@ -171,29 +187,52 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
             title: Row(
               children: [
                 Expanded(
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: TextField(
-                      decoration: const InputDecoration(
-                        hintText: "Search by driver name, area, school...",
-                        prefixIcon: Icon(Icons.search, color: Colors.grey),
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 14),
+                  child: Semantics(
+                    label: "Search drivers",
+                    textField: true,
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
                       ),
-                      onChanged: _onSearchChanged,
+                      child: TextField(
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          hintText: "Search by driver name, area, school...",
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          suffixIcon: _showClearButton
+                              ? IconButton(
+                                  icon: const Icon(
+                                    Icons.close,
+                                    size: 20,
+                                    color: Colors.grey,
+                                  ),
+                                  onPressed: _clearSearch,
+                                  tooltip: 'Clear search',
+                                )
+                              : null,
+                          border: InputBorder.none,
+                          contentPadding:
+                              const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        onChanged: _onSearchChanged,
+                      ),
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
 
                 // Filter Button (Highlight if filters are active)
-                GestureDetector(
-                  onTap: _openFilters,
+                Semantics(
+                  button: true,
+                  label: "Filter drivers",
+                  hint:
+                      filterSummary != null
+                          ? "Filters active: $filterSummary"
+                          : null,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -211,7 +250,14 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                             ),
                           ],
                         ),
-                        child: const Icon(Icons.tune, color: Colors.white),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _openFilters,
+                            borderRadius: BorderRadius.circular(12),
+                            child: const Icon(Icons.tune, color: Colors.white),
+                          ),
+                        ),
                       ),
                       // Red Dot Badge if filtered
                       if (filterSummary != null)
@@ -235,15 +281,9 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 const SizedBox(width: 12),
 
                 // Favorites Button
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const FavoritesScreen(),
-                      ),
-                    );
-                  },
+                Semantics(
+                  button: true,
+                  label: "Show favorite drivers",
                   child: Container(
                     height: 50,
                     width: 50,
@@ -259,7 +299,21 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.favorite, color: Colors.pink),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const FavoritesScreen(),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: const Icon(Icons.favorite, color: Colors.pink),
+                      ),
+                    ),
                   ),
                 ),
               ],
