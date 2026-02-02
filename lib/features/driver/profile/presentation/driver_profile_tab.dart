@@ -1,6 +1,6 @@
 // lib/features/driver/profile/presentation/driver_profile_tab.dart
 import 'dart:convert';
-import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -365,7 +365,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                   SizedBox(
                     width: double.infinity,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.push('/vehicle-details', extra: profile),
+                      onPressed: () =>
+                          context.push('/vehicle-details', extra: profile),
                       icon: const Icon(Icons.info_outline, size: 18),
                       label: const Text('More Details & Pictures'),
                       style: OutlinedButton.styleFrom(
@@ -951,40 +952,65 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
           ),
         );
 
-        final file = File(image.path);
-        final url = await ref
+        // final file = File(image.path); // Removed to support Web
+
+        // This will throw if upload fails
+        await ref
             .read(driverProfileRepositoryProvider)
             .uploadDocument(
               driverId: profile.id,
-              file: file,
+              file: image, // Pass XFile directly
               documentType: type,
             );
 
-        if (url != null) {
-          ref.invalidate(currentDriverProfileProvider);
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Document upload for $type successful!'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Failed to upload document'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
+        // If we get here, upload was successful
+        ref.invalidate(currentDriverProfileProvider);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Document upload for $type successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
         }
       }
     } catch (e) {
       if (mounted) {
+        String errorMessage = 'Error uploading document';
+
+        if (e.toString().contains('MediaServiceException')) {
+          errorMessage = e.toString().replaceAll('MediaServiceException: ', '');
+        } else {
+          errorMessage = 'Upload failed: $e';
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 10),
+            action: SnackBarAction(
+              label: 'Details',
+              textColor: Colors.white,
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Upload Error'),
+                    content: SingleChildScrollView(
+                      child: SelectableText(e.toString()),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
         );
       }
     }
@@ -1963,8 +1989,8 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
                     keyboardType: TextInputType.number,
                     fillColor:
                         (int.tryParse(_experienceController.text) ?? 0) < 1
-                            ? Colors.grey.shade200
-                            : null,
+                        ? Colors.grey.shade200
+                        : null,
                     onChanged: (value) => setState(() {}),
                   ),
                   _buildTextField(
@@ -2059,7 +2085,8 @@ class _EditProfileSheetState extends ConsumerState<DriverEditProfileSheet> {
         decoration: InputDecoration(
           labelText: label,
           filled: true,
-          fillColor: fillColor ??
+          fillColor:
+              fillColor ??
               (hasValue ? Colors.green.shade50 : Colors.red.shade50),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.symmetric(
@@ -2514,8 +2541,8 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
                     keyboardType: TextInputType.number,
                     fillColor:
                         (int.tryParse(_experienceController.text) ?? 0) < 1
-                            ? Colors.grey.shade200
-                            : null,
+                        ? Colors.grey.shade200
+                        : null,
                     onChanged: (value) => setState(() {}),
                   ),
                   _buildTextField(
@@ -2593,7 +2620,8 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
         decoration: InputDecoration(
           labelText: label,
           filled: true,
-          fillColor: fillColor ??
+          fillColor:
+              fillColor ??
               (hasValue ? Colors.green.shade50 : Colors.red.shade50),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
           contentPadding: const EdgeInsets.symmetric(

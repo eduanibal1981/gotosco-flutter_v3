@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(dart run build_runner build:*)",
-      "Bash(flutter analyze:*)"
+      "Bash(flutter analyze:*)",
+      "Bash(flutter pub get:*)",
+      "Bash(dart pub deps:*)",
+      "Bash(findstr:*)",
+      "WebSearch",
+      "WebFetch(domain:pub.dev)",
+      "Bash(dart doc:*)",
+      "Bash(dart --help:*)"
     ]
   }
 }

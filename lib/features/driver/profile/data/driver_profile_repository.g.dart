@@ -55,7 +55,7 @@ final class DriverProfileRepositoryProvider
 }
 
 String _$driverProfileRepositoryHash() =>
-    r'48decb30cb4c61e7cb2be4cc1a084f4cc4d92df5';
+    r'9e3122251ae486203bf02b3841a48d8d6218811f';
 
 /// Provider for the current driver's profile
 

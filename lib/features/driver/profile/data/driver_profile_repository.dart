@@ -1,9 +1,10 @@
 // lib/features/driver/profile/data/driver_profile_repository.dart
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:gotosco_v3/core/services/media_service.dart';
 import 'driver_profile_model.dart';
 import 'driver_schedule_model.dart';
 
@@ -11,7 +12,10 @@ part 'driver_profile_repository.g.dart';
 
 @riverpod
 DriverProfileRepository driverProfileRepository(Ref ref) {
-  return DriverProfileRepository(Supabase.instance.client);
+  return DriverProfileRepository(
+    Supabase.instance.client,
+    ref.read(mediaServiceProvider),
+  );
 }
 
 /// Provider for the current driver's profile
@@ -45,8 +49,9 @@ Future<List<DriverScheduleModel>> driverSchedules(Ref ref) async {
 
 class DriverProfileRepository {
   final SupabaseClient _supabase;
+  final MediaService _mediaService;
 
-  DriverProfileRepository(this._supabase);
+  DriverProfileRepository(this._supabase, this._mediaService);
 
   /// Fetches the driver profile for the given user ID
   Future<DriverProfileModel?> getDriverProfile(String userId) async {
@@ -270,21 +275,65 @@ class DriverProfileRepository {
     }
   }
 
-  /// Uploads a document (license or mulkia) to Supabase Storage
-  /// Returns the public URL of the uploaded file
-  Future<String?> uploadDocument({
+  /// Uploads a document (license or mulkia) using R2 hybrid storage
+  /// Compresses to JPEG, uploads to Cloudflare R2 via signed URL,
+  /// and updates the legacy database columns
+  /// Falls back to Supabase Storage if R2 fails
+  /// Returns the public/signed URL of the uploaded file
+  Future<String> uploadDocument({
     required String driverId,
-    required File file,
+    required XFile file,
     required String documentType, // 'license' or 'mulkia'
+    void Function(UploadProgress)? onProgress,
   }) async {
     try {
-      final extension = file.path.split('.').last;
+      // Determine asset type
+      final assetType = documentType == 'license'
+          ? MediaAssetType.license
+          : MediaAssetType.mulkia;
+
+      final asset = await _mediaService.uploadMedia(
+        file,
+        assetType,
+        originalFilename: file.name,
+        onProgress: onProgress,
+      );
+
+      debugPrint('Document uploaded successfully via R2: ${asset.url}');
+      return asset.url;
+    } catch (e) {
+      debugPrint('R2 upload failed, falling back to Supabase Storage: $e');
+      // Fallback to legacy Supabase Storage upload
+      final url = await _uploadDocumentLegacy(
+        driverId: driverId,
+        file: file,
+        documentType: documentType,
+      );
+      if (url == null) {
+        throw Exception('Failed to upload document');
+      }
+      return url;
+    }
+  }
+
+  /// Legacy upload method using Supabase Storage (fallback)
+  Future<String?> _uploadDocumentLegacy({
+    required String driverId,
+    required XFile file,
+    required String documentType,
+  }) async {
+    try {
+      debugPrint('Using legacy Supabase Storage upload...');
+      final extension = file.name.split('.').last;
       final fileName =
           '${driverId}_${documentType}_${DateTime.now().millisecondsSinceEpoch}.$extension';
       final storagePath = 'driver_documents/$driverId/$fileName';
 
+      // Read file bytes
+      final bytes = await file.readAsBytes();
+
       // Upload to Supabase Storage
-      await _supabase.storage.from('documents').upload(storagePath, file);
+      await _supabase.storage.from('documents').uploadBinary(storagePath, bytes);
 
       // Get public URL
       final publicUrl = _supabase.storage
@@ -295,11 +344,12 @@ class DriverProfileRepository {
       final fieldName = documentType == 'license'
           ? 'license_image_url'
           : 'mulkia_image_url';
-      await updateDriverProfile(driverId, {fieldName: publicUrl});
+      await _supabase.from('drivers').update({fieldName: publicUrl}).eq('user_id', driverId);
 
+      debugPrint('Document uploaded successfully via Supabase: $publicUrl');
       return publicUrl;
     } catch (e) {
-      debugPrint('Error uploading document: $e');
+      debugPrint('Error uploading document (legacy): $e');
       return null;
     }
   }

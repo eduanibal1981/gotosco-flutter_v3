@@ -1,6 +1,7 @@
 // lib/features/parent/profile/presentation/edit_profile_screen.dart
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -26,7 +27,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _phoneController;
   late TextEditingController _locationController;
-  File? _imageFile;
+  XFile? _imageFile;
   bool _isSaving = false;
 
   // Location State
@@ -64,7 +65,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       setState(() {
-        _imageFile = File(pickedFile.path);
+        _imageFile = pickedFile;
       });
     }
   }
@@ -294,7 +295,10 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                     radius: 50,
                     backgroundColor: Colors.indigo.shade50,
                     backgroundImage: _imageFile != null
-                        ? FileImage(_imageFile!)
+                        ? (kIsWeb
+                              ? NetworkImage(_imageFile!.path)
+                              : FileImage(File(_imageFile!.path))
+                                    as ImageProvider)
                         : (widget.user.photoUrl != null
                                   ? NetworkImage(widget.user.photoUrl!)
                                   : null)

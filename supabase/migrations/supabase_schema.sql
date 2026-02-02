@@ -167,6 +167,27 @@ $$;
 ALTER FUNCTION "public"."check_duplicate_child_booking"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."cleanup_expired_pending_uploads"() RETURNS integer
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  affected_count INTEGER;
+BEGIN
+  UPDATE public.media_assets
+  SET status = 'failed',
+      metadata = metadata || jsonb_build_object('failure_reason', 'expired')
+  WHERE status = 'pending'
+    AND expires_at < NOW();
+
+  GET DIAGNOSTICS affected_count = ROW_COUNT;
+  RETURN affected_count;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."cleanup_expired_pending_uploads"() OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."complete_trip"("trip_id_input" "uuid", "driver_lat" double precision DEFAULT NULL::double precision, "driver_lng" double precision DEFAULT NULL::double precision) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -219,6 +240,87 @@ $$;
 
 
 ALTER FUNCTION "public"."complete_trip_with_auto_offline"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."finalize_media_upload"("p_asset_id" "uuid", "p_file_size" bigint DEFAULT NULL::bigint) RETURNS "jsonb"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  asset RECORD;
+  final_url TEXT;
+  base_url TEXT := coalesce(current_setting('app.r2_public_url', true), 'https://media.gotosco.com');
+  parts TEXT[];
+  table_name TEXT;
+  column_name TEXT;
+BEGIN
+  -- Get and lock the asset
+  SELECT * INTO asset
+  FROM public.media_assets
+  WHERE id = p_asset_id
+  FOR UPDATE;
+
+  IF asset IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Asset not found');
+  END IF;
+
+  IF asset.status != 'pending' THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Asset is not pending');
+  END IF;
+
+  -- Calculate final URL
+  IF asset.visibility = 'public' THEN
+    final_url := base_url || '/' || asset.r2_key;
+  ELSE
+    -- Private assets don't have a public URL, but we store the r2_key-based URL
+    -- Clients will use get-signed-url to access
+    final_url := base_url || '/' || asset.r2_key;
+  END IF;
+
+  -- Update asset status
+  UPDATE public.media_assets
+  SET status = 'uploaded',
+      uploaded_at = NOW(),
+      file_size = COALESCE(p_file_size, file_size),
+      expires_at = NULL
+  WHERE id = p_asset_id;
+
+  -- Update legacy column if specified
+  IF asset.legacy_column IS NOT NULL AND asset.legacy_column != '' THEN
+    parts := string_to_array(asset.legacy_column, '.');
+    IF array_length(parts, 1) = 2 THEN
+      table_name := parts[1];
+      column_name := parts[2];
+
+      IF table_name = 'users' AND column_name = 'photo_url' THEN
+        UPDATE public.users SET photo_url = final_url WHERE id = asset.owner_id;
+      ELSIF table_name = 'drivers' AND column_name = 'license_image_url' THEN
+        UPDATE public.drivers SET license_image_url = final_url WHERE user_id = asset.owner_id;
+      ELSIF table_name = 'drivers' AND column_name = 'mulkia_image_url' THEN
+        UPDATE public.drivers SET mulkia_image_url = final_url WHERE user_id = asset.owner_id;
+      ELSIF table_name = 'children' AND column_name = 'photo_url' THEN
+        -- Children require parent_id check - need to pass child_id in metadata
+        IF asset.metadata ? 'child_id' THEN
+          UPDATE public.children
+          SET photo_url = final_url
+          WHERE id = (asset.metadata->>'child_id')::UUID
+            AND parent_id = asset.owner_id;
+        END IF;
+      END IF;
+    END IF;
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'url', final_url,
+    'asset_id', asset.id,
+    'r2_key', asset.r2_key,
+    'visibility', asset.visibility
+  );
+END;
+$$;
+
+
+ALTER FUNCTION "public"."finalize_media_upload"("p_asset_id" "uuid", "p_file_size" bigint) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."generate_go_trips"("target_date" "date" DEFAULT CURRENT_DATE, "target_driver_id" "uuid" DEFAULT NULL::"uuid") RETURNS "void"
@@ -422,6 +524,35 @@ $$;
 
 
 ALTER FUNCTION "public"."generate_return_trips"("target_date" "date", "target_driver_id" "uuid") OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."get_asset_public_url"("asset_id" "uuid") RETURNS "text"
+    LANGUAGE "plpgsql" STABLE
+    AS $$
+DECLARE
+  asset RECORD;
+  base_url TEXT := current_setting('app.r2_public_url', true);
+BEGIN
+  SELECT * INTO asset FROM public.media_assets WHERE id = asset_id;
+
+  IF asset IS NULL THEN
+    RETURN NULL;
+  END IF;
+
+  IF asset.visibility = 'private' THEN
+    RETURN NULL; -- Private assets require signed URLs
+  END IF;
+
+  IF base_url IS NULL OR base_url = '' THEN
+    base_url := 'https://media.gotosco.com'; -- Fallback
+  END IF;
+
+  RETURN base_url || '/' || asset.r2_key;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."get_asset_public_url"("asset_id" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."get_driver_availability_settings"() RETURNS TABLE("auto_offline_after_trip" boolean, "auto_online_before_trip" boolean, "auto_online_minutes_before" integer, "availability_mode" "text", "is_profile_online" boolean, "is_tracking_active" boolean)
@@ -1688,6 +1819,51 @@ CREATE TABLE IF NOT EXISTS "public"."driver_schedules" (
 ALTER TABLE "public"."driver_schedules" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."media_assets" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "owner_id" "uuid" NOT NULL,
+    "r2_key" "text" NOT NULL,
+    "visibility" "text" NOT NULL,
+    "asset_type" "text" NOT NULL,
+    "mime_type" "text" DEFAULT 'image/jpeg'::"text",
+    "file_size" bigint,
+    "original_filename" "text",
+    "status" "text" DEFAULT 'pending'::"text",
+    "legacy_column" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "uploaded_at" timestamp with time zone,
+    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:15:00'::interval),
+    "metadata" "jsonb" DEFAULT '{}'::"jsonb",
+    CONSTRAINT "media_assets_asset_type_check" CHECK (("asset_type" = ANY (ARRAY['avatar'::"text", 'license'::"text", 'mulkia'::"text", 'child_photo'::"text", 'adv_photo'::"text"]))),
+    CONSTRAINT "media_assets_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'uploaded'::"text", 'failed'::"text", 'deleted'::"text"]))),
+    CONSTRAINT "media_assets_visibility_check" CHECK (("visibility" = ANY (ARRAY['public'::"text", 'private'::"text"]))),
+    CONSTRAINT "valid_r2_key" CHECK (("r2_key" ~ '^(public|private)/'::"text"))
+);
+
+
+ALTER TABLE "public"."media_assets" OWNER TO "postgres";
+
+
+COMMENT ON TABLE "public"."media_assets" IS 'Tracks media assets stored in Cloudflare R2';
+
+
+
+COMMENT ON COLUMN "public"."media_assets"."r2_key" IS 'Full path in R2 bucket: public/users/{id}/avatar/xxx.webp or private/drivers/{id}/license/xxx.webp';
+
+
+
+COMMENT ON COLUMN "public"."media_assets"."visibility" IS 'public = direct URL access, private = requires signed URL';
+
+
+
+COMMENT ON COLUMN "public"."media_assets"."legacy_column" IS 'Database column to update with final URL, e.g., users.photo_url';
+
+
+
+COMMENT ON COLUMN "public"."media_assets"."expires_at" IS 'Pending uploads not finalized by this time are marked as failed';
+
+
+
 CREATE TABLE IF NOT EXISTS "public"."messages" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "sender_id" "uuid" NOT NULL,
@@ -1886,6 +2062,16 @@ ALTER TABLE ONLY "public"."drivers"
 
 
 
+ALTER TABLE ONLY "public"."media_assets"
+    ADD CONSTRAINT "media_assets_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."media_assets"
+    ADD CONSTRAINT "media_assets_r2_key_key" UNIQUE ("r2_key");
+
+
+
 ALTER TABLE ONLY "public"."messages"
     ADD CONSTRAINT "messages_pkey" PRIMARY KEY ("id");
 
@@ -2059,6 +2245,22 @@ CREATE INDEX "idx_drivers_start_location_geo" ON "public"."drivers" USING "gist"
 
 
 
+CREATE INDEX "idx_media_assets_expires" ON "public"."media_assets" USING "btree" ("expires_at") WHERE ("status" = 'pending'::"text");
+
+
+
+CREATE INDEX "idx_media_assets_owner" ON "public"."media_assets" USING "btree" ("owner_id");
+
+
+
+CREATE INDEX "idx_media_assets_status" ON "public"."media_assets" USING "btree" ("status") WHERE ("status" = 'pending'::"text");
+
+
+
+CREATE INDEX "idx_media_assets_type" ON "public"."media_assets" USING "btree" ("asset_type");
+
+
+
 CREATE INDEX "idx_messages_conversation_id" ON "public"."messages" USING "btree" ("conversation_id");
 
 
@@ -2218,6 +2420,11 @@ ALTER TABLE ONLY "public"."driver_service_areas"
 
 ALTER TABLE ONLY "public"."drivers"
     ADD CONSTRAINT "drivers_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."media_assets"
+    ADD CONSTRAINT "media_assets_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
 
 
@@ -2481,11 +2688,27 @@ CREATE POLICY "Public reads reviews" ON "public"."reviews" FOR SELECT TO "authen
 
 
 
+CREATE POLICY "Users can delete own assets" ON "public"."media_assets" FOR DELETE USING (("auth"."uid"() = "owner_id"));
+
+
+
+CREATE POLICY "Users can insert pending assets" ON "public"."media_assets" FOR INSERT WITH CHECK ((("auth"."uid"() = "owner_id") AND ("status" = 'pending'::"text")));
+
+
+
 CREATE POLICY "Users can read own profile" ON "public"."users" FOR SELECT USING (("id" = "auth"."uid"()));
 
 
 
 CREATE POLICY "Users can send messages" ON "public"."messages" FOR INSERT WITH CHECK (("auth"."uid"() = "sender_id"));
+
+
+
+CREATE POLICY "Users can update own pending assets" ON "public"."media_assets" FOR UPDATE USING ((("auth"."uid"() = "owner_id") AND ("status" = 'pending'::"text"))) WITH CHECK (("auth"."uid"() = "owner_id"));
+
+
+
+CREATE POLICY "Users can view own assets" ON "public"."media_assets" FOR SELECT USING (("auth"."uid"() = "owner_id"));
 
 
 
@@ -2538,6 +2761,9 @@ ALTER TABLE "public"."driver_service_areas" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."drivers" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."media_assets" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."messages" ENABLE ROW LEVEL SECURITY;
 
 
@@ -2584,6 +2810,12 @@ GRANT ALL ON FUNCTION "public"."check_duplicate_child_booking"() TO "service_rol
 
 
 
+GRANT ALL ON FUNCTION "public"."cleanup_expired_pending_uploads"() TO "anon";
+GRANT ALL ON FUNCTION "public"."cleanup_expired_pending_uploads"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."cleanup_expired_pending_uploads"() TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."complete_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) TO "anon";
 GRANT ALL ON FUNCTION "public"."complete_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."complete_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) TO "service_role";
@@ -2596,6 +2828,12 @@ GRANT ALL ON FUNCTION "public"."complete_trip_with_auto_offline"("trip_id_input"
 
 
 
+GRANT ALL ON FUNCTION "public"."finalize_media_upload"("p_asset_id" "uuid", "p_file_size" bigint) TO "anon";
+GRANT ALL ON FUNCTION "public"."finalize_media_upload"("p_asset_id" "uuid", "p_file_size" bigint) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."finalize_media_upload"("p_asset_id" "uuid", "p_file_size" bigint) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."generate_go_trips"("target_date" "date", "target_driver_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."generate_go_trips"("target_date" "date", "target_driver_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."generate_go_trips"("target_date" "date", "target_driver_id" "uuid") TO "service_role";
@@ -2605,6 +2843,12 @@ GRANT ALL ON FUNCTION "public"."generate_go_trips"("target_date" "date", "target
 GRANT ALL ON FUNCTION "public"."generate_return_trips"("target_date" "date", "target_driver_id" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."generate_return_trips"("target_date" "date", "target_driver_id" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."generate_return_trips"("target_date" "date", "target_driver_id" "uuid") TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."get_asset_public_url"("asset_id" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_asset_public_url"("asset_id" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_asset_public_url"("asset_id" "uuid") TO "service_role";
 
 
 
@@ -2839,6 +3083,12 @@ GRANT ALL ON TABLE "public"."driver_review_stats" TO "service_role";
 GRANT ALL ON TABLE "public"."driver_schedules" TO "anon";
 GRANT ALL ON TABLE "public"."driver_schedules" TO "authenticated";
 GRANT ALL ON TABLE "public"."driver_schedules" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."media_assets" TO "anon";
+GRANT ALL ON TABLE "public"."media_assets" TO "authenticated";
+GRANT ALL ON TABLE "public"."media_assets" TO "service_role";
 
 
 

@@ -1,6 +1,6 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:gotosco_v3/core/widgets/secure_image.dart';
 import '../data/driver_profile_model.dart';
 
 class VehicleDetailsScreen extends ConsumerWidget {
@@ -32,8 +32,14 @@ class VehicleDetailsScreen extends ConsumerWidget {
               icon: Icons.directions_bus,
               children: [
                 _buildInfoRow('Vehicle Type', profile.vehicleType),
-                _buildInfoRow('Vehicle Number', profile.vehicleNumber ?? 'Not set'),
-                _buildInfoRow('Capacity', '${profile.vehicleCapacity} children'),
+                _buildInfoRow(
+                  'Vehicle Number',
+                  profile.vehicleNumber ?? 'Not set',
+                ),
+                _buildInfoRow(
+                  'Capacity',
+                  '${profile.vehicleCapacity} children',
+                ),
               ],
             ),
             const SizedBox(height: 24),
@@ -55,7 +61,11 @@ class VehicleDetailsScreen extends ConsumerWidget {
                   ),
                   child: Column(
                     children: [
-                      Icon(Icons.directions_bus_outlined, size: 48, color: Colors.grey.shade400),
+                      Icon(
+                        Icons.directions_bus_outlined,
+                        size: 48,
+                        color: Colors.grey.shade400,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         'No vehicle pictures uploaded',
@@ -73,46 +83,57 @@ class VehicleDetailsScreen extends ConsumerWidget {
               title: 'Registration Document (Mulkia)',
               icon: Icons.file_present,
               children: [
-                 const SizedBox(height: 16),
-                 if (profile.mulkiaImageUrl != null && profile.mulkiaImageUrl!.isNotEmpty)
-                   ClipRRect(
-                     borderRadius: BorderRadius.circular(12),
-                     child: CachedNetworkImage(
-                       imageUrl: profile.mulkiaImageUrl!,
-                       width: double.infinity,
-                       fit: BoxFit.cover,
-                       placeholder: (context, url) => Container(
-                         height: 200,
-                         color: Colors.grey.shade200,
-                         child: const Center(child: CircularProgressIndicator()),
-                       ),
-                       errorWidget: (context, url, error) => Container(
-                         height: 200,
-                         color: Colors.grey.shade200,
-                         child: const Center(child: Icon(Icons.broken_image, size: 50, color: Colors.grey)),
-                       ),
-                     ),
-                   )
-                 else
-                   Container(
-                     width: double.infinity,
-                     padding: const EdgeInsets.all(32),
-                     decoration: BoxDecoration(
-                       color: Colors.orange.shade50,
-                       borderRadius: BorderRadius.circular(12),
-                       border: Border.all(color: Colors.orange.shade200),
-                     ),
-                     child: Column(
-                       children: [
-                         Icon(Icons.warning_amber_rounded, size: 48, color: Colors.orange.shade400),
-                         const SizedBox(height: 12),
-                         Text(
-                           'No registration document uploaded',
-                           style: TextStyle(color: Colors.orange.shade800),
-                         ),
-                       ],
-                     ),
-                   ),
+                const SizedBox(height: 16),
+                if (profile.mulkiaImageUrl != null &&
+                    profile.mulkiaImageUrl!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SecureImage(
+                      imageUrl: profile.mulkiaImageUrl!,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        height: 200,
+                        color: Colors.grey.shade200,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        height: 200,
+                        color: Colors.grey.shade200,
+                        child: const Center(
+                          child: Icon(
+                            Icons.broken_image,
+                            size: 50,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(32),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.shade200),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.warning_amber_rounded,
+                          size: 48,
+                          color: Colors.orange.shade400,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'No registration document uploaded',
+                          style: TextStyle(color: Colors.orange.shade800),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ],

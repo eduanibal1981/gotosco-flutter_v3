@@ -37,6 +37,10 @@ dependencies:
   shared_preferences: ^2.2.2
   image_picker: ^1.2.1
   cached_network_image: ^3.4.1
+  # Image processing for WebP compression
+  image: ^4.2.0
+  mime: ^1.0.6
+  path: ^1.9.0
 
 
 dev_dependencies:

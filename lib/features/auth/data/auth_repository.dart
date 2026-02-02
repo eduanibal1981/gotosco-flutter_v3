@@ -4,23 +4,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:gotosco_v3/core/constants/enums.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
+import 'package:gotosco_v3/core/services/media_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:io';
+import 'package:image_picker/image_picker.dart';
 import 'package:flutter/foundation.dart';
 part 'auth_repository.g.dart';
 
 /// Provides the AuthRepository instance via dependency injection.
 @riverpod
 AuthRepository authRepository(Ref ref) {
-  return AuthRepository(Supabase.instance.client);
+  return AuthRepository(
+    Supabase.instance.client,
+    ref.read(mediaServiceProvider),
+  );
 }
 
 class AuthRepository {
   final SupabaseClient _supabase;
+  final MediaService _mediaService;
 
   // Constructor Injection
-  AuthRepository(this._supabase);
+  AuthRepository(this._supabase, this._mediaService);
 
   // --- Properties ---
 
@@ -232,29 +237,55 @@ class AuthRepository {
     }
   }
 
-  /// Uploads a profile image to Supabase Storage and returns the public URL.
-  Future<String?> uploadProfileImage(String userId, File imageFile) async {
+  /// Uploads a profile image using R2 hybrid storage with WebP compression
+  /// Falls back to Supabase Storage if R2 fails
+  Future<String?> uploadProfileImage(
+    String userId,
+    XFile imageFile, {
+    void Function(UploadProgress)? onProgress,
+  }) async {
     try {
-      final fileExt = imageFile.path.split('.').last;
+      // Use MediaService for R2 upload with compression
+      final asset = await _mediaService.uploadMedia(
+        imageFile,
+        MediaAssetType.avatar,
+        originalFilename: imageFile.name,
+        onProgress: onProgress,
+      );
+
+      debugPrint('Profile image uploaded successfully: ${asset.url}');
+      return asset.url;
+    } catch (e) {
+      debugPrint('Error uploading via R2, falling back to Supabase: $e');
+      // Fallback to legacy Supabase Storage
+      return _uploadProfileImageLegacy(userId, imageFile);
+    }
+  }
+
+  /// Legacy upload to Supabase Storage (fallback)
+  Future<String?> _uploadProfileImageLegacy(
+    String userId,
+    XFile imageFile,
+  ) async {
+    try {
+      final fileExt = imageFile.name.split('.').last;
       final fileName =
           '$userId-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
-      final filePath =
-          fileName; // Root of bucket or folder? usage: 'avatars/$fileName'
+      final filePath = fileName;
 
-      // Check if 'avatars' bucket exists, if not this throws.
-      // We assume 'avatars' bucket exists and is public.
+      final bytes = await imageFile.readAsBytes();
       await _supabase.storage
           .from('avatars')
-          .upload(
+          .uploadBinary(
             filePath,
-            imageFile,
+            bytes,
             fileOptions: const FileOptions(upsert: true),
           );
 
       final imageUrl = _supabase.storage.from('avatars').getPublicUrl(filePath);
       return imageUrl;
     } catch (e) {
-      print('Error uploading image: $e');
+      debugPrint('Error uploading image (legacy): $e');
       return null;
     }
   }
