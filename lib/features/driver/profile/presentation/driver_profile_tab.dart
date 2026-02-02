@@ -143,49 +143,52 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
         break;
     }
 
-    return GestureDetector(
-      onTap: () => _showVerificationInfo(status),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: backgroundColor,
+    return Semantics(
+      button: true,
+      label: 'Verification Status: $label',
+      hint: 'Tap for details',
+      child: Material(
+        color: backgroundColor,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: textColor.withOpacity(0.3),
+          side: BorderSide(
+            color: textColor.withValues(alpha: 0.3),
             width: status == VerificationStatus.unverified ? 1.5 : 1,
           ),
-          boxShadow: status == VerificationStatus.unverified
-              ? [
-                  BoxShadow(
-                    color: Colors.red.withOpacity(0.15),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 16, color: textColor),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                color: textColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+        clipBehavior: Clip.antiAlias,
+        elevation: status == VerificationStatus.unverified ? 2 : 0,
+        shadowColor: status == VerificationStatus.unverified
+            ? Colors.red.withValues(alpha: 0.15)
+            : null,
+        child: InkWell(
+          onTap: () => _showVerificationInfo(status),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(icon, size: 16, color: textColor),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (status == VerificationStatus.unverified) ...[
+                  const SizedBox(width: 4),
+                  Icon(
+                    Icons.touch_app,
+                    size: 14,
+                    color: textColor.withValues(alpha: 0.7),
+                  ),
+                ],
+              ],
             ),
-            if (status == VerificationStatus.unverified) ...[
-              const SizedBox(width: 4),
-              Icon(
-                Icons.touch_app,
-                size: 14,
-                color: textColor.withOpacity(0.7),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );
