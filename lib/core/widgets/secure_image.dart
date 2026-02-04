@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gotosco_v3/core/services/media_service.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:shimmer/shimmer.dart';
 
 part 'secure_image.g.dart';
 
@@ -19,6 +20,7 @@ class SecureImage extends ConsumerWidget {
   final BoxFit fit;
   final Widget Function(BuildContext, String)? placeholder;
   final Widget Function(BuildContext, String, dynamic)? errorWidget;
+  final double borderRadius;
 
   const SecureImage({
     super.key,
@@ -28,7 +30,35 @@ class SecureImage extends ConsumerWidget {
     this.fit = BoxFit.cover,
     this.placeholder,
     this.errorWidget,
+    this.borderRadius = 0,
   });
+
+  /// Calculate memory cache size (2x for retina, capped at 1200)
+  int? _getMemCacheSize(double? displaySize) {
+    if (displaySize == null) return null;
+    return (displaySize * 2).clamp(50, 1200).toInt();
+  }
+
+  /// Build shimmer placeholder
+  Widget _buildShimmer() {
+    Widget shimmer = Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Container(
+        width: width,
+        height: height,
+        color: Colors.grey.shade200,
+      ),
+    );
+
+    if (borderRadius > 0) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: shimmer,
+      );
+    }
+    return shimmer;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,26 +70,35 @@ class SecureImage extends ConsumerWidget {
       );
     }
 
+    final cacheWidth = _getMemCacheSize(width);
+    final cacheHeight = _getMemCacheSize(height);
+
     if (!imageUrl.contains('/private/')) {
-      // Public URL, display directly
-      return CachedNetworkImage(
+      // Public URL, display directly with optimized caching
+      Widget image = CachedNetworkImage(
         imageUrl: imageUrl,
         width: width,
         height: height,
         fit: fit,
-        placeholder:
-            placeholder ??
-            (_, __) => const Center(child: CircularProgressIndicator()),
+        memCacheWidth: cacheWidth,
+        memCacheHeight: cacheHeight,
+        fadeInDuration: const Duration(milliseconds: 300),
+        placeholder: placeholder ?? (_, __) => _buildShimmer(),
         errorWidget: errorWidget ?? (_, __, ___) => const Icon(Icons.error),
       );
+
+      if (borderRadius > 0) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: image,
+        );
+      }
+      return image;
     }
 
     // Private URL: Parse key and get signed URL
-    // Format: .../private/drivers/...
-    // extract key starting from 'private/'
     final startIndex = imageUrl.indexOf('private/');
     if (startIndex == -1) {
-      // Fallback if formatting is unexpected
       return const Icon(Icons.broken_image);
     }
 
@@ -67,22 +106,30 @@ class SecureImage extends ConsumerWidget {
     final signedUrlAsync = ref.watch(signedUrlProvider(r2Key));
 
     return signedUrlAsync.when(
-      data: (signedUrl) => CachedNetworkImage(
-        imageUrl: signedUrl,
-        width: width,
-        height: height,
-        fit: fit,
-        placeholder:
-            placeholder ??
-            (_, __) => const Center(child: CircularProgressIndicator()),
-        errorWidget:
-            errorWidget ?? (_, __, ___) => const Icon(Icons.lock_clock),
-      ),
-      loading: () => SizedBox(
-        width: width,
-        height: height,
-        child: const Center(child: CircularProgressIndicator()),
-      ),
+      data: (signedUrl) {
+        Widget image = CachedNetworkImage(
+          imageUrl: signedUrl,
+          width: width,
+          height: height,
+          fit: fit,
+          memCacheWidth: cacheWidth,
+          memCacheHeight: cacheHeight,
+          fadeInDuration: const Duration(milliseconds: 300),
+          placeholder: placeholder ?? (_, __) => _buildShimmer(),
+          errorWidget:
+              errorWidget ?? (_, __, ___) => const Icon(Icons.lock_clock),
+        );
+
+        if (borderRadius > 0) {
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: image,
+          );
+        }
+        return image;
+      },
+      loading: () =>
+          SizedBox(width: width, height: height, child: _buildShimmer()),
       error: (_, __) => SizedBox(
         width: width,
         height: height,

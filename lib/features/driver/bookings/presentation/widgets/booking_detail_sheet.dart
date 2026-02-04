@@ -94,13 +94,39 @@ class BookingDetailSheet extends ConsumerWidget {
               ),
               title: Text(booking.parentName ?? 'Unknown'),
               subtitle: Text(booking.parentPhone ?? 'No phone'),
-              trailing: IconButton(
-                icon: const Icon(Icons.phone, color: Colors.green),
-                onPressed: () {
-                  if (booking.parentPhone != null) {
-                    launchUrl(Uri.parse('tel:${booking.parentPhone}'));
-                  }
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.chat_bubble_outline,
+                      color: Colors.blue,
+                    ),
+                    onPressed: () {
+                      context.push(
+                        '/chat',
+                        extra: {
+                          'userId': booking.parentId,
+                          'userName': booking.parentName ?? 'Parent',
+                        },
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.phone, color: Colors.green),
+                    onPressed: () {
+                      if (booking.parentPhone != null) {
+                        launchUrl(Uri.parse('tel:${booking.parentPhone}'));
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No phone number available'),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ],
               ),
             ),
             const Divider(),
@@ -236,7 +262,8 @@ class BookingDetailSheet extends ConsumerWidget {
                 ],
               ),
 
-            if (booking.status == 'accepted') ...[
+            if (booking.status == 'accepted' ||
+                booking.status == 'confirmed') ...[
               Row(
                 children: [
                   Expanded(

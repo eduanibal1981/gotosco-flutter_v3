@@ -1,6 +1,6 @@
 // lib/features/parent/dashboard/presentation/widgets/active_booking_card.dart
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:gotosco_v3/core/widgets/optimized_image.dart';
 
 class ActiveBookingCard extends StatelessWidget {
   final String driverName;
@@ -56,155 +56,156 @@ class ActiveBookingCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(24),
             child: Stack(
               children: [
-              // 1. Map Placeholder (Only if Active)
-              if (isActive)
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: 0.1,
-                    child: CachedNetworkImage(
-                      imageUrl:
-                          'https://maps.googleapis.com/maps/api/staticmap?center=23.5880,58.3829&zoom=13&size=600x300&key=YOUR_API_KEY_HERE',
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) =>
-                          const Center(child: CircularProgressIndicator()),
-                      errorWidget: (context, url, error) =>
-                          Container(color: Colors.grey.shade100),
-                    ),
-                  ),
-                )
-              else
-                // Blue Gradient for Scheduled/Inactive
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Colors.blue.shade50, Colors.white],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                // 1. Map Placeholder (Only if Active) - Now with shimmer loading
+                if (isActive)
+                  Positioned.fill(
+                    child: Opacity(
+                      opacity: 0.1,
+                      child: OptimizedNetworkImage(
+                        imageUrl:
+                            'https://maps.googleapis.com/maps/api/staticmap?center=23.5880,58.3829&zoom=13&size=600x300&key=YOUR_API_KEY_HERE',
+                        fit: BoxFit.cover,
+                        memCacheWidth: 600,
+                        memCacheHeight: 300,
+                        errorWidget: (context, url, error) =>
+                            Container(color: Colors.grey.shade100),
                       ),
                     ),
-                  ),
-                ),
-
-              // 2. Status Content
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _buildStatusBadge(),
-                        const Spacer(),
-                        TextButton.icon(
-                          onPressed: onViewAll,
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.grey[600],
-                            padding: EdgeInsets.zero,
-                            minimumSize: const Size(0, 0),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          icon: const Icon(
-                            Icons.arrow_forward_ios,
-                            size: 14,
-                            color: Colors.grey,
-                          ),
-                          label: const Text(
-                            'View All',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                  )
+                else
+                  // Blue Gradient for Scheduled/Inactive
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade50, Colors.white],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.black87,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    if (etaMinutes != null || stopsUntilParent != null)
+                  ),
+
+                // 2. Status Content
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Row(
                         children: [
-                          if (etaMinutes != null)
-                            _buildInfoChip(
-                              Icons.schedule,
-                              '${etaMinutes!} min',
+                          _buildStatusBadge(),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: onViewAll,
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.grey[600],
+                              padding: EdgeInsets.zero,
+                              minimumSize: const Size(0, 0),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                          if (etaMinutes != null && stopsUntilParent != null)
-                            const SizedBox(width: 8),
-                          if (stopsUntilParent != null)
-                            _buildInfoChip(
-                              Icons.format_list_numbered,
-                              '${stopsUntilParent!} stops',
+                            icon: const Icon(
+                              Icons.arrow_forward_ios,
+                              size: 14,
+                              color: Colors.grey,
                             ),
+                            label: const Text(
+                              'View All',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
-                    if (nextStopLabel != null) ...[
+                      const Spacer(),
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.black87,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
                       const SizedBox(height: 8),
+                      if (etaMinutes != null || stopsUntilParent != null)
+                        Row(
+                          children: [
+                            if (etaMinutes != null)
+                              _buildInfoChip(
+                                Icons.schedule,
+                                '${etaMinutes!} min',
+                              ),
+                            if (etaMinutes != null && stopsUntilParent != null)
+                              const SizedBox(width: 8),
+                            if (stopsUntilParent != null)
+                              _buildInfoChip(
+                                Icons.format_list_numbered,
+                                '${stopsUntilParent!} stops',
+                              ),
+                          ],
+                        ),
+                      if (nextStopLabel != null) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.place_outlined,
+                              size: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              nextStopLabel!,
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                       Row(
                         children: [
                           Icon(
-                            Icons.place_outlined,
+                            Icons.directions_bus,
                             size: 16,
-                            color: Colors.grey.shade600,
+                            color: isActive
+                                ? Colors.indigo.shade700
+                                : Colors.grey.shade700,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            nextStopLabel!,
+                            'Driver: $driverName',
                             style: TextStyle(
-                              color: Colors.grey.shade700,
+                              color: isActive
+                                  ? Colors.indigo.shade700
+                                  : Colors.grey.shade700,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
                       ),
                     ],
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.directions_bus,
-                          size: 16,
-                          color: isActive
-                              ? Colors.indigo.shade700
-                              : Colors.grey.shade700,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Driver: $driverName',
-                          style: TextStyle(
-                            color: isActive
-                                ? Colors.indigo.shade700
-                                : Colors.grey.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 
   Widget _buildStatusBadge() {

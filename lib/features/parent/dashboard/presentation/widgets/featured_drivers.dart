@@ -1,7 +1,7 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:gotosco_v3/core/widgets/optimized_image.dart';
 import 'package:gotosco_v3/features/parent/find_driver/data/drivers_repository.dart';
 
 class FeaturedDrivers extends ConsumerWidget {
@@ -124,10 +124,10 @@ class FeaturedDrivers extends ConsumerWidget {
                     CircleAvatar(
                       backgroundColor: Colors.indigo.shade50,
                       radius: 16,
-                      backgroundImage: photoUrl != null
-                          ? CachedNetworkImageProvider(photoUrl)
+                      backgroundImage: photoUrl != null && photoUrl.isNotEmpty
+                          ? OptimizedImageProvider.avatar(photoUrl, size: 32)
                           : null,
-                      child: photoUrl == null
+                      child: photoUrl == null || photoUrl.isEmpty
                           ? Text(
                               name.isNotEmpty ? name[0] : 'D',
                               style: TextStyle(color: Colors.indigo.shade700),
@@ -151,7 +151,10 @@ class FeaturedDrivers extends ConsumerWidget {
                     message: "Identity Verified",
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.blue.shade50,
                         borderRadius: BorderRadius.circular(4),
@@ -170,7 +173,10 @@ class FeaturedDrivers extends ConsumerWidget {
                   name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
                 Text(
                   subtitle,

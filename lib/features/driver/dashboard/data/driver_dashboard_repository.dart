@@ -248,11 +248,16 @@ class DriverDashboardRepository {
   Future<Map<String, dynamic>> getDriverStats() async {
     try {
       // 1. Get all accepted bookings to calculate earnings and get booking IDs
+      // Added 'active' to the status filter just in case
       final acceptedBookings = await _supabase
           .from('bookings')
           .select('id, price')
           .eq('driver_id', _driverId)
-          .eq('status', 'accepted');
+          .inFilter('status', ['accepted', 'confirmed', 'active']);
+
+      print(
+        'DEBUG: Found ${acceptedBookings.length} active bookings for stats',
+      );
 
       // 2. Get unique children count across all accepted bookings
       final acceptedBookingIds = (acceptedBookings as List)
@@ -284,7 +289,15 @@ class DriverDashboardRepository {
       // 4. Calculate total monthly earnings (sum of price of accepted bookings)
       double totalEarnings = 0;
       for (var booking in acceptedBookings) {
-        totalEarnings += (booking['price'] as num?)?.toDouble() ?? 0;
+        // Robust parsing handling String or num
+        final priceVal = booking['price'];
+        double price = 0;
+        if (priceVal is num) {
+          price = priceVal.toDouble();
+        } else if (priceVal is String) {
+          price = double.tryParse(priceVal) ?? 0;
+        }
+        totalEarnings += price;
       }
 
       return {
@@ -631,7 +644,7 @@ class DriverDashboardRepository {
             '*, parent:users(full_name, phone), children_links:booking_children(child:children(*))',
           )
           .eq('driver_id', _driverId)
-          .eq('status', 'accepted');
+          .inFilter('status', ['accepted', 'confirmed']);
 
       final students = <Map<String, dynamic>>[];
       final seenChildIds = <String>{};
@@ -669,7 +682,7 @@ class DriverDashboardRepository {
         .from('bookings')
         .select()
         .eq('driver_id', _driverId)
-        .eq('status', 'accepted');
+        .inFilter('status', ['accepted', 'confirmed']);
 
     final students = <Map<String, dynamic>>[];
     final seenChildIds = <String>{};
@@ -718,7 +731,7 @@ class DriverDashboardRepository {
   Future<void> acceptBooking(String bookingId) async {
     await _supabase
         .from('bookings')
-        .update({'status': 'accepted'})
+        .update({'status': 'confirmed', 'subscription_status': 'active'})
         .eq('id', bookingId);
   }
 

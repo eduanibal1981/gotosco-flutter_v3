@@ -1,6 +1,6 @@
 // lib/features/parent/dashboard/presentation/widgets/live_status_card.dart
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:gotosco_v3/core/widgets/optimized_image.dart';
 
 class LiveStatusCard extends StatelessWidget {
   const LiveStatusCard({super.key});
@@ -25,16 +25,16 @@ class LiveStatusCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         child: Stack(
           children: [
-            // 1. Map Placeholder (Use a static image for performance until active)
+            // 1. Map Placeholder with shimmer loading
             Positioned.fill(
               child: Opacity(
                 opacity: 0.1,
-                child: CachedNetworkImage(
+                child: OptimizedNetworkImage(
                   imageUrl:
                       'https://maps.googleapis.com/maps/api/staticmap?center=23.5880,58.3829&zoom=13&size=600x300&key=YOUR_API_KEY_HERE',
                   fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      const Center(child: CircularProgressIndicator()),
+                  memCacheWidth: 600,
+                  memCacheHeight: 300,
                   errorWidget: (context, url, error) =>
                       Container(color: Colors.grey.shade200),
                 ),

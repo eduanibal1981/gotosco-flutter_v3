@@ -10,9 +10,13 @@ import 'firebase_options.dart';
 import 'core/router/router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/image_cache_config.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize image cache with optimized settings
+  ImageCacheConfig.initialize();
 
   // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

@@ -1,11 +1,11 @@
 // lib/features/parent/find_driver/presentation/widgets/driver_ad_card.dart
-import 'package:cached_network_image/cached_network_image.dart'; // <--- Import CachedNetworkImage
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // <--- Import Riverpod
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:gotosco_v3/core/widgets/optimized_image.dart';
 import '../../data/driver_ad_model.dart';
-import '../providers/favorites_provider.dart'; // <--- Import the new provider
+import '../providers/favorites_provider.dart';
 
 class DriverAdCard extends ConsumerWidget {
   final DriverAdModel driver;
@@ -84,16 +84,23 @@ class DriverAdCard extends ConsumerWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Avatar
+                    // Avatar with optimized image loading
                     Stack(
                       children: [
                         CircleAvatar(
                           radius: 32,
                           backgroundColor: Colors.grey.shade100,
-                          backgroundImage: driver.photoUrl != null
-                              ? CachedNetworkImageProvider(driver.photoUrl!)
+                          backgroundImage:
+                              driver.photoUrl != null &&
+                                  driver.photoUrl!.isNotEmpty
+                              ? OptimizedImageProvider.avatar(
+                                  driver.photoUrl!,
+                                  size: 64,
+                                )
                               : null,
-                          child: driver.photoUrl == null
+                          child:
+                              driver.photoUrl == null ||
+                                  driver.photoUrl!.isEmpty
                               ? Text(
                                   driver.name[0].toUpperCase(),
                                   style: const TextStyle(

@@ -282,7 +282,7 @@ class TripsTab extends ConsumerWidget {
                       isProfileComplete,
                     ),
                     _buildRequirementCheck(
-                      'Have Active Bookings (Accepted)',
+                      'Have Active Bookings',
                       hasActiveBookings,
                     ),
                   ],
@@ -314,7 +314,6 @@ class TripsTab extends ConsumerWidget {
                           );
                         }
                       }
-
                     }
                   : null,
               icon: const Icon(Icons.auto_fix_high),

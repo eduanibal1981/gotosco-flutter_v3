@@ -10,6 +10,7 @@ import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings
 import 'package:gotosco_v3/features/driver/transport_requests/data/transport_requests_repository.dart';
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
+import '../../../../core/widgets/double_back_to_exit_wrapper.dart';
 
 // Provider for managing selected tab index
 final driverDashboardIndexProvider =
@@ -110,51 +111,53 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
       _onTabChanged(next);
     });
 
-    return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: IndexedStack(
-        index: selectedIndex,
-        children: _buildPages(bookingTabIndex),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (i) =>
-            ref.read(driverDashboardIndexProvider.notifier).setIndex(i),
-        backgroundColor: Colors.white,
-        elevation: 8,
-        shadowColor: Colors.black12,
-        indicatorColor: Colors.teal.shade50,
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.account_balance_wallet_outlined),
-            selectedIcon: Icon(
-              Icons.account_balance_wallet,
-              color: Colors.teal,
+    return DoubleBackToExitWrapper(
+      child: Scaffold(
+        backgroundColor: Colors.grey.shade50,
+        body: IndexedStack(
+          index: selectedIndex,
+          children: _buildPages(bookingTabIndex),
+        ),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (i) =>
+              ref.read(driverDashboardIndexProvider.notifier).setIndex(i),
+          backgroundColor: Colors.white,
+          elevation: 8,
+          shadowColor: Colors.black12,
+          indicatorColor: Colors.teal.shade50,
+          labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.account_balance_wallet_outlined),
+              selectedIcon: Icon(
+                Icons.account_balance_wallet,
+                color: Colors.teal,
+              ),
+              label: 'Earnings',
             ),
-            label: 'Earnings',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.book_online_outlined),
-            selectedIcon: Icon(Icons.book_online, color: Colors.teal),
-            label: 'Booking',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home, color: Colors.teal),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.directions_bus_outlined),
-            selectedIcon: Icon(Icons.directions_bus, color: Colors.teal),
-            label: 'Trips',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person, color: Colors.teal),
-            label: 'Profile',
-          ),
-        ],
+            NavigationDestination(
+              icon: Icon(Icons.book_online_outlined),
+              selectedIcon: Icon(Icons.book_online, color: Colors.teal),
+              label: 'Booking',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home, color: Colors.teal),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.directions_bus_outlined),
+              selectedIcon: Icon(Icons.directions_bus, color: Colors.teal),
+              label: 'Trips',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person, color: Colors.teal),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

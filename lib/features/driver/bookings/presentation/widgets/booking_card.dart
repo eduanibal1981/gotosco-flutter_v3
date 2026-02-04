@@ -213,7 +213,8 @@ class BookingCard extends ConsumerWidget {
                   Colors.orange,
                 ),
               if (booking.cancellationType != null &&
-                  booking.status == 'accepted' &&
+                  (booking.status == 'accepted' ||
+                      booking.status == 'confirmed') &&
                   booking.subscriptionStatus != 'paused' &&
                   booking.contractEndDate == null)
                 _buildNoticeRow(
@@ -222,7 +223,7 @@ class BookingCard extends ConsumerWidget {
                   Colors.redAccent,
                 ),
 
-              if (booking.status == 'accepted')
+              if (booking.status == 'accepted' || booking.status == 'confirmed')
                 Row(
                   children: [
                     Expanded(
@@ -244,7 +245,8 @@ class BookingCard extends ConsumerWidget {
                   ],
                 ),
 
-              if (booking.status == 'accepted') const SizedBox(height: 12),
+              if (booking.status == 'accepted' || booking.status == 'confirmed')
+                const SizedBox(height: 12),
 
               // Action Buttons
               if (isPending) _BookingActions(booking: booking),
@@ -321,6 +323,7 @@ class BookingCard extends ConsumerWidget {
     Color color;
     switch (status) {
       case 'accepted':
+      case 'confirmed':
         color = Colors.green;
         break;
       case 'pending':
