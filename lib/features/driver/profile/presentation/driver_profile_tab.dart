@@ -30,10 +30,12 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
   final _scrollController = ScrollController();
   final _serviceAreasKey = GlobalKey();
   final _locationSettingsKey = GlobalKey();
+  final _scheduleKey = GlobalKey();
   String? _expandedShiftType;
   String? _currentLocationText;
   double? _currentLocationLat;
   double? _currentLocationLng;
+  final Map<String, XFile> _pendingUploads = {};
 
   @override
   void dispose() {
@@ -59,6 +61,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
     );
 
     return profileAsync.when(
+      skipLoadingOnRefresh: true,
       data: (profile) {
         return Scaffold(
           backgroundColor: Colors.grey.shade50,
@@ -84,6 +87,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
       DriverProfileScrollTarget.serviceAreas => _serviceAreasKey.currentContext,
       DriverProfileScrollTarget.locationSettings =>
         _locationSettingsKey.currentContext,
+      DriverProfileScrollTarget.schedule => _scheduleKey.currentContext,
     };
     if (contextToScroll == null) return;
     Scrollable.ensureVisible(
@@ -343,6 +347,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                     label: 'Upload License for Verification',
                     hint: 'Only reviewed by GoToSco Team',
                     currentUrl: profile.licenseImageUrl,
+                    isPending: _pendingUploads.containsKey('license'),
                     onUpload: () => _handleDocumentUpload(profile, 'license'),
                   ),
                 ],
@@ -381,6 +386,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                     label: 'Upload Car Mulkia',
                     hint: 'Vehicle registration document',
                     currentUrl: profile.mulkiaImageUrl,
+                    isPending: _pendingUploads.containsKey('mulkia'),
                     onUpload: () => _handleDocumentUpload(profile, 'mulkia'),
                   ),
                 ],
@@ -434,7 +440,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
               const SizedBox(height: 16),
 
               // Weekly Schedule Section
-              _buildScheduleSection(),
+              KeyedSubtree(key: _scheduleKey, child: _buildScheduleSection()),
 
               const SizedBox(height: 16),
 
@@ -869,17 +875,23 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
     required String label,
     required String hint,
     required String? currentUrl,
+    required bool isPending,
     required VoidCallback onUpload,
   }) {
-    final hasDocument = currentUrl != null && currentUrl.isNotEmpty;
+    final hasDocument =
+        (currentUrl != null && currentUrl.isNotEmpty) || isPending;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: hasDocument ? Colors.green.shade50 : Colors.orange.shade50,
+        color: hasDocument
+            ? (isPending ? Colors.blue.shade50 : Colors.green.shade50)
+            : Colors.orange.shade50,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: hasDocument ? Colors.green.shade200 : Colors.orange.shade200,
+          color: hasDocument
+              ? (isPending ? Colors.blue.shade200 : Colors.green.shade200)
+              : Colors.orange.shade200,
         ),
       ),
       child: Row(
@@ -888,17 +900,26 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: hasDocument
-                  ? Colors.green.shade100
+                  ? (isPending ? Colors.blue.shade100 : Colors.green.shade100)
                   : Colors.orange.shade100,
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              hasDocument ? Icons.check_circle : Icons.upload_file,
-              color: hasDocument
-                  ? Colors.green.shade700
-                  : Colors.orange.shade700,
-              size: 20,
-            ),
+            child: isPending
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.blue.shade700,
+                    ),
+                  )
+                : Icon(
+                    hasDocument ? Icons.check_circle : Icons.upload_file,
+                    color: hasDocument
+                        ? Colors.green.shade700
+                        : Colors.orange.shade700,
+                    size: 20,
+                  ),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -910,16 +931,20 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     color: hasDocument
-                        ? Colors.green.shade800
+                        ? (isPending
+                              ? Colors.blue.shade800
+                              : Colors.green.shade800)
                         : Colors.orange.shade800,
                   ),
                 ),
                 Text(
-                  hint,
+                  isPending ? 'Syncing in background...' : hint,
                   style: TextStyle(
                     fontSize: 12,
                     color: hasDocument
-                        ? Colors.green.shade600
+                        ? (isPending
+                              ? Colors.blue.shade600
+                              : Colors.green.shade600)
                         : Colors.orange.shade600,
                   ),
                 ),
@@ -941,43 +966,84 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
   ) async {
     try {
       final picker = ImagePicker();
-      final image = await picker.pickImage(source: ImageSource.gallery);
+      // Use built-in resizing/compression which is efficient on all platforms (including Web)
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600, // Max dimension for documents
+        maxHeight: 1600,
+        imageQuality: 90, // High quality for text readability
+      );
 
       if (image != null && mounted) {
-        // Show loading snackbar
+        // Optimistic update: Show as "loaded locally" immediately
+        setState(() {
+          _pendingUploads[type] = image;
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Uploading $type...'),
-            duration: const Duration(seconds: 1),
+          const SnackBar(
+            content: Text('Image loaded. Uploading in background...'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Colors.blue,
           ),
         );
 
-        // final file = File(image.path); // Removed to support Web
-
-        // This will throw if upload fails
-        await ref
-            .read(driverProfileRepositoryProvider)
-            .uploadDocument(
-              driverId: profile.id,
-              file: image, // Pass XFile directly
-              documentType: type,
-            );
-
-        // If we get here, upload was successful
-        ref.invalidate(currentDriverProfileProvider);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Document upload for $type successful!'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+        // Schedule the actual upload in background without awaiting here
+        _processBackgroundUpload(profile, type, image);
       }
     } catch (e) {
       if (mounted) {
-        String errorMessage = 'Error uploading document';
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error selecting image: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
+  Future<void> _processBackgroundUpload(
+    DriverProfileModel profile,
+    String type,
+    XFile image,
+  ) async {
+    try {
+      // Delay as requested (3 seconds)
+      await Future.delayed(const Duration(seconds: 3));
+
+      if (!mounted) return;
+
+      // Perform actual upload
+      await ref
+          .read(driverProfileRepositoryProvider)
+          .uploadDocument(
+            driverId: profile.id,
+            file: image,
+            documentType: type,
+          );
+
+      // On success
+      if (mounted) {
+        setState(() {
+          _pendingUploads.remove(type);
+        });
+        ref.invalidate(currentDriverProfileProvider);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Document upload for $type successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _pendingUploads.remove(type);
+        });
+
+        String errorMessage = 'Error uploading document';
         if (e.toString().contains('MediaServiceException')) {
           errorMessage = e.toString().replaceAll('MediaServiceException: ', '');
         } else {
@@ -990,25 +1056,9 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 10),
             action: SnackBarAction(
-              label: 'Details',
+              label: 'Retry',
               textColor: Colors.white,
-              onPressed: () {
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Upload Error'),
-                    content: SingleChildScrollView(
-                      child: SelectableText(e.toString()),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Close'),
-                      ),
-                    ],
-                  ),
-                );
-              },
+              onPressed: () => _handleDocumentUpload(profile, type),
             ),
           ),
         );

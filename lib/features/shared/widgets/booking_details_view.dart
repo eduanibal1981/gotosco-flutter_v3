@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class BookingDetailsView extends StatelessWidget {
   final String title;
@@ -380,44 +382,114 @@ class BookingDetailsView extends StatelessWidget {
     dynamic lat,
     dynamic lng,
   }) {
+    double? latitude;
+    double? longitude;
+
+    if (lat != null && lng != null) {
+      try {
+        latitude = lat is double ? lat : double.tryParse(lat.toString());
+        longitude = lng is double ? lng : double.tryParse(lng.toString());
+      } catch (e) {
+        debugPrint('Error parsing coordinates: $e');
+      }
+    }
+
+    final hasCoordinates = latitude != null && longitude != null;
+
     return Padding(
-      padding: const EdgeInsets.only(left: 40, bottom: 8),
-      child: Row(
+      padding: const EdgeInsets.only(left: 40, bottom: 24),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (label.isNotEmpty)
-                  Text(
-                    label,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
-                if (label.isNotEmpty) const SizedBox(height: 2),
-                Text(
-                  val,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.black87,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (label.isNotEmpty)
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    if (label.isNotEmpty) const SizedBox(height: 2),
+                    Text(
+                      val,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Fallback icon button if for some reason parsing failed but not null,
+              // or just to have the button there as well.
+              // But if we show the map, the button is redundant.
+              if (hasCoordinates)
+                Padding(
+                  padding: const EdgeInsets.only(left: 8.0),
+                  child: IconButton(
+                    icon: const Icon(Icons.open_in_new, color: Colors.blue),
+                    tooltip: 'Open external map',
+                    onPressed: () => _openMap(latitude, longitude),
                   ),
                 ),
-              ],
-            ),
+            ],
           ),
-          if (lat != null && lng != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: IconButton(
-                icon: const Icon(
-                  Icons.map,
-                  color: Colors.blue,
-                ), // Map button added
-                tooltip: 'Open in Maps',
-                onPressed: () => _openMap(lat, lng),
+
+          if (hasCoordinates) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _openMap(latitude, longitude),
+              child: Container(
+                height: 150,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: FlutterMap(
+                    options: MapOptions(
+                      initialCenter: LatLng(latitude, longitude),
+                      initialZoom: 15,
+                      interactionOptions: const InteractionOptions(
+                        flags: InteractiveFlag.none,
+                      ),
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.gotosco.v3',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: LatLng(latitude, longitude),
+                            width: 40,
+                            height: 40,
+                            child: const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
+          ],
         ],
       ),
     );
@@ -544,7 +616,9 @@ class BookingDetailsView extends StatelessWidget {
                 suffixText: 'OMR',
                 suffixStyle: const TextStyle(color: Colors.white70),
                 hintText: '0.00',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
+                hintStyle: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.5),
+                ),
                 filled: true,
                 fillColor: Colors.white.withValues(alpha: 0.2),
                 border: OutlineInputBorder(

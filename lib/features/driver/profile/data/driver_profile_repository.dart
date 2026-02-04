@@ -333,7 +333,9 @@ class DriverProfileRepository {
       final bytes = await file.readAsBytes();
 
       // Upload to Supabase Storage
-      await _supabase.storage.from('documents').uploadBinary(storagePath, bytes);
+      await _supabase.storage
+          .from('documents')
+          .uploadBinary(storagePath, bytes);
 
       // Get public URL
       final publicUrl = _supabase.storage
@@ -344,13 +346,114 @@ class DriverProfileRepository {
       final fieldName = documentType == 'license'
           ? 'license_image_url'
           : 'mulkia_image_url';
-      await _supabase.from('drivers').update({fieldName: publicUrl}).eq('user_id', driverId);
+      await _supabase
+          .from('drivers')
+          .update({fieldName: publicUrl})
+          .eq('user_id', driverId);
 
       debugPrint('Document uploaded successfully via Supabase: $publicUrl');
       return publicUrl;
     } catch (e) {
       debugPrint('Error uploading document (legacy): $e');
       return null;
+    }
+  }
+
+  /// Uploads a vehicle picture and appends it to the vehicle_image_urls list
+  Future<String> uploadVehiclePicture({
+    required String driverId,
+    required XFile file,
+    void Function(UploadProgress)? onProgress,
+  }) async {
+    try {
+      // 1. Upload to R2
+      final asset = await _mediaService.uploadMedia(
+        file,
+        MediaAssetType.vehiclePhoto,
+        onProgress: onProgress,
+      );
+
+      final newUrl = asset.url;
+      debugPrint('Vehicle picture uploaded to R2: $newUrl');
+
+      // 2. Fetch current list
+      final response = await _supabase
+          .from('drivers')
+          .select('vehicle_image_urls')
+          .eq('user_id', driverId)
+          .single();
+
+      final List<String> currentUrls =
+          (response['vehicle_image_urls'] as List?)
+              ?.whereType<String>()
+              .toList() ??
+          [];
+
+      // 3. Append and update
+      final updatedUrls = [...currentUrls, newUrl];
+
+      await _supabase
+          .from('drivers')
+          .update({'vehicle_image_urls': updatedUrls})
+          .eq('user_id', driverId);
+
+      return newUrl;
+    } catch (e) {
+      debugPrint('Error uploading vehicle picture: $e');
+      // Fallback: Try simple upload if media service fails completely (unlikely if uploadMedia worked)
+      // But if fetch/update fails, we should rethrow
+      throw Exception('Failed to upload vehicle picture: $e');
+    }
+  }
+
+  /// Removes a vehicle picture URL from the driver's profile
+  Future<void> deleteVehiclePicture({
+    required String driverId,
+    required String imageUrl,
+  }) async {
+    try {
+      // 1. Fetch current list
+      final response = await _supabase
+          .from('drivers')
+          .select('vehicle_image_urls')
+          .eq('user_id', driverId)
+          .single();
+
+      final List<String> currentUrls =
+          (response['vehicle_image_urls'] as List?)
+              ?.whereType<String>()
+              .toList() ??
+          [];
+
+      // 2. Remove the specific URL
+      final updatedUrls = currentUrls.where((url) => url != imageUrl).toList();
+
+      // 3. Update the database
+      await _supabase
+          .from('drivers')
+          .update({'vehicle_image_urls': updatedUrls})
+          .eq('user_id', driverId);
+
+      debugPrint('Vehicle picture removed from drivers table: $imageUrl');
+
+      // Delete the actual file from R2
+      try {
+        // Extract key if it's a private file
+        // Helper logic similar to SecureImage
+        if (imageUrl.contains('private/')) {
+          final startIndex = imageUrl.indexOf('private/');
+          final key = imageUrl.substring(startIndex);
+
+          await _supabase.functions.invoke('delete-file', body: {'key': key});
+          debugPrint('File deleted from R2: $key');
+        }
+      } catch (e) {
+        // Log error but don't fail the operation since DB update succeeded
+        debugPrint('Warning: Failed to delete file from R2: $e');
+      }
+    } catch (e) {
+      debugPrint('Error deleting vehicle picture: $e');
+      throw Exception('Failed to delete vehicle picture: $e');
     }
   }
 

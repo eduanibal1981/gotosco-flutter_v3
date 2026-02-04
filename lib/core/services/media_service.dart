@@ -12,7 +12,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 part 'media_service.g.dart';
 
 /// Asset types supported by the media system
-enum MediaAssetType { avatar, license, mulkia, childPhoto, advPhoto }
+enum MediaAssetType {
+  avatar,
+  license,
+  mulkia,
+  childPhoto,
+  advPhoto,
+  vehiclePhoto,
+}
 
 extension MediaAssetTypeExtension on MediaAssetType {
   String get value {
@@ -27,6 +34,8 @@ extension MediaAssetTypeExtension on MediaAssetType {
         return 'child_photo';
       case MediaAssetType.advPhoto:
         return 'adv_photo';
+      case MediaAssetType.vehiclePhoto:
+        return 'vehicle_photo';
     }
   }
 
@@ -42,6 +51,8 @@ extension MediaAssetTypeExtension on MediaAssetType {
         return 800;
       case MediaAssetType.advPhoto:
         return 1200;
+      case MediaAssetType.vehiclePhoto:
+        return 1200;
     }
   }
 
@@ -56,6 +67,8 @@ extension MediaAssetTypeExtension on MediaAssetType {
       case MediaAssetType.childPhoto:
         return 85;
       case MediaAssetType.advPhoto:
+        return 85;
+      case MediaAssetType.vehiclePhoto:
         return 85;
     }
   }
@@ -143,8 +156,18 @@ class MediaService {
     int maxDimension = 1200,
     int quality = 85,
   }) async {
+    // On Web, skip the isolate compression to avoid UI freeze/performance issues.
+    // We rely on ImagePicker's built-in resizing (maxWidth/maxHeight) which uses
+    // the browser's native capabilities.
+    if (kIsWeb) {
+      return await file.readAsBytes();
+    }
+
     // Read file bytes
     final bytes = await file.readAsBytes();
+
+    // Yield to UI thread to prevent freeze before isolate spawn
+    await Future.delayed(Duration.zero);
 
     // Run compression in isolate
     return compute(
@@ -175,15 +198,21 @@ class MediaService {
       debugPrint('MediaService: Token expires at: ${session?.expiresAt}');
 
       if (session == null || user == null) {
-        throw MediaServiceException('User not authenticated. Please log in again.');
+        throw MediaServiceException(
+          'User not authenticated. Please log in again.',
+        );
       }
 
       // Check if token is expired
       final expiresAt = session.expiresAt;
       if (expiresAt != null) {
-        final expiryDate = DateTime.fromMillisecondsSinceEpoch(expiresAt * 1000);
+        final expiryDate = DateTime.fromMillisecondsSinceEpoch(
+          expiresAt * 1000,
+        );
         if (expiryDate.isBefore(DateTime.now())) {
-          debugPrint('MediaService: Token expired at $expiryDate, refreshing...');
+          debugPrint(
+            'MediaService: Token expired at $expiryDate, refreshing...',
+          );
           // Try to refresh the session
           await _supabase.auth.refreshSession();
         }

@@ -6,6 +6,8 @@ import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_reposit
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class BookingDetailSheet extends ConsumerWidget {
   final BookingModel booking;
@@ -106,13 +108,36 @@ class BookingDetailSheet extends ConsumerWidget {
 
             // Route Section
             _buildSectionTitle('Route Information'),
-            _buildInfoRow(Icons.home, 'Pickup Location', booking.homeLocation),
-            const SizedBox(height: 12),
             _buildInfoRow(
-              Icons.school,
-              'School Location',
-              booking.schoolLocation,
+              Icons.home,
+              'Pickup Location',
+              booking.homeLocation,
+              lat: booking.homeLat,
+              lng: booking.homeLng,
             ),
+            const SizedBox(height: 12),
+            // Build Multiple School Rows if available, else single
+            if (booking.schoolIds != null && booking.schoolIds!.isNotEmpty)
+              // This requires fetching details for each school ID if not joined.
+              // For now, rely on repo to populate schoolLocation combined?
+              // Or better, BookingModel should list schools.
+              // Returning to single row for now as Model supports single Strings.
+              // Ideally we iterate. Let's stick to the singlular for now but robust.
+              _buildInfoRow(
+                Icons.school,
+                'School Location',
+                booking.schoolLocation,
+                lat: booking.schoolLat,
+                lng: booking.schoolLng,
+              )
+            else
+              _buildInfoRow(
+                Icons.school,
+                'School Location',
+                booking.schoolLocation,
+                lat: booking.schoolLat,
+                lng: booking.schoolLng,
+              ),
             const SizedBox(height: 12),
             _buildInfoRow(
               Icons.payments,
@@ -300,31 +325,135 @@ class BookingDetailSheet extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value) {
-    return Row(
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    double? lat,
+    double? lng,
+  }) {
+    final hasCoordinates = lat != null && lng != null;
+
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 20, color: Colors.grey.shade600),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 20, color: Colors.grey.shade600),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                  ),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
               ),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: 15,
+            ),
+            if (hasCoordinates)
+              IconButton(
+                icon: const Icon(Icons.open_in_new, color: Colors.blue),
+                tooltip: 'Open in Maps',
+                onPressed: () => _openMap(lat, lng),
+              ),
+          ],
+        ),
+        if (hasCoordinates) ...[
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => _openMap(lat, lng),
+            child: Container(
+              height: 150,
+              width: double.infinity,
+              margin: const EdgeInsets.only(left: 32), // Align with text
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    FlutterMap(
+                      options: MapOptions(
+                        initialCenter: LatLng(lat, lng),
+                        initialZoom: 15,
+                        interactionOptions: const InteractionOptions(
+                          flags: InteractiveFlag.none,
+                        ),
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.gotosco.v3',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: LatLng(lat, lng),
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.red,
+                                size: 40,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.open_in_new,
+                          color: Colors.blue,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ],
     );
+  }
+
+  Future<void> _openMap(dynamic lat, dynamic lng) async {
+    if (lat == null || lng == null) return;
+    final uri = Uri.parse(
+      "https://www.google.com/maps/search/?api=1&query=$lat,$lng",
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }

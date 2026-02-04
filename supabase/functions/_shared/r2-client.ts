@@ -1,7 +1,7 @@
 // Shared R2 client utilities for Supabase Edge Functions
 // Uses AWS S3-compatible API with Cloudflare R2
 
-import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand } from "npm:@aws-sdk/client-s3@3.515.0";
+import { S3Client, PutObjectCommand, HeadObjectCommand, GetObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.515.0";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.515.0";
 
 // R2 Configuration from environment
@@ -90,6 +90,18 @@ export async function objectExists(key: string): Promise<{ exists: boolean; size
 }
 
 /**
+ * Delete an object from R2
+ */
+export async function deleteObject(key: string): Promise<void> {
+  const command = new DeleteObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+  });
+
+  await r2Client.send(command);
+}
+
+/**
  * Get the public URL for a file (only works for public/ prefix files)
  */
 export function getPublicUrl(key: string): string {
@@ -139,6 +151,12 @@ export function getAssetPathInfo(assetType: string): AssetPathInfo {
         visibility: "public",
         basePath: "public/drivers/ads",
         legacyColumn: "", // Array column, handled differently
+      };
+    case "vehicle_photo":
+      return {
+        visibility: "private",
+        basePath: "private/vehicles",
+        legacyColumn: "", // Array column, handled in repository
       };
     default:
       throw new Error(`Unknown asset type: ${assetType}`);

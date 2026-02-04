@@ -60,6 +60,7 @@ class DriverBookingsRepository {
           .toSet()
           .toList();
       Map<String, Map<String, dynamic>> parentMap = {};
+
       if (parentIds.isNotEmpty) {
         try {
           final parents = await _supabase
@@ -71,7 +72,46 @@ class DriverBookingsRepository {
               p['id'] as String: p as Map<String, dynamic>,
           };
         } catch (_) {
-          // Ignore parent fetch errors to avoid empty bookings list.
+          // Ignore parent fetch errors
+        }
+      }
+
+      // 4) Fetch related schools using ROBUST junction table pattern
+      // bookingIds is already defined above at step 2
+
+      // Fetch links from booking_schools junction table
+      final schoolLinks = await _supabase
+          .from('booking_schools')
+          .select('booking_id, school_id')
+          .inFilter('booking_id', bookingIds);
+
+      // Also collect single school_id from bookings table for backwards compatibility
+      final singleSchoolIds = bookingsRaw
+          .map((b) => b['school_id'] as String?)
+          .whereType<String>()
+          .toSet();
+
+      // Combine all unique school IDs to fetch details in one go
+      final allSchoolIds =
+          (schoolLinks as List)
+              .map((link) => link['school_id'] as String)
+              .toSet()
+            ..addAll(singleSchoolIds);
+
+      Map<String, Map<String, dynamic>> schoolMap = {};
+      if (allSchoolIds.isNotEmpty) {
+        try {
+          final schools = await _supabase
+              .from('schools')
+              .select('id, name, address, latitude, longitude')
+              .inFilter('id', allSchoolIds.toList());
+
+          schoolMap = {
+            for (final s in (schools as List))
+              s['id'] as String: s as Map<String, dynamic>,
+          };
+        } catch (e) {
+          print('Error fetching schools: $e');
         }
       }
 
@@ -80,6 +120,50 @@ class DriverBookingsRepository {
         final parent = parentId != null ? parentMap[parentId] : null;
         final childrenData = childrenMap[booking['id'] as String] ?? [];
 
+        // RESOLVE SCHOOL LOCATION DATA
+        var schoolLocation = booking['schooltxt_location'];
+        var schoolLat = booking['school_lat'];
+        var schoolLng = booking['school_lng'];
+
+        // 1. Get schools linked via junction table
+        final linkedSchools = (schoolLinks as List)
+            .where((link) => link['booking_id'] == booking['id'])
+            .map((link) => schoolMap[link['school_id'] as String])
+            .whereType<Map<String, dynamic>>()
+            .toList();
+
+        // 2. Get school linked via single column (fallback/primary)
+        final singleSchoolId = booking['school_id'] as String?;
+        final singleSchool = singleSchoolId != null
+            ? schoolMap[singleSchoolId]
+            : null;
+
+        // 3. Logic: If junction table has schools, use them. Else use single school.
+        if (linkedSchools.isNotEmpty) {
+          // Combine names for text display (e.g. "School A, School B")
+          final names = linkedSchools.map((s) => s['name']).join(', ');
+          schoolLocation = names;
+
+          // For map pin, simply take first school's coordinates for now.
+          // Future: UI should support multiple pins.
+          if (schoolLat == null) {
+            schoolLat = linkedSchools.first['latitude'];
+            schoolLng = linkedSchools.first['longitude'];
+          }
+        } else if (singleSchool != null) {
+          // Fallback to single school logic
+          if (schoolLocation == null ||
+              (schoolLocation is String && schoolLocation.isEmpty)) {
+            schoolLocation = singleSchool['name'];
+            if (singleSchool['address'] != null &&
+                (singleSchool['address'] as String).isNotEmpty) {
+              schoolLocation = '$schoolLocation, ${singleSchool['address']}';
+            }
+          }
+          schoolLat ??= singleSchool['latitude'];
+          schoolLng ??= singleSchool['longitude'];
+        }
+
         // Combine Data
         final fullData = <String, dynamic>{
           ...booking,
@@ -87,6 +171,14 @@ class DriverBookingsRepository {
           'parent_photo': parent?['photo_url'],
           'parent_phone': parent?['phone'],
           'children': childrenData,
+          // Inject Smart School Data
+          'schooltxt_location': schoolLocation,
+          'school_lat': schoolLat,
+          'school_lng': schoolLng,
+          // Inject school IDs for specific handling if needed
+          'school_ids': linkedSchools.isNotEmpty
+              ? linkedSchools.map((s) => s['id']).toList()
+              : (singleSchoolId != null ? [singleSchoolId] : []),
         };
 
         return BookingModel.fromMap(fullData);

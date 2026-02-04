@@ -9,7 +9,12 @@ class BookingModel {
   final double price;
   final double? proposalPrice; // Added field
   final String homeLocation;
+  final double? homeLat;
+  final double? homeLng;
   final String schoolLocation;
+  final double? schoolLat;
+  final double? schoolLng;
+  final List<String>? schoolIds;
   final String? startDate;
   final String? endDate;
   final bool isRecurring;
@@ -38,7 +43,12 @@ class BookingModel {
     required this.price,
     this.proposalPrice, // Added parameter
     required this.homeLocation,
+    this.homeLat,
+    this.homeLng,
     required this.schoolLocation,
+    this.schoolLat,
+    this.schoolLng,
+    this.schoolIds,
     this.startDate,
     this.endDate,
     this.isRecurring = false,
@@ -67,7 +77,14 @@ class BookingModel {
       price: (map['price'] as num?)?.toDouble() ?? 0.0,
       proposalPrice: (map['proposal_price'] as num?)?.toDouble(),
       homeLocation: map['hometxt_location'] ?? '',
+      homeLat: (map['home_lat'] as num?)?.toDouble(),
+      homeLng: (map['home_lng'] as num?)?.toDouble(),
       schoolLocation: map['schooltxt_location'] ?? '',
+      schoolLat: (map['school_lat'] as num?)?.toDouble(),
+      schoolLng: (map['school_lng'] as num?)?.toDouble(),
+      schoolIds: (map['school_ids'] as List<dynamic>?)
+          ?.map((id) => id.toString())
+          .toList(),
       startDate: map['start_date']?.toString(),
       endDate: map['end_date']?.toString(),
       isRecurring: map['is_recurring'] == true,

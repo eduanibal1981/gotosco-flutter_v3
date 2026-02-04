@@ -58,6 +58,18 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     context.push('/driver-profile-edit', extra: profile);
   }
 
+  Future<void> _openVehicleDetails(BuildContext context) async {
+    final profile = await ref.read(currentDriverProfileProvider.future);
+    if (!context.mounted) return;
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile not found. Please try again.')),
+      );
+      return;
+    }
+    context.push('/vehicle-details', extra: profile);
+  }
+
   void _openProfileSection(DriverProfileScrollTarget target) {
     ref
         .read(driverProfileScrollTargetControllerProvider.notifier)
@@ -333,7 +345,8 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       _buildChecklistItem(
                         'License Picture',
                         profile?['license_image_url'] != null &&
-                            (profile!['license_image_url'] as String).isNotEmpty,
+                            (profile!['license_image_url'] as String)
+                                .isNotEmpty,
                       ),
                       _buildChecklistItem(
                         'Registration Picture (Mulkia)',
@@ -503,11 +516,16 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                     'Edit Profile',
                     () => _openEditProfile(context),
                   ),
-                  _buildSmallAction(Icons.schedule, 'Edit Schedule', () {}),
+                  _buildSmallAction(
+                    Icons.schedule,
+                    'Edit Schedule',
+                    () =>
+                        _openProfileSection(DriverProfileScrollTarget.schedule),
+                  ),
                   _buildSmallAction(
                     Icons.directions_bus,
                     'View Vehicle',
-                    () {},
+                    () => _openVehicleDetails(context),
                   ),
                 ],
               ),

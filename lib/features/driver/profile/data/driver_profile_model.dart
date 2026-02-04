@@ -21,6 +21,7 @@ class DriverProfileModel {
   final String? vehicleNumber;
   final int vehicleCapacity;
   final String? mulkiaImageUrl;
+  final List<String> vehicleImageUrls;
 
   // Pricing
   final double priceMonthlyTwoWay;
@@ -61,6 +62,7 @@ class DriverProfileModel {
     this.vehicleNumber,
     this.vehicleCapacity = 0,
     this.mulkiaImageUrl,
+    this.vehicleImageUrls = const [],
     this.priceMonthlyTwoWay = 0,
     this.priceMonthlyOneWay = 0,
     this.priceDaily = 0,
@@ -84,13 +86,12 @@ class DriverProfileModel {
   factory DriverProfileModel.fromMap(Map<String, dynamic> map) {
     // Handle nested user data from join
     final userData = map['users'] as Map<String, dynamic>?;
-    final serviceAreas = (map['service_areas'] as List?)
-            ?.whereType<String>()
-            .toList() ??
+    final serviceAreas =
+        (map['service_areas'] as List?)?.whereType<String>().toList() ??
         const <String>[];
     final schools =
         (map['schools'] as List?)?.whereType<String>().toList() ??
-            const <String>[];
+        const <String>[];
 
     return DriverProfileModel(
       // Note: drivers table uses user_id as primary key, there's no separate 'id' column
@@ -110,6 +111,9 @@ class DriverProfileModel {
       vehicleNumber: map['vehicle_number'],
       vehicleCapacity: map['vehicle_capacity'] ?? 0,
       mulkiaImageUrl: map['mulkia_image_url'],
+      vehicleImageUrls:
+          (map['vehicle_image_urls'] as List?)?.whereType<String>().toList() ??
+          const [],
       priceMonthlyTwoWay: (map['price_monthly_two_way'] ?? 0).toDouble(),
       priceMonthlyOneWay: (map['price_monthly_one_way'] ?? 0).toDouble(),
       priceDaily: (map['price_daily'] ?? 0).toDouble(),
@@ -126,8 +130,10 @@ class DriverProfileModel {
       // Location fields
       // CHANGED: Prioritize userData (users table) for location info
       locationText: userData?['location_text'] ?? map['location_text'],
-      locationLat: (userData?['location_lat'] ?? map['location_lat'] as num?)?.toDouble(),
-      locationLng: (userData?['location_lng'] ?? map['location_lng'] as num?)?.toDouble(),
+      locationLat: (userData?['location_lat'] ?? map['location_lat'] as num?)
+          ?.toDouble(),
+      locationLng: (userData?['location_lng'] ?? map['location_lng'] as num?)
+          ?.toDouble(),
       startLocationText: map['start_location_text'],
       startLocationLat: (map['start_location_lat'] as num?)?.toDouble(),
       startLocationLng: (map['start_location_lng'] as num?)?.toDouble(),
@@ -144,6 +150,7 @@ class DriverProfileModel {
       'vehicle_number': vehicleNumber,
       'vehicle_capacity': vehicleCapacity,
       'mulkia_image_url': mulkiaImageUrl,
+      'vehicle_image_urls': vehicleImageUrls,
       'price_monthly_two_way': priceMonthlyTwoWay,
       'price_monthly_one_way': priceMonthlyOneWay,
       'price_daily': priceDaily,
@@ -166,6 +173,7 @@ class DriverProfileModel {
     String? vehicleNumber,
     int? vehicleCapacity,
     String? mulkiaImageUrl,
+    List<String>? vehicleImageUrls,
     double? priceMonthlyTwoWay,
     double? priceMonthlyOneWay,
     double? priceDaily,
@@ -200,6 +208,7 @@ class DriverProfileModel {
       vehicleNumber: vehicleNumber ?? this.vehicleNumber,
       vehicleCapacity: vehicleCapacity ?? this.vehicleCapacity,
       mulkiaImageUrl: mulkiaImageUrl ?? this.mulkiaImageUrl,
+      vehicleImageUrls: vehicleImageUrls ?? this.vehicleImageUrls,
       priceMonthlyTwoWay: priceMonthlyTwoWay ?? this.priceMonthlyTwoWay,
       priceMonthlyOneWay: priceMonthlyOneWay ?? this.priceMonthlyOneWay,
       priceDaily: priceDaily ?? this.priceDaily,

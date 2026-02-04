@@ -15,7 +15,7 @@ const corsHeaders = {
 };
 
 interface RequestUploadBody {
-  asset_type: "avatar" | "license" | "mulkia" | "child_photo" | "adv_photo";
+  asset_type: "avatar" | "license" | "mulkia" | "child_photo" | "adv_photo" | "vehicle_photo";
   content_type?: string;
   file_size?: number;
   original_filename?: string;
@@ -75,7 +75,7 @@ serve(async (req) => {
     const { asset_type, content_type, file_size, original_filename, metadata } = body;
 
     // Validate asset_type
-    const validTypes = ["avatar", "license", "mulkia", "child_photo", "adv_photo"];
+    const validTypes = ["avatar", "license", "mulkia", "child_photo", "adv_photo", "vehicle_photo"];
     if (!asset_type || !validTypes.includes(asset_type)) {
       return new Response(
         JSON.stringify({ error: `Invalid asset_type. Must be one of: ${validTypes.join(", ")}` }),
@@ -90,6 +90,7 @@ serve(async (req) => {
       mulkia: 10 * 1024 * 1024,     // 10MB
       child_photo: 5 * 1024 * 1024, // 5MB
       adv_photo: 10 * 1024 * 1024,  // 10MB
+      vehicle_photo: 10 * 1024 * 1024, // 10MB
     };
 
     if (file_size && file_size > maxSizes[asset_type]) {

@@ -2,7 +2,7 @@ import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'driver_profile_scroll_controller.g.dart';
 
-enum DriverProfileScrollTarget { serviceAreas, locationSettings }
+enum DriverProfileScrollTarget { serviceAreas, locationSettings, schedule }
 
 @riverpod
 class DriverProfileScrollTargetController
