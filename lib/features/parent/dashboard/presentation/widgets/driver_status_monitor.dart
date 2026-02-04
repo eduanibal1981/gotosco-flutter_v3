@@ -33,9 +33,14 @@ class DriverStatusMonitor extends ConsumerWidget {
       data: (location) {
         // Driver is active and stream is working
         final bool isActive = location.isOnTrip;
-        final event = rideEventAsync.maybeWhen(data: (e) => e, orElse: () => null);
-        final nextStopInfo =
-            nextStopAsync.maybeWhen(data: (e) => e, orElse: () => null);
+        final event = rideEventAsync.maybeWhen(
+          data: (e) => e,
+          orElse: () => null,
+        );
+        final nextStopInfo = nextStopAsync.maybeWhen(
+          data: (e) => e,
+          orElse: () => null,
+        );
 
         String title = ''; // Empty to avoid redundancy with badge
         String subtitle = location.isOnline
@@ -53,6 +58,11 @@ class DriverStatusMonitor extends ConsumerWidget {
             subtitle = _buildEtaText(nextStopInfo);
             badgeColor = Colors.orange;
             badgeText = 'APPROACHING';
+          } else if (eventType == 'arrived') {
+            title = 'Driver Arrived';
+            subtitle = 'At pickup/dropoff location';
+            badgeColor = Colors.orange;
+            badgeText = 'ARRIVED';
           } else if (eventType == 'picked_up') {
             title = 'Child Picked Up';
             subtitle = _buildEtaText(nextStopInfo);

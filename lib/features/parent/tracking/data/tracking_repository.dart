@@ -75,7 +75,7 @@ class TrackingRepository {
             .listen(
               (data) {
                 if (data.isNotEmpty) {
-                  isOnline = data.first['is_online'] as bool? ?? false;
+                  isOnline = data.first['is_profile_online'] as bool? ?? false;
                   if (lastLocation != null) emit();
                 }
               },
