@@ -451,10 +451,15 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // STATE 3: PROFILE ONLY (No Bookings)
+  // STATE 3: PROFILE ONLY (No Pending Requests, No Active Trips)
   // ═══════════════════════════════════════════════════════════════════════════
   Widget _buildProfileOnlyState(AsyncValue userAsync) {
     final profileAsync = ref.watch(driverProfileProvider);
+    final statsAsync = ref.watch(driverStatsProvider);
+    final availabilityAsync = ref.watch(driverAvailabilityControllerProvider);
+
+    final isOnline = availabilityAsync.asData?.value.isProfileOnline ?? false;
+    final activeBookings = statsAsync.asData?.value['active_bookings'] ?? 0;
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -482,27 +487,12 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               const SizedBox(height: 20),
 
-              // Ad/Online Button (Only if Offline)
-              Consumer(
-                builder: (context, ref, child) {
-                  final availabilityAsync = ref.watch(
-                    driverAvailabilityControllerProvider,
-                  );
-                  return availabilityAsync.when(
-                    data: (settings) {
-                      if (!settings.isProfileOnline) {
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: _buildGoOnlineButton(),
-                        );
-                      }
-                      return const SizedBox.shrink();
-                    },
-                    loading: () => const SizedBox.shrink(),
-                    error: (_, __) => const SizedBox.shrink(),
-                  );
-                },
-              ),
+              // Ad/Online Button (Only if Offline implies "Please go online")
+              if (!isOnline)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: _buildGoOnlineButton(),
+                ),
 
               // Quick Actions
               _buildSectionTitle('Quick Actions'),
@@ -511,6 +501,15 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 spacing: 12,
                 runSpacing: 12,
                 children: [
+                  // Add Manage Children if we have bookings
+                  if (activeBookings > 0)
+                    _buildSmallAction(
+                      Icons.people,
+                      'My Students',
+                      () => ref
+                          .read(driverDashboardIndexProvider.notifier)
+                          .setIndex(2),
+                    ),
                   _buildSmallAction(
                     Icons.edit,
                     'Edit Profile',
@@ -536,15 +535,20 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               _buildEmptyCard(
                 icon: Icons.directions_bus,
                 title: "Today's Trips",
-                subtitle: 'No trips scheduled',
+                subtitle: 'No trips scheduled for today',
                 onTap: _navigateToTripsTab,
               ),
               const SizedBox(height: 12),
               _buildEmptyCard(
                 icon: Icons.inbox,
                 title: 'Booking Requests',
-                subtitle:
-                    'Waiting for requests...\nGo online to receive bookings',
+                subtitle: isOnline
+                    ? (activeBookings > 0
+                          ? 'You have $activeBookings active bookings.\nWaiting for new requests...'
+                          : 'Waiting for requests...')
+                    : (activeBookings > 0
+                          ? 'You have $activeBookings active bookings.\nGo online to receive more.'
+                          : 'Go online to receive bookings'),
                 onTap: () {
                   ref
                       .read(driverBookingTabIndexNotifierProvider.notifier)
@@ -554,6 +558,19 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               ),
 
               const SizedBox(height: 24),
+
+              // Active Bookings Summary (Optional, if we have them)
+              if (activeBookings > 0) ...[
+                _buildSectionTitle('Active Bookings'),
+                const SizedBox(height: 12),
+                statsAsync.when(
+                  data: (stats) =>
+                      _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                  loading: () => const SizedBox.shrink(),
+                  error: (_, __) => const SizedBox.shrink(),
+                ),
+                const SizedBox(height: 24),
+              ],
 
               // Transport Requests Preview
               _buildTransportRequestsPreview(),
