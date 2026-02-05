@@ -6,6 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/filter_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/favorites_screen.dart';
 import 'widgets/driver_ad_card.dart';
+import 'widgets/driver_ad_skeleton.dart';
 import 'drivers_controller.dart';
 
 class FindDriversScreen extends ConsumerStatefulWidget {
@@ -474,8 +475,22 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 ),
               );
             },
-            loading: () => const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
+            loading: () => SliverToBoxAdapter(
+              child: Semantics(
+                label: 'Loading drivers list',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    children: List.generate(
+                      5,
+                      (index) => const DriverAdSkeleton(),
+                    ),
+                  ),
+                ),
+              ),
             ),
             error: (err, stack) =>
                 SliverFillRemaining(child: Center(child: Text("Error: $err"))),

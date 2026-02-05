@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'providers/favorites_provider.dart';
 import 'widgets/driver_ad_card.dart';
+import 'widgets/driver_ad_skeleton.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
@@ -65,7 +66,14 @@ class FavoritesScreen extends ConsumerWidget {
             ),
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => Semantics(
+          label: 'Loading favorite drivers',
+          child: ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: 5,
+            itemBuilder: (context, index) => const DriverAdSkeleton(),
+          ),
+        ),
         error: (error, stack) => Center(
           child: Text('Error: $error'),
         ),
