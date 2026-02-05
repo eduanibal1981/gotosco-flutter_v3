@@ -159,12 +159,18 @@ class DriverStatusMonitor extends ConsumerWidget {
         title = 'Trip in Progress';
       }
       subtitle = _buildEtaText(nextStopInfo);
-    } else {
+    } else if (location?.isOnline == true) {
       // 3. Online but waiting
       title = 'Driver Online';
       subtitle = 'Waiting for trip to start';
       badgeText = 'ONLINE';
       badgeColor = Colors.orange;
+    } else {
+      // 4. Explicitly Offline
+      title = 'Scheduled Trip';
+      subtitle = 'Driver is currently offline';
+      badgeText = 'OFFLINE';
+      badgeColor = Colors.grey;
     }
 
     // Offline Override (if not completed)

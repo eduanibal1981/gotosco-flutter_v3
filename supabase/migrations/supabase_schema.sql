@@ -10,12 +10,7 @@ SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
-
 SET row_security = off;
-
-CREATE EXTENSION IF NOT EXISTS "postgis" WITH SCHEMA "public";
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
-CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
 
 
 CREATE SCHEMA IF NOT EXISTS "public";
@@ -197,11 +192,22 @@ CREATE OR REPLACE FUNCTION "public"."complete_trip"("trip_id_input" "uuid", "dri
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
+DECLARE
+    v_driver_id UUID := auth.uid();
 BEGIN
-  UPDATE public.trips
-  SET status = 'completed',
-      end_time = NOW()
-  WHERE id = trip_id_input;
+    -- 1. Complete the trip
+    UPDATE public.trips
+    SET status = 'completed',
+        end_time = NOW()
+    WHERE id = trip_id_input;
+
+    -- 2. Update driver location (Stop tracking)
+    -- This ensures the UI reflects that the trip has ended immediately
+    UPDATE public.driver_locations
+    SET is_tracking_active = false,
+        trip_type = 'idle',
+        updated_at = NOW()
+    WHERE driver_id = v_driver_id;
 END;
 $$;
 
@@ -217,27 +223,35 @@ DECLARE
     v_driver_id UUID := auth.uid();
     v_settings RECORD;
 BEGIN
-    -- Complete the trip
+    -- 1. Complete the trip
     UPDATE public.trips
     SET status = 'completed', end_time = NOW()
     WHERE id = trip_id_input;
+
+    -- 2. Update driver location (Stop tracking)
+    UPDATE public.driver_locations
+    SET is_tracking_active = false,
+        trip_type = 'idle',
+        updated_at = NOW()
+    WHERE driver_id = v_driver_id;
     
-    -- Check if should auto-offline
+    -- 3. Check if should auto-offline (Profile/Ads Visibility)
     SELECT auto_offline_after_trip, availability_mode
     INTO v_settings
     FROM public.drivers
     WHERE user_id = v_driver_id;
     
     IF v_settings.availability_mode = 'smart' AND v_settings.auto_offline_after_trip THEN
-        -- Check if there are more trips today
+        -- Check if there are more scheduled trips today
         IF NOT EXISTS (
             SELECT 1 FROM public.trips
             WHERE driver_id = v_driver_id
               AND trip_date = CURRENT_DATE
               AND status = 'scheduled'
         ) THEN
-            -- No more trips, go offline
-            PERFORM public.set_driver_online_status(false);
+            -- No more trips, go Profile Offline (Hide from search)
+            -- FIX: Use set_profile_online_status instead of set_driver_online_status
+            PERFORM public.set_profile_online_status(false);
         END IF;
     END IF;
 END;
@@ -343,78 +357,82 @@ DECLARE
   sched_end TIME;
   target_day_name TEXT;
 BEGIN
-  CREATE TEMP TABLE IF NOT EXISTS _temp_go_stops_v5 (
+  CREATE TEMP TABLE IF NOT EXISTS _temp_go_stops_v7 (
     booking_id UUID, child_id UUID, pickup_lat FLOAT, pickup_lng FLOAT, school_lat FLOAT, school_lng FLOAT
   ) ON COMMIT DROP;
+  
   target_day_name := LOWER(TRIM(to_char(target_date, 'Day')));
+  
+  -- LOOP DRIVERS
   FOR driver_rec IN 
     SELECT DISTINCT b.driver_id, d.start_location_geo, d.location_geo 
     FROM public.bookings b
     JOIN public.drivers d ON b.driver_id = d.user_id
-    WHERE b.subscription_status = 'active' AND (target_driver_id IS NULL OR b.driver_id = target_driver_id)
+    WHERE (b.subscription_status = 'active' OR b.status IN ('confirmed', 'accepted'))
+      AND (target_driver_id IS NULL OR b.driver_id = target_driver_id)
   LOOP
+    -- CHECK ALREADY GENERATED
     SELECT id INTO existing_trip_id FROM public.trips 
     WHERE driver_id = driver_rec.driver_id AND trip_date = target_date AND trip_type = 'Go to School(s)' LIMIT 1;
+    
     IF existing_trip_id IS NOT NULL THEN CONTINUE; END IF;
-    DELETE FROM _temp_go_stops_v5 WHERE TRUE;
-    -- FETCH DATA: Dynamic School Resolution Logic
-    -- We join booking_schools to get the specific school for each child in multi-school bookings
-    INSERT INTO _temp_go_stops_v5 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng)
+    
+    DELETE FROM _temp_go_stops_v7 WHERE TRUE;
+    
+    -- INSERT STOPS
+    INSERT INTO _temp_go_stops_v7 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng)
     SELECT 
         b.id, 
         bc.child_id, 
         b.home_lat, 
         b.home_lng,
-        -- Resolve School Latitude
-        CASE 
-            WHEN b.is_multi_school IS TRUE AND bs.school_latitude IS NOT NULL 
-            THEN bs.school_latitude 
-            ELSE b.school_lat 
-        END,
-        -- Resolve School Longitude
-        CASE 
-            WHEN b.is_multi_school IS TRUE AND bs.school_longitude IS NOT NULL 
-            THEN bs.school_longitude 
-            ELSE b.school_lng 
-        END
+        -- Resolve School Lat: Child School > Booking School > Booking Lat
+        COALESCE(s_child.latitude, s_booking.latitude, b.school_lat),
+        -- Resolve School Lng: Child School > Booking School > Booking Lng
+        COALESCE(s_child.longitude, s_booking.longitude, b.school_lng)
       FROM public.bookings b
       JOIN public.booking_children bc ON b.id = bc.booking_id
       JOIN public.children c ON bc.child_id = c.id
-      -- Junction Table Join: Matches child to their specific school in the junction table
-      LEFT JOIN public.booking_schools bs ON b.id = bs.booking_id AND bc.child_id = ANY(bs.student_ids)
+      -- Joins for School Location
+      LEFT JOIN public.schools s_child ON c.school_id = s_child.id
+      LEFT JOIN public.schools s_booking ON b.school_id = s_booking.id
       WHERE b.driver_id = driver_rec.driver_id
-        AND b.subscription_status = 'active'
+        -- Status Check
+        AND (b.subscription_status = 'active' OR b.status IN ('confirmed', 'accepted'))
         AND b.booking_type IN ('Two Way', 'One Way to School')
-        AND b.home_lat IS NOT NULL AND b.home_lng IS NOT NULL
-        -- Ensure we have a valid school location (either from booking or junction table)
-        AND (
-            (b.is_multi_school IS NOT TRUE AND b.school_lat IS NOT NULL) OR 
-            (b.is_multi_school IS TRUE AND bs.school_latitude IS NOT NULL)
-        )
+        -- Location Check
+        AND b.home_lat IS NOT NULL 
+        AND COALESCE(s_child.latitude, s_booking.latitude, b.school_lat) IS NOT NULL
+        -- Absence Check
         AND NOT EXISTS (SELECT 1 FROM public.child_absences ca WHERE ca.child_id = bc.child_id AND ca.date = target_date)
       ORDER BY 
-        b.routego_order ASC NULLS LAST, -- PRIMARY SORT: Morning Sequence (Booking level)
+        b.routego_order ASC NULLS LAST,
         ST_Distance(b.homegeo_location, COALESCE(driver_rec.start_location_geo, driver_rec.location_geo)) ASC;
-    SELECT EXISTS (SELECT 1 FROM _temp_go_stops_v5) INTO has_children;
+        
+    SELECT EXISTS (SELECT 1 FROM _temp_go_stops_v7) INTO has_children;
+    
     IF has_children THEN
+        -- Create Trip
         SELECT available_from, available_until INTO sched_start, sched_end
         FROM public.driver_schedules WHERE driver_id = driver_rec.driver_id AND LOWER(day_of_week) = target_day_name AND shift_type = 'Go to School(s)' LIMIT 1;
+        
         INSERT INTO public.trips (driver_id, trip_date, status, trip_type, start_time, end_time)
         VALUES (driver_rec.driver_id, target_date, 'scheduled', 'Go to School(s)',
             CASE WHEN sched_start IS NOT NULL THEN (target_date + sched_start) ELSE NULL END,
             CASE WHEN sched_end IS NOT NULL THEN (target_date + sched_end) ELSE NULL END)
         RETURNING id INTO new_trip_id;
+        
         stop_sequence := 1;
+        
         -- Pickups (Home)
-        FOR child_rec IN SELECT * FROM _temp_go_stops_v5 LOOP
+        FOR child_rec IN SELECT * FROM _temp_go_stops_v7 LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
             VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'pickup', stop_sequence, child_rec.pickup_lat, child_rec.pickup_lng, 'pending');
             stop_sequence := stop_sequence + 1;
         END LOOP;
         
-        -- Dropoffs (School) 
-        -- AUTO-CLUSTERING: Ordering by school_lat/lng groups children going to the same school together
-        FOR child_rec IN SELECT * FROM _temp_go_stops_v5 ORDER BY school_lat, school_lng LOOP
+        -- Dropoffs (School) - Clustered
+        FOR child_rec IN SELECT * FROM _temp_go_stops_v7 ORDER BY school_lat, school_lng LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
             VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'dropoff', stop_sequence, child_rec.school_lat, child_rec.school_lng, 'pending');
             stop_sequence := stop_sequence + 1;
@@ -443,81 +461,86 @@ DECLARE
   sched_end TIME;
   target_day_name TEXT;
 BEGIN
-  CREATE TEMP TABLE IF NOT EXISTS _temp_return_stops_v5 (
+  CREATE TEMP TABLE IF NOT EXISTS _temp_return_stops_v7 (
     booking_id UUID, child_id UUID, pickup_lat FLOAT, pickup_lng FLOAT, school_lat FLOAT, school_lng FLOAT
   ) ON COMMIT DROP;
+  
   target_day_name := LOWER(TRIM(to_char(target_date, 'Day')));
+  
+  -- LOOP DRIVERS
   FOR driver_rec IN 
     SELECT DISTINCT b.driver_id FROM public.bookings b
-    WHERE b.subscription_status = 'active' AND (target_driver_id IS NULL OR b.driver_id = target_driver_id)
+    WHERE (b.subscription_status = 'active' OR b.status IN ('confirmed', 'accepted'))
+      AND (target_driver_id IS NULL OR b.driver_id = target_driver_id)
   LOOP
+    -- CHECK ALREADY GENERATED
     SELECT id INTO existing_trip_id FROM public.trips 
     WHERE driver_id = driver_rec.driver_id AND trip_date = target_date AND trip_type = 'Return from School(s)' LIMIT 1;
+    
     IF existing_trip_id IS NOT NULL THEN CONTINUE; END IF;
-    DELETE FROM _temp_return_stops_v5 WHERE TRUE;
-    -- FETCH DATA: Ordered by 'routeret_order' with Dynamic School Support
-    INSERT INTO _temp_return_stops_v5 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng)
+    
+    DELETE FROM _temp_return_stops_v7 WHERE TRUE;
+    
+    -- INSERT STOPS
+    INSERT INTO _temp_return_stops_v7 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng)
     SELECT 
         b.id, 
         bc.child_id, 
         b.home_lat, 
         b.home_lng, 
         -- Resolve School Lat
-        CASE 
-            WHEN b.is_multi_school IS TRUE AND bs.school_latitude IS NOT NULL 
-            THEN bs.school_latitude 
-            ELSE b.school_lat 
-        END,
+        COALESCE(s_child.latitude, s_booking.latitude, b.school_lat),
         -- Resolve School Lng
-        CASE 
-            WHEN b.is_multi_school IS TRUE AND bs.school_longitude IS NOT NULL 
-            THEN bs.school_longitude 
-            ELSE b.school_lng 
-        END
+        COALESCE(s_child.longitude, s_booking.longitude, b.school_lng)
       FROM public.bookings b
       JOIN public.booking_children bc ON b.id = bc.booking_id
       JOIN public.children c ON bc.child_id = c.id
-      -- Junction Table Join
-      LEFT JOIN public.booking_schools bs ON b.id = bs.booking_id AND bc.child_id = ANY(bs.student_ids)
+      -- Joins for School Location
+      LEFT JOIN public.schools s_child ON c.school_id = s_child.id
+      LEFT JOIN public.schools s_booking ON b.school_id = s_booking.id
       WHERE b.driver_id = driver_rec.driver_id
-        AND b.subscription_status = 'active'
+        -- Status Check
+        AND (b.subscription_status = 'active' OR b.status IN ('confirmed', 'accepted'))
         AND b.booking_type IN ('Two Way', 'One Way Back Home') 
-        AND b.home_lat IS NOT NULL AND b.home_lng IS NOT NULL
-        -- Ensure valid school location
-        AND (
-            (b.is_multi_school IS NOT TRUE AND b.school_lat IS NOT NULL) OR 
-            (b.is_multi_school IS TRUE AND bs.school_latitude IS NOT NULL)
-        )
+        -- Location Check
+        AND b.home_lat IS NOT NULL 
+        AND COALESCE(s_child.latitude, s_booking.latitude, b.school_lat) IS NOT NULL
+        -- Absence Check
         AND NOT EXISTS (SELECT 1 FROM public.child_absences ca WHERE ca.child_id = bc.child_id AND ca.date = target_date)
       ORDER BY 
-        b.routeret_order ASC NULLS LAST, -- PRIMARY SORT: Afternoon Sequence (Booking level)
-        -- SECONDARY SORT: Distance from RESOLVED SCHOOL to Home
+        b.routeret_order ASC NULLS LAST,
         ST_Distance(
             ST_SetSRID(ST_MakePoint(
-                CASE WHEN b.is_multi_school IS TRUE AND bs.school_longitude IS NOT NULL THEN bs.school_longitude ELSE b.school_lng END,
-                CASE WHEN b.is_multi_school IS TRUE AND bs.school_latitude IS NOT NULL THEN bs.school_latitude ELSE b.school_lat END
+                COALESCE(s_child.longitude, s_booking.longitude, b.school_lng),
+                COALESCE(s_child.latitude, s_booking.latitude, b.school_lat)
             ), 4326)::geography, 
             b.homegeo_location
         ) ASC;
-    SELECT EXISTS (SELECT 1 FROM _temp_return_stops_v5) INTO has_children;
+        
+    SELECT EXISTS (SELECT 1 FROM _temp_return_stops_v7) INTO has_children;
+    
     IF has_children THEN
+        -- Create Trip
         SELECT available_from, available_until INTO sched_start, sched_end
         FROM public.driver_schedules WHERE driver_id = driver_rec.driver_id AND LOWER(day_of_week) = target_day_name AND shift_type = 'Return from School(s)' LIMIT 1;
+        
         INSERT INTO public.trips (driver_id, trip_date, status, trip_type, start_time, end_time)
         VALUES (driver_rec.driver_id, target_date, 'scheduled', 'Return from School(s)',
             CASE WHEN sched_start IS NOT NULL THEN (target_date + sched_start) ELSE NULL END,
             CASE WHEN sched_end IS NOT NULL THEN (target_date + sched_end) ELSE NULL END)
         RETURNING id INTO new_trip_id;
+        
         stop_sequence := 1;
-        -- Pickups (School) - Grouped by Location
-        FOR child_rec IN SELECT * FROM _temp_return_stops_v5 ORDER BY school_lat, school_lng LOOP
+        
+        -- Pickups (School) - Clustered
+        FOR child_rec IN SELECT * FROM _temp_return_stops_v7 ORDER BY school_lat, school_lng LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
             VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'pickup', stop_sequence, child_rec.school_lat, child_rec.school_lng, 'pending');
             stop_sequence := stop_sequence + 1;
         END LOOP;
         
         -- Dropoffs (Home) - Sequential
-        FOR child_rec IN SELECT * FROM _temp_return_stops_v5 LOOP
+        FOR child_rec IN SELECT * FROM _temp_return_stops_v7 LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
             VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'dropoff', stop_sequence, child_rec.pickup_lat, child_rec.pickup_lng, 'pending');
             stop_sequence := stop_sequence + 1;
@@ -731,7 +754,7 @@ BEGIN
   FROM children c
   WHERE c.id = NEW.child_id;
 
-  -- Skip if no FCM token
+  -- Skip if no FCM token (exit early)
   IF parent_fcm_token IS NULL THEN
     RETURN NEW;
   END IF;
@@ -740,7 +763,10 @@ BEGIN
   CASE NEW.event_type
     WHEN 'approaching' THEN
       notification_title := 'Driver Approaching!';
-      notification_body := 'The driver will arrive in approximately 5 minutes to pick up ' || COALESCE(child_name, 'your child') || '.';
+      notification_body := 'The driver will arrive in approximately 5 minutes for ' || COALESCE(child_name, 'your child') || '.';
+    WHEN 'arrived' THEN
+      notification_title := 'Driver Arrived!';
+      notification_body := 'The driver has arrived at the location for ' || COALESCE(child_name, 'your child') || '.';
     WHEN 'picked_up' THEN
       notification_title := 'Child Picked Up ✓';
       notification_body := COALESCE(child_name, 'Your child') || ' has been picked up safely.';
@@ -752,24 +778,32 @@ BEGIN
   END CASE;
 
   -- Call Edge Function to send notification
-  PERFORM
-    net.http_post(
-      url := current_setting('app.settings.supabase_functions_url') || '/send-notification',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ' || current_setting('app.settings.anon_key')
-      ),
-      body := jsonb_build_object(
-        'fcm_token', parent_fcm_token,
-        'title', notification_title,
-        'body', notification_body,
-        'data', jsonb_build_object(
-          'event_type', NEW.event_type,
-          'booking_id', NEW.booking_id::text,
-          'child_id', NEW.child_id::text
+  -- (Includes safety check to prevent crashes if settings are missing)
+  IF current_setting('app.settings.supabase_functions_url', true) IS NOT NULL 
+     AND current_setting('app.settings.anon_key', true) IS NOT NULL THEN
+    
+    PERFORM
+      net.http_post(
+        url := current_setting('app.settings.supabase_functions_url', true) || '/send-notification',
+        headers := jsonb_build_object(
+          'Content-Type', 'application/json',
+          'Authorization', 'Bearer ' || current_setting('app.settings.anon_key', true)
+        ),
+        body := jsonb_build_object(
+          'fcm_token', parent_fcm_token,
+          'title', notification_title,
+          'body', notification_body,
+          'data', jsonb_build_object(
+            'event_type', NEW.event_type,
+            'booking_id', NEW.booking_id::text,
+            'child_id', NEW.child_id::text
+          )
         )
-      )
-    );
+      );
+  ELSE
+    -- Log warning instead of crashing if settings are missing
+    RAISE WARNING 'Missing app.settings.supabase_functions_url or anon_key. Notification not sent.';
+  END IF;
 
   RETURN NEW;
 END;
@@ -781,33 +815,72 @@ ALTER FUNCTION "public"."notify_parent_on_ride_event"() OWNER TO "postgres";
 
 CREATE OR REPLACE FUNCTION "public"."process_stop"("stop_id_input" "uuid", "action" "text", "driver_lat" double precision DEFAULT NULL::double precision, "driver_lng" double precision DEFAULT NULL::double precision) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
     AS $$
+DECLARE
+  v_booking_id uuid;
+  v_child_id uuid;
+  v_trip_id uuid;
+  v_driver_id uuid;
+  v_parent_id uuid;
+  v_next_stop_id uuid;
+  v_current_seq int;
 BEGIN
+  -- Get context
+  SELECT rs.booking_id, rs.child_id, rs.trip_id, t.driver_id, b.parent_id, rs.sequence_order
+  INTO v_booking_id, v_child_id, v_trip_id, v_driver_id, v_parent_id, v_current_seq
+  FROM public.route_stops rs
+  JOIN public.trips t ON rs.trip_id = t.id
+  JOIN public.bookings b ON rs.booking_id = b.id
+  WHERE rs.id = stop_id_input;
+
+  -- Update Stop
   IF action = 'arrived' THEN
       UPDATE public.route_stops
-      SET status = 'arrived',
-          arrived_at = NOW()
+      SET status = 'arrived', arrived_at = NOW()
       WHERE id = stop_id_input;
+      
+      -- Insert Event for Arrived
+      INSERT INTO public.ride_events (booking_id, child_id, driver_id, parent_id, event_type, created_at)
+      VALUES (v_booking_id, v_child_id, v_driver_id, v_parent_id, 'arrived', NOW());
 
   ELSIF action IN ('picked_up', 'dropped_off') THEN
       UPDATE public.route_stops
-      SET status = 'completed',
-          completed_at = NOW()
+      SET status = 'completed', completed_at = NOW()
       WHERE id = stop_id_input;
+      
+      -- Insert Event
+      INSERT INTO public.ride_events (booking_id, child_id, driver_id, parent_id, event_type, created_at)
+      VALUES (v_booking_id, v_child_id, v_driver_id, v_parent_id, action, NOW());
 
   ELSIF action = 'skipped' THEN
       UPDATE public.route_stops
-      SET status = 'skipped',
-          completed_at = NOW()
+      SET status = 'skipped', completed_at = NOW()
       WHERE id = stop_id_input;
-  
+      
   ELSIF action = 'reset' THEN
       UPDATE public.route_stops
-      SET status = 'pending',
-          arrived_at = NULL,
-          completed_at = NULL
+      SET status = 'pending', arrived_at = NULL, completed_at = NULL
       WHERE id = stop_id_input;
+  END IF;
+  
+  -- Find Next Stop (for driver location)
+  SELECT id INTO v_next_stop_id 
+  FROM public.route_stops 
+  WHERE trip_id = v_trip_id 
+    AND status = 'pending'
+    AND sequence_order > v_current_seq
+  ORDER BY sequence_order ASC
+  LIMIT 1;
+  
+  -- Update Driver Location
+  IF v_driver_id IS NOT NULL THEN
+     UPDATE public.driver_locations
+     SET 
+        latitude = COALESCE(driver_lat, latitude),
+        longitude = COALESCE(driver_lng, longitude),
+        updated_at = NOW(),
+        next_stop_id = v_next_stop_id
+     WHERE driver_id = v_driver_id;
   END IF;
 END;
 $$;
@@ -930,7 +1003,7 @@ CREATE TABLE IF NOT EXISTS "public"."drivers" (
     "is_location_sharing_enabled" boolean DEFAULT true,
     "advs_photos" "text"[],
     "is_profile_online" boolean DEFAULT false,
-    "is_online" boolean DEFAULT false,
+    "vehicle_image_urls" "text"[] DEFAULT '{}'::"text"[],
     CONSTRAINT "check_location_geo_valid" CHECK ((("location_geo" IS NULL) OR "public"."st_isvalid"(("location_geo")::"public"."geometry"))),
     CONSTRAINT "check_start_location_geo_valid" CHECK ((("start_location_geo" IS NULL) OR "public"."st_isvalid"(("start_location_geo")::"public"."geometry"))),
     CONSTRAINT "drivers_availability_mode_check" CHECK (("availability_mode" = ANY (ARRAY['smart'::"text", 'manual'::"text"])))
@@ -1439,11 +1512,63 @@ CREATE OR REPLACE FUNCTION "public"."start_trip"("trip_id_input" "uuid", "driver
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
+DECLARE
+  v_trip_type_str text;
+  v_driver_id uuid;
+  v_mapped_type text;
 BEGIN
+  -- 1. Get trip details
+  SELECT trip_type, driver_id INTO v_trip_type_str, v_driver_id
+  FROM public.trips
+  WHERE id = trip_id_input;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Trip not found';
+  END IF;
+
+  -- 2. Map trip_type to driver_locations.trip_type enum/string
+  -- 'Go to School(s)' -> 'pickup'
+  -- 'Return from School(s)' -> 'dropoff'
+  IF v_trip_type_str = 'Go to School(s)' THEN
+    v_mapped_type := 'pickup';
+  ELSE
+    v_mapped_type := 'dropoff';
+  END IF;
+
+  -- 3. Update trips table
   UPDATE public.trips
   SET status = 'in_progress',
       start_time = COALESCE(start_time, NOW())
   WHERE id = trip_id_input;
+
+  -- 4. Update driver_locations table
+  -- FIX: Use 'is_tracking_active' instead of 'is_online' which was dropped
+  UPDATE public.driver_locations
+  SET trip_type = v_mapped_type,
+      is_tracking_active = true,
+      updated_at = NOW(),
+      -- Update location only if valid coordinates are provided
+      latitude = COALESCE(driver_lat, latitude),
+      longitude = COALESCE(driver_lng, longitude)
+  WHERE driver_id = v_driver_id;
+
+  IF NOT FOUND THEN
+    INSERT INTO public.driver_locations (
+      driver_id, 
+      latitude, 
+      longitude, 
+      trip_type, 
+      is_tracking_active, 
+      updated_at
+    ) VALUES (
+      v_driver_id, 
+      COALESCE(driver_lat, 0), 
+      COALESCE(driver_lng, 0), 
+      v_mapped_type, 
+      true, 
+      NOW()
+    );
+  END IF;
 END;
 $$;
 
@@ -1693,6 +1818,7 @@ CREATE TABLE IF NOT EXISTS "public"."bookings" (
     "is_multi_school" boolean DEFAULT false,
     "proposal_price" numeric,
     "is_for_parent" boolean,
+    "school_ids" "uuid"[] DEFAULT ARRAY[]::"uuid"[],
     CONSTRAINT "bookings_booking_flow_step_check" CHECK (("booking_flow_step" = ANY (ARRAY['draft'::"text", 'submitted'::"text", 'confirmed'::"text"]))),
     CONSTRAINT "bookings_booking_type_check" CHECK (("booking_type" = ANY (ARRAY['Two Way'::"text", 'One Way to School'::"text", 'One Way Back Home'::"text", 'Other'::"text"]))),
     CONSTRAINT "bookings_cancellation_type_check" CHECK ((("cancellation_type" IS NULL) OR ("cancellation_type" = ANY (ARRAY['parent_cancel_grace'::"text", 'scheduled_stop'::"text", 'immediate_stop_fee'::"text", 'pause'::"text", 'safety_stop'::"text"])))),
@@ -1787,6 +1913,9 @@ CREATE TABLE IF NOT EXISTS "public"."driver_locations" (
     "updated_at" timestamp with time zone DEFAULT "now"(),
     "current_trip_id" "uuid",
     "is_tracking_active" boolean DEFAULT false,
+    "next_stop_id" "uuid",
+    "eta_minutes" integer,
+    "students_onboard" integer DEFAULT 0,
     CONSTRAINT "driver_locations_trip_type_check" CHECK (("trip_type" = ANY (ARRAY['pickup'::"text", 'dropoff'::"text", 'idle'::"text"])))
 );
 
@@ -1840,7 +1969,7 @@ CREATE TABLE IF NOT EXISTS "public"."media_assets" (
     "uploaded_at" timestamp with time zone,
     "expires_at" timestamp with time zone DEFAULT ("now"() + '00:15:00'::interval),
     "metadata" "jsonb" DEFAULT '{}'::"jsonb",
-    CONSTRAINT "media_assets_asset_type_check" CHECK (("asset_type" = ANY (ARRAY['avatar'::"text", 'license'::"text", 'mulkia'::"text", 'child_photo'::"text", 'adv_photo'::"text"]))),
+    CONSTRAINT "media_assets_asset_type_check" CHECK (("asset_type" = ANY (ARRAY['avatar'::"text", 'license'::"text", 'mulkia'::"text", 'child_photo'::"text", 'adv_photo'::"text", 'vehicle_photo'::"text"]))),
     CONSTRAINT "media_assets_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'uploaded'::"text", 'failed'::"text", 'deleted'::"text"]))),
     CONSTRAINT "media_assets_visibility_check" CHECK (("visibility" = ANY (ARRAY['public'::"text", 'private'::"text"]))),
     CONSTRAINT "valid_r2_key" CHECK (("r2_key" ~ '^(public|private)/'::"text"))
@@ -1912,7 +2041,7 @@ CREATE TABLE IF NOT EXISTS "public"."ride_events" (
     "event_data" "jsonb" DEFAULT '{}'::"jsonb",
     "created_at" timestamp with time zone DEFAULT "now"(),
     "read_at" timestamp with time zone,
-    CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'picked_up'::"text", 'dropped_off'::"text"])))
+    CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'arrived'::"text", 'picked_up'::"text", 'dropped_off'::"text"])))
 );
 
 
@@ -2406,6 +2535,11 @@ ALTER TABLE ONLY "public"."driver_documents"
 
 ALTER TABLE ONLY "public"."driver_locations"
     ADD CONSTRAINT "driver_locations_driver_id_fkey" FOREIGN KEY ("driver_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."driver_locations"
+    ADD CONSTRAINT "driver_locations_next_stop_id_fkey" FOREIGN KEY ("next_stop_id") REFERENCES "public"."route_stops"("id");
 
 
 

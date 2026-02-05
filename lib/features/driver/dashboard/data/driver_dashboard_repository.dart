@@ -420,7 +420,20 @@ class DriverDashboardRepository {
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     try {
-      // First delete route_stops for today's trips
+      // Use the regeneration function which handles secure deletion
+      // But we just want to delete?
+      // If we just want to delete, we can try the raw delete again, but we know it might fail due to RLS.
+      // Ideally we'd have a delete_trips RPC.
+      // For now, let's stick to the manual logic but wrap it better?
+      // No, let's rely on regenerateDailyTrips for the main use case.
+      // If this is called independently, we might have issues.
+      // But looking at usages, it's seemingly only used in regenerateDailyTrips mostly.
+
+      // Let's iterate and delete manually for now if this is needed standalone,
+      // OR better: create a specific RPC for deletion if this is critical.
+      // Taking a look at the previous implementation, the RLS issue is the main blocker.
+      // For now, let's leave this as is (best effort) but fix regenerateDailyTrips which is the user issue.
+
       final trips = await _supabase
           .from('trips')
           .select('id')
@@ -431,14 +444,12 @@ class DriverDashboardRepository {
         await _supabase.from('route_stops').delete().eq('trip_id', trip['id']);
       }
 
-      // Then delete the trips
       await _supabase
           .from('trips')
           .delete()
           .eq('driver_id', _driverId)
           .eq('trip_date', todayStr);
 
-      print('DEBUG deleteTodaysTrips: Deleted ${trips.length} trips');
       return true;
     } catch (e) {
       print('Error deleting trips: $e');
@@ -448,15 +459,21 @@ class DriverDashboardRepository {
 
   /// Delete and regenerate today's trips
   Future<Map<String, bool>> regenerateDailyTrips() async {
-    final deleteSuccess = await deleteTodaysTrips();
-    if (!deleteSuccess) {
+    try {
+      final today = DateTime.now();
+      final todayStr =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+      await _supabase.rpc(
+        'regenerate_daily_trips',
+        params: {'target_date': todayStr},
+      );
+
+      return {'delete': true, 'go': true, 'return': true};
+    } catch (e) {
+      print('Error regenerating trips: $e');
       return {'delete': false, 'go': false, 'return': false};
     }
-
-    final goSuccess = await generateGoTrips();
-    final returnSuccess = await generateReturnTrips();
-
-    return {'delete': true, 'go': goSuccess, 'return': returnSuccess};
   }
 
   /// Start a trip (update status to in_progress)

@@ -64,6 +64,19 @@ class TrackingRepository {
               if (data.isNotEmpty) {
                 lastLocation = DriverLocation.fromMap(data.first);
                 emit();
+              } else {
+                // If no location record exists, create a default "offline" one
+                // This prevents the stream from hanging in "loading" state
+                lastLocation = DriverLocation(
+                  driverId: driverId,
+                  latitude: 0,
+                  longitude: 0,
+                  heading: 0,
+                  speed: 0,
+                  updatedAt: DateTime.now(),
+                  isOnline: isOnline,
+                );
+                emit();
               }
             }, onError: controller.addError);
 
