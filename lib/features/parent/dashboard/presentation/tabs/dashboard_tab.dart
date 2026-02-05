@@ -42,7 +42,11 @@ class DashboardTab extends ConsumerWidget {
                   data: (bookings) {
                     // Check for ALL accepted bookings
                     final acceptedBookings = bookings
-                        .where((b) => b['status'] == 'accepted')
+                        .where(
+                          (b) =>
+                              b['status'] == 'accepted' ||
+                              b['status'] == 'confirmed',
+                        )
                         .toList();
 
                     // Logic:

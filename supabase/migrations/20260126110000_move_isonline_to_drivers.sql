@@ -31,6 +31,7 @@ END;
 $$;
 
 -- 4. Update Function: get_driver_availability_settings
+DROP FUNCTION IF EXISTS public.get_driver_availability_settings();
 CREATE OR REPLACE FUNCTION public.get_driver_availability_settings()
 RETURNS TABLE(
   auto_offline_after_trip boolean, 

@@ -31,16 +31,17 @@ class ActiveTripController extends _$ActiveTripController {
 
   /// Mark arrival at a stop
   Future<void> arriveAtStop(String stopId, {double? lat, double? lng}) async {
-    // Optimistic update could be complex here due to the deep structure
-    // For now, we'll rely on fast RPC + refresh, or implement basic optimistic logic
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      // 1. Perform action
+      await ref
+          .read(driverDashboardRepositoryProvider)
+          .markStopArrived(stopId, lat: lat, lng: lng);
 
-    // 1. Perform action
-    await ref
-        .read(driverDashboardRepositoryProvider)
-        .markStopArrived(stopId, lat: lat, lng: lng);
-
-    // 2. Refresh state
-    ref.invalidate(activeTripProvider);
+      // 2. Refresh state
+      ref.invalidate(activeTripProvider);
+      return ref.refresh(activeTripProvider.future);
+    });
   }
 
   /// Process stop (Pickup / Dropoff / Skip)
@@ -50,11 +51,15 @@ class ActiveTripController extends _$ActiveTripController {
     double? lat,
     double? lng,
   }) async {
-    await ref
-        .read(driverDashboardRepositoryProvider)
-        .processStop(stopId, action, lat: lat, lng: lng);
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      await ref
+          .read(driverDashboardRepositoryProvider)
+          .processStop(stopId, action, lat: lat, lng: lng);
 
-    ref.invalidate(activeTripProvider);
+      ref.invalidate(activeTripProvider);
+      return ref.refresh(activeTripProvider.future);
+    });
   }
 
   /// Reorder stops

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../dashboard_controller.dart';
 import '../../../tracking/presentation/tracking_controller.dart';
 import '../../../tracking/data/tracking_repository.dart';
+import '../../../tracking/data/driver_location_model.dart'; // Add this import
 import 'active_booking_card.dart';
 
 /// A widget that monitors the driver's online status and location
@@ -31,106 +32,169 @@ class DriverStatusMonitor extends ConsumerWidget {
 
     return driverLocationAsync.when(
       data: (location) {
-        // Driver is active and stream is working
-        final bool isActive = location.isOnTrip;
-        final event = rideEventAsync.maybeWhen(
-          data: (e) => e,
-          orElse: () => null,
-        );
-        final nextStopInfo = nextStopAsync.maybeWhen(
-          data: (e) => e,
-          orElse: () => null,
-        );
-
-        String title = ''; // Empty to avoid redundancy with badge
-        String subtitle = location.isOnline
-            ? 'Waiting for trip to start'
-            : 'Driver is currently offline';
-        String badgeText = location.isOnline
-            ? 'DRIVER ONLINE'
-            : 'DRIVER OFFLINE';
-        Color badgeColor = location.isOnline ? Colors.orange : Colors.grey;
-
-        if (event != null) {
-          final eventType = event['event_type'] as String? ?? '';
-          if (eventType == 'approaching') {
-            title = 'Driver Approaching';
-            subtitle = _buildEtaText(nextStopInfo);
-            badgeColor = Colors.orange;
-            badgeText = 'APPROACHING';
-          } else if (eventType == 'arrived') {
-            title = 'Driver Arrived';
-            subtitle = 'At pickup/dropoff location';
-            badgeColor = Colors.orange;
-            badgeText = 'ARRIVED';
-          } else if (eventType == 'picked_up') {
-            title = 'Child Picked Up';
-            subtitle = _buildEtaText(nextStopInfo);
-            badgeColor = Colors.green;
-            badgeText = 'ON TRIP';
-          } else if (eventType == 'dropped_off') {
-            title = 'Child Dropped Off';
-            subtitle = 'Trip completed';
-            badgeColor = Colors.green;
-            badgeText = 'COMPLETED';
-          }
-        } else if (isActive) {
-          badgeColor = Colors.green;
-          badgeText = 'LIVE TRIP';
-
-          if (location.tripType == 'pickup') {
-            title = 'Arriving for Pickup';
-          } else if (location.tripType == 'dropoff') {
-            title = 'Heading to Destination';
-          } else {
-            title = 'Trip in Progress';
-          }
-          // For now, simpler subtitle until we calc full ETA
-          subtitle = _buildEtaText(nextStopInfo);
-        }
-
-        return ActiveBookingCard(
-          driverName: driverName,
-          driverPhoto: driverPhoto,
-          title: title,
-          subtitle: subtitle,
-          badgeText: badgeText,
-          badgeColor: badgeColor,
-          isActive: isActive,
-          etaMinutes: nextStopInfo?.etaMinutes ?? location.etaMinutes,
-          stopsUntilParent: nextStopInfo?.stopsUntilParent,
-          nextStopLabel: nextStopInfo?.nextStopIsParent == true
-              ? nextStopInfo?.nextStopLabel
-              : null,
-          onViewAll: () {
-            // Navigate to My Bookings tab
-            ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
-          },
-          onTrack: () {
-            context.push(
-              '/tracking',
-              extra: {'bookingId': bookingId, 'driverId': driverId},
-            );
-          },
+        return _buildActiveCard(
+          context,
+          ref,
+          driverName,
+          driverPhoto,
+          bookingId,
+          driverId,
+          location: location,
+          rideEvent: rideEventAsync.asData?.value,
+          nextStopInfo: nextStopAsync.asData?.value,
+          isConnected: true,
         );
       },
-      error: (_, __) => _buildScheduledCard(
+      error: (_, __) => _handleOfflineState(
         context,
         ref,
         driverName,
         driverPhoto,
         bookingId,
         driverId,
+        rideEventAsync.asData?.value,
       ),
-      loading: () => _buildScheduledCard(
+      loading: () => _handleOfflineState(
         context,
         ref,
         driverName,
         driverPhoto,
         bookingId,
         driverId,
+        rideEventAsync.asData?.value,
         isLoading: true,
       ),
+    );
+  }
+
+  Widget _handleOfflineState(
+    BuildContext context,
+    WidgetRef ref,
+    String driverName,
+    String? driverPhoto,
+    String bookingId,
+    String driverId,
+    Map<String, dynamic>? rideEvent, {
+    bool isLoading = false,
+  }) {
+    // If we have a ride event, show it even if driver is offline
+    if (rideEvent != null) {
+      return _buildActiveCard(
+        context,
+        ref,
+        driverName,
+        driverPhoto,
+        bookingId,
+        driverId,
+        location: null, // No location data
+        rideEvent: rideEvent,
+        nextStopInfo: null,
+        isConnected: false,
+      );
+    }
+
+    return _buildScheduledCard(
+      context,
+      ref,
+      driverName,
+      driverPhoto,
+      bookingId,
+      driverId,
+      isLoading: isLoading,
+    );
+  }
+
+  Widget _buildActiveCard(
+    BuildContext context,
+    WidgetRef ref,
+    String driverName,
+    String? driverPhoto,
+    String bookingId,
+    String driverId, {
+    required Map<String, dynamic>? rideEvent,
+    required ParentNextStopInfo? nextStopInfo,
+    required DriverLocation? location,
+    required bool isConnected,
+  }) {
+    final bool isActive = location?.isOnTrip ?? false;
+
+    String title = '';
+    String subtitle = '';
+    String badgeText = '';
+    Color badgeColor = Colors.grey;
+
+    // 1. Determine Status from Event (Priority)
+    if (rideEvent != null) {
+      final eventType = rideEvent['event_type'] as String? ?? '';
+      if (eventType == 'approaching') {
+        title = 'Driver Approaching';
+        subtitle = _buildEtaText(nextStopInfo);
+        badgeColor = Colors.orange;
+        badgeText = 'APPROACHING';
+      } else if (eventType == 'arrived') {
+        title = 'Driver Arrived';
+        subtitle = 'At pickup/dropoff location';
+        badgeColor = Colors.orange;
+        badgeText = 'ARRIVED';
+      } else if (eventType == 'picked_up') {
+        title = 'Child Picked Up';
+        subtitle = _buildEtaText(nextStopInfo);
+        badgeColor = Colors.green;
+        badgeText = 'ON TRIP';
+      } else if (eventType == 'dropped_off') {
+        title = 'Child Dropped Off';
+        subtitle = 'Trip completed';
+        badgeColor = Colors.green;
+        badgeText = 'COMPLETED';
+      }
+    } else if (isActive) {
+      // 2. Fallback to Location Status (if no specific event yet)
+      badgeColor = Colors.green;
+      badgeText = 'LIVE TRIP';
+      if (location?.tripType == 'pickup') {
+        title = 'Arriving for Pickup';
+      } else if (location?.tripType == 'dropoff') {
+        title = 'Heading to Destination';
+      } else {
+        title = 'Trip in Progress';
+      }
+      subtitle = _buildEtaText(nextStopInfo);
+    } else {
+      // 3. Online but waiting
+      title = 'Driver Online';
+      subtitle = 'Waiting for trip to start';
+      badgeText = 'ONLINE';
+      badgeColor = Colors.orange;
+    }
+
+    // Offline Override (if not completed)
+    if (!isConnected && badgeText != 'COMPLETED') {
+      subtitle = 'Driver signal lost...';
+      // Keep the last known status badge
+    }
+
+    return ActiveBookingCard(
+      driverName: driverName,
+      driverPhoto: driverPhoto,
+      title: title,
+      subtitle: subtitle,
+      badgeText: badgeText,
+      badgeColor: badgeColor,
+      isActive: isActive || (badgeText == 'COMPLETED'),
+      etaMinutes: nextStopInfo?.etaMinutes ?? location?.etaMinutes,
+      stopsUntilParent: nextStopInfo?.stopsUntilParent,
+      nextStopLabel: nextStopInfo?.nextStopIsParent == true
+          ? nextStopInfo?.nextStopLabel
+          : null,
+      onViewAll: () {
+        ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
+      },
+      onTrack: () {
+        context.push(
+          '/tracking',
+          extra: {'bookingId': bookingId, 'driverId': driverId},
+        );
+      },
     );
   }
 

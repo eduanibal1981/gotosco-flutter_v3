@@ -3,8 +3,26 @@
 -- 2) Trip Online (Tracking) -> driver_locations.is_tracking_active
 
 -- A. Rename drivers.is_online to is_profile_online (to clarify specific purpose)
-ALTER TABLE public.drivers 
-RENAME COLUMN is_online TO is_profile_online;
+-- A. Rename drivers.is_online to is_profile_online (Safe check)
+-- A. Rename drivers.is_online to is_profile_online (Safe check)
+DO $$
+BEGIN
+    -- 1. If target column 'is_profile_online' already exists
+    IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'is_profile_online') THEN
+        -- If old column 'is_online' ALSO exists, drop it (assuming data is synced or negligible for this hotfix)
+        IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'is_online') THEN
+            ALTER TABLE public.drivers DROP COLUMN is_online;
+        END IF;
+
+    -- 2. If target 'is_profile_online' does NOT exist, but 'is_online' DOES
+    ELSIF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'drivers' AND column_name = 'is_online') THEN
+        ALTER TABLE public.drivers RENAME COLUMN is_online TO is_profile_online;
+    
+    -- 3. If neither exists (shouldn't happen given the flow, but good for completeness)
+    ELSE
+        ALTER TABLE public.drivers ADD COLUMN is_profile_online BOOLEAN DEFAULT false;
+    END IF;
+END $$;
 
 -- B. Add is_tracking_active to driver_locations
 -- This controls whether the driver is broadcasting location for trips

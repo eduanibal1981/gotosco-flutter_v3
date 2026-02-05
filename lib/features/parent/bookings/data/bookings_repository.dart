@@ -11,8 +11,30 @@ BookingsRepository bookingsRepository(Ref ref) {
 }
 
 @riverpod
-Future<List<Map<String, dynamic>>> myBookings(Ref ref) {
-  return ref.watch(bookingsRepositoryProvider).getBookings();
+Stream<List<Map<String, dynamic>>> myBookings(Ref ref) async* {
+  final supabase = Supabase.instance.client;
+  final user = supabase.auth.currentUser;
+
+  if (user == null) {
+    yield <Map<String, dynamic>>[];
+    return;
+  }
+
+  final repository = ref.watch(bookingsRepositoryProvider);
+
+  // 1. Initial fetch
+  yield await repository.getBookings();
+
+  // 2. Subscribe to realtime changes
+  final stream = supabase
+      .from('bookings')
+      .stream(primaryKey: ['id'])
+      .eq('parent_id', user.id);
+
+  // 3. Yield updates when changes occur
+  await for (final _ in stream) {
+    yield await repository.getBookings();
+  }
 }
 
 class BookingsRepository {

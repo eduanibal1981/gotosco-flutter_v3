@@ -481,15 +481,22 @@ class DriverDashboardRepository {
     double? lat,
     double? lng,
   }) async {
-    await _supabase.rpc(
-      'process_stop',
-      params: {
-        'stop_id_input': stopId,
-        'action': 'arrived',
-        'driver_lat': lat,
-        'driver_lng': lng,
-      },
-    );
+    print('DEBUG: markStopArrived called for stop $stopId');
+    try {
+      await _supabase.rpc(
+        'process_stop',
+        params: {
+          'stop_id_input': stopId,
+          'action': 'arrived',
+          'driver_lat': lat,
+          'driver_lng': lng,
+        },
+      );
+      print('DEBUG: markStopArrived query successful');
+    } catch (e) {
+      print('DEBUG: markStopArrived failed: $e');
+      rethrow;
+    }
   }
 
   /// Update sequence order for a list of stops
@@ -637,31 +644,82 @@ class DriverDashboardRepository {
   /// Get all enrolled students (children from accepted bookings)
   Future<List<Map<String, dynamic>>> getEnrolledStudents() async {
     try {
-      // Use efficient join query
-      final response = await _supabase
+      // 1. Fetch active bookings
+      final bookings = await _supabase
           .from('bookings')
-          .select(
-            '*, parent:users(full_name, phone), children_links:booking_children(child:children(*))',
-          )
+          .select()
           .eq('driver_id', _driverId)
           .inFilter('status', ['accepted', 'confirmed']);
 
+      if ((bookings as List).isEmpty) return [];
+
+      final bookingList = bookings as List;
+      final bookingIds = bookingList.map((b) => b['id'] as String).toList();
+      final parentIds = bookingList
+          .map((b) => b['parent_id'] as String?)
+          .where((id) => id != null)
+          .toSet()
+          .toList();
+
+      // 2. Fetch Parents
+      final Map<String, Map<String, dynamic>> parentsMap = {};
+      if (parentIds.isNotEmpty) {
+        try {
+          final parents = await _supabase
+              .from('users')
+              .select('id, full_name, phone')
+              .inFilter('id', parentIds);
+          for (var p in parents as List) {
+            parentsMap[p['id']] = p as Map<String, dynamic>;
+          }
+        } catch (e) {
+          print('Error fetching parents: $e');
+        }
+      }
+
+      // 3. Fetch Children via booking_children
+      final Map<String, List<Map<String, dynamic>>> childrenMap = {};
+      if (bookingIds.isNotEmpty) {
+        try {
+          // Join with children table to get details efficiently
+          final childrenData = await _supabase
+              .from('booking_children')
+              .select('booking_id, children(*)')
+              .inFilter('booking_id', bookingIds);
+
+          for (var item in childrenData as List) {
+            final bookingId = item['booking_id'] as String;
+            final child = item['children'] as Map<String, dynamic>?;
+            if (child != null) {
+              if (!childrenMap.containsKey(bookingId)) {
+                childrenMap[bookingId] = [];
+              }
+              childrenMap[bookingId]!.add(child);
+            }
+          }
+        } catch (e) {
+          print('Error fetching children: $e');
+          // Fallback: fetch without join if join fails (though unlikely)
+        }
+      }
+
+      // 4. Assemble result
       final students = <Map<String, dynamic>>[];
       final seenChildIds = <String>{};
 
-      for (var booking in response as List) {
-        final parent = booking['parent'] as Map<String, dynamic>?;
-        final childrenLinks = booking['children_links'] as List? ?? [];
+      for (var booking in bookingList) {
+        final bookingId = booking['id'];
+        final parent = parentsMap[booking['parent_id']];
+        final bookingChildren = childrenMap[bookingId] ?? [];
 
-        for (var link in childrenLinks) {
-          final child = link['child'] as Map<String, dynamic>?;
-          if (child != null && !seenChildIds.contains(child['id'])) {
+        for (var child in bookingChildren) {
+          if (!seenChildIds.contains(child['id'])) {
             seenChildIds.add(child['id']);
             students.add({
               ...child,
               'parent_name': parent?['full_name'] ?? 'Unknown Parent',
               'parent_phone': parent?['phone'] ?? '',
-              'booking_id': booking['id'],
+              'booking_id': bookingId,
               'home_location': booking['hometxt_location'],
               'school_location': booking['schooltxt_location'],
             });
@@ -672,59 +730,8 @@ class DriverDashboardRepository {
       return students;
     } catch (e) {
       print('Error in getEnrolledStudents: $e');
-      // If the join query fails (perhaps due to schema mismatch), fall back to safe loop
-      return _getEnrolledStudentsFallback();
+      return [];
     }
-  }
-
-  Future<List<Map<String, dynamic>>> _getEnrolledStudentsFallback() async {
-    final bookings = await _supabase
-        .from('bookings')
-        .select()
-        .eq('driver_id', _driverId)
-        .inFilter('status', ['accepted', 'confirmed']);
-
-    final students = <Map<String, dynamic>>[];
-    final seenChildIds = <String>{};
-
-    for (var booking in bookings) {
-      try {
-        final parent = await _supabase
-            .from('users')
-            .select('full_name, phone')
-            .eq('id', booking['parent_id'] ?? '')
-            .maybeSingle();
-
-        final childLinks = await _supabase
-            .from('booking_children')
-            .select('child_id')
-            .eq('booking_id', booking['id']);
-
-        for (var link in childLinks) {
-          final child = await _supabase
-              .from('children')
-              .select()
-              .eq('id', link['child_id'] ?? '')
-              .maybeSingle();
-
-          if (child != null && !seenChildIds.contains(child['id'])) {
-            seenChildIds.add(child['id']);
-            students.add({
-              ...child,
-              'parent_name': parent?['full_name'] ?? 'Unknown Parent',
-              'parent_phone': parent?['phone'] ?? '',
-              'booking_id': booking['id'],
-              'home_location': booking['hometxt_location'],
-              'school_location': booking['schooltxt_location'],
-            });
-          }
-        }
-      } catch (e) {
-        print('Error in fallback for booking ${booking['id']}: $e');
-      }
-    }
-
-    return students;
   }
 
   /// Accept a booking request

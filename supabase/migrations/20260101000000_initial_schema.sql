@@ -10,7 +10,12 @@ SELECT pg_catalog.set_config('search_path', '', false);
 SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
+
 SET row_security = off;
+
+CREATE EXTENSION IF NOT EXISTS "postgis" WITH SCHEMA "public";
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+CREATE EXTENSION IF NOT EXISTS "pg_net" WITH SCHEMA "extensions";
 
 
 CREATE SCHEMA IF NOT EXISTS "public";
@@ -925,6 +930,7 @@ CREATE TABLE IF NOT EXISTS "public"."drivers" (
     "is_location_sharing_enabled" boolean DEFAULT true,
     "advs_photos" "text"[],
     "is_profile_online" boolean DEFAULT false,
+    "is_online" boolean DEFAULT false,
     CONSTRAINT "check_location_geo_valid" CHECK ((("location_geo" IS NULL) OR "public"."st_isvalid"(("location_geo")::"public"."geometry"))),
     CONSTRAINT "check_start_location_geo_valid" CHECK ((("start_location_geo" IS NULL) OR "public"."st_isvalid"(("start_location_geo")::"public"."geometry"))),
     CONSTRAINT "drivers_availability_mode_check" CHECK (("availability_mode" = ANY (ARRAY['smart'::"text", 'manual'::"text"])))

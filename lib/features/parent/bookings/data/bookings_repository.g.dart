@@ -65,11 +65,11 @@ final class MyBookingsProvider
         $FunctionalProvider<
           AsyncValue<List<Map<String, dynamic>>>,
           List<Map<String, dynamic>>,
-          FutureOr<List<Map<String, dynamic>>>
+          Stream<List<Map<String, dynamic>>>
         >
     with
         $FutureModifier<List<Map<String, dynamic>>>,
-        $FutureProvider<List<Map<String, dynamic>>> {
+        $StreamProvider<List<Map<String, dynamic>>> {
   MyBookingsProvider._()
     : super(
         from: null,
@@ -86,14 +86,14 @@ final class MyBookingsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+  $StreamProviderElement<List<Map<String, dynamic>>> $createElement(
     $ProviderPointer pointer,
-  ) => $FutureProviderElement(pointer);
+  ) => $StreamProviderElement(pointer);
 
   @override
-  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+  Stream<List<Map<String, dynamic>>> create(Ref ref) {
     return myBookings(ref);
   }
 }
 
-String _$myBookingsHash() => r'bf8beaa1cc23fef505f92f23d746cc38d8603771';
+String _$myBookingsHash() => r'308b250fefc5cb7eb8fa49c63d3ec77d6016538a';
