@@ -9,6 +9,7 @@ import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/core/models/user_session.dart';
 import 'package:gotosco_v3/core/widgets/map_picker_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +19,7 @@ import '../data/driver_profile_model.dart';
 import '../data/driver_schedule_model.dart';
 import '../../dashboard/data/driver_dashboard_repository.dart';
 import 'controllers/driver_profile_scroll_controller.dart';
+import '../../availability/presentation/driver_availability_controller.dart';
 
 class DriverProfileTab extends ConsumerStatefulWidget {
   const DriverProfileTab({super.key});
@@ -456,109 +458,20 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
 
               const SizedBox(height: 16),
 
-              // Account Section (Role Switcher)
+              // Account Section (Role Switcher and Settings)
               Consumer(
                 builder: (context, ref, child) {
                   final sessionAsync = ref.watch(userSessionProvider);
                   return sessionAsync.when(
                     data: (session) {
-                      if (session == null || !session.isDualRole) {
-                        return const SizedBox.shrink();
-                      }
-
-                      final otherRole = session.activeRole == 'driver'
-                          ? 'parent'
-                          : 'driver';
-                      final otherRoleName = otherRole == 'driver'
-                          ? 'Driver'
-                          : 'Parent';
-
+                      // Always show settings section
                       return Column(
                         children: [
-                          _buildSection(
-                            icon: Icons.swap_horiz,
-                            title: 'Account',
-                            children: [
-                              GestureDetector(
-                                onTap: () async {
-                                  await ref
-                                      .read(userSessionProvider.notifier)
-                                      .switchRole(otherRole);
-                                  if (context.mounted) {
-                                    context.go(
-                                      otherRole == 'driver'
-                                          ? '/driver-home'
-                                          : '/parent-home',
-                                    );
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Switched to $otherRoleName mode',
-                                        ),
-                                        duration: const Duration(seconds: 2),
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.indigo.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.indigo.shade200,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: Colors.indigo.shade100,
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: Icon(
-                                          otherRole == 'driver'
-                                              ? Icons.directions_bus
-                                              : Icons.people,
-                                          color: Colors.indigo.shade700,
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Switch to $otherRoleName Mode',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                color: Colors.indigo.shade800,
-                                              ),
-                                            ),
-                                            Text(
-                                              'You have both parent and driver roles',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                color: Colors.indigo.shade600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Icon(
-                                        Icons.chevron_right,
-                                        color: Colors.indigo.shade400,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
+                          if (session != null && session.isDualRole) ...[
+                            _buildRoleSwitcher(context, ref, session),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildSettingsSection(),
                         ],
                       );
                     },
@@ -589,6 +502,32 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
               ),
 
               const SizedBox(height: 16),
+
+              // Account Section (Role Switcher)
+              Consumer(
+                builder: (context, ref, child) {
+                  final sessionAsync = ref.watch(userSessionProvider);
+                  return sessionAsync.when(
+                    data: (session) {
+                      // Always show settings section
+                      return Column(
+                        children: [
+                          if (session != null && session.isDualRole) ...[
+                            _buildRoleSwitcher(context, ref, session),
+                            const SizedBox(height: 16),
+                          ],
+                          _buildSettingsSection(),
+                          const SizedBox(height: 16),
+                        ],
+                      );
+                    },
+                    loading: () => const SizedBox.shrink(),
+                    error: (_, __) => const SizedBox.shrink(),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 8),
 
               // Logout Button
               SizedBox(
@@ -643,6 +582,8 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
       ),
       child: Column(
         children: [
+          // Online Toggle
+          Align(alignment: Alignment.topRight, child: _buildOnlineToggle()),
           // Profile Photo with verification badge
           Stack(
             children: [
@@ -762,6 +703,155 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRoleSwitcher(
+    BuildContext context,
+    WidgetRef ref,
+    UserSession session,
+  ) {
+    final otherRole = session.activeRole == 'driver' ? 'parent' : 'driver';
+    final otherRoleName = otherRole == 'driver' ? 'Driver' : 'Parent';
+
+    return _buildSection(
+      icon: Icons.swap_horiz,
+      title: 'Account',
+      children: [
+        GestureDetector(
+          onTap: () async {
+            await ref.read(userSessionProvider.notifier).switchRole(otherRole);
+            if (context.mounted) {
+              context.go(
+                otherRole == 'driver' ? '/driver-home' : '/parent-home',
+              );
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Switched to $otherRoleName mode'),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.indigo.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.indigo.shade200),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    otherRole == 'driver' ? Icons.directions_bus : Icons.people,
+                    color: Colors.indigo.shade700,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Switch to $otherRoleName Mode',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: Colors.indigo.shade800,
+                        ),
+                      ),
+                      Text(
+                        'You have both parent and driver roles',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.indigo.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.chevron_right, color: Colors.indigo.shade400),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSettingsSection() {
+    final availabilityAsync = ref.watch(driverAvailabilityControllerProvider);
+
+    return _buildSection(
+      icon: Icons.settings,
+      title: 'Settings',
+      children: [
+        availabilityAsync.when(
+          data: (settings) => SwitchListTile.adaptive(
+            title: const Text('Visible While Online'),
+            subtitle: const Text(
+              'Show "Online" status to parents when app is open',
+            ),
+            value: settings.isOnlineVisible,
+            onChanged: (val) {
+              ref
+                  .read(driverAvailabilityControllerProvider.notifier)
+                  .toggleOnlineVisibilityPreference();
+            },
+            secondary: Icon(Icons.visibility),
+            activeColor: Colors.teal,
+          ),
+          loading: () => const LinearProgressIndicator(),
+          error: (_, __) => const Text('Failed to load settings'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOnlineToggle() {
+    final availabilityAsync = ref.watch(driverAvailabilityControllerProvider);
+
+    return availabilityAsync.when(
+      data: (settings) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            settings.isProfileOnline ? 'Ad Online' : 'Ad Offline',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
+          ),
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: settings.isProfileOnline,
+              onChanged: (value) async {
+                await ref
+                    .read(driverAvailabilityControllerProvider.notifier)
+                    .toggleProfileVisibility();
+              },
+              activeColor: Colors.teal.shade700,
+              activeTrackColor: Colors.white,
+              inactiveThumbColor: Colors.grey.shade400,
+              inactiveTrackColor: Colors.white.withOpacity(0.5),
+            ),
+          ),
+        ],
+      ),
+      loading: () => const SizedBox(
+        width: 40,
+        height: 20,
+        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 

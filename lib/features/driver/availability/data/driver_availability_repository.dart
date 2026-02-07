@@ -85,6 +85,22 @@ class DriverAvailabilityRepository {
     }
   }
 
+  /// Set user app online status (App lifecycle)
+  Future<void> setUserOnlineStatus(bool isOnline) async {
+    await _supabase.rpc(
+      'set_user_online_status',
+      params: {'p_is_online': isOnline},
+    );
+  }
+
+  /// Set user online visibility preference
+  Future<void> setOnlineVisibility(bool isVisible) async {
+    await _supabase.rpc(
+      'set_online_visibility',
+      params: {'p_is_visible': isVisible},
+    );
+  }
+
   /// Complete trip with smart auto-offline handling
   Future<void> completeTripWithAutoOffline(
     String tripId, {

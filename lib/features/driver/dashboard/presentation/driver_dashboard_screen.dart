@@ -11,6 +11,7 @@ import 'package:gotosco_v3/features/driver/transport_requests/data/transport_req
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
 import '../../../../core/widgets/double_back_to_exit_wrapper.dart';
+import '../../../../core/services/driver_user_presence_service.dart';
 
 // Provider for managing selected tab index
 final driverDashboardIndexProvider =
@@ -103,6 +104,9 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Initialize user presence service
+    ref.watch(driverUserPresenceServiceProvider);
+
     final selectedIndex = ref.watch(driverDashboardIndexProvider);
     final bookingTabIndex = ref.watch(driverBookingTabIndexNotifierProvider);
 

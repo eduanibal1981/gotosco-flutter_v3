@@ -9,6 +9,7 @@ class DriverLocation {
   final double speed; // km/h for ETA calculation
   final String? tripType; // 'pickup' | 'dropoff' | 'idle'
   final bool isOnline;
+  final bool tripsStarted;
   final int? etaMinutes;
   final String? nextStopId;
   final DateTime updatedAt;
@@ -21,6 +22,7 @@ class DriverLocation {
     this.speed = 0.0,
     this.tripType,
     this.isOnline = false,
+    this.tripsStarted = false,
     this.etaMinutes,
     this.nextStopId,
     required this.updatedAt,
@@ -30,7 +32,8 @@ class DriverLocation {
   LatLng get position => LatLng(latitude, longitude);
 
   /// Whether driver is currently on a trip (pickup or dropoff).
-  bool get isOnTrip => tripType == 'pickup' || tripType == 'dropoff';
+  bool get isOnTrip =>
+      tripType == 'pickup' || tripType == 'dropoff' || tripsStarted;
 
   /// Returns the heading in radians for Transform.rotate.
   double get headingRadians => heading * (3.14159265359 / 180);
@@ -43,7 +46,8 @@ class DriverLocation {
       heading: (map['heading'] as num?)?.toDouble() ?? 0.0,
       speed: (map['speed'] as num?)?.toDouble() ?? 0.0,
       tripType: map['trip_type'] as String?,
-      isOnline: map['is_online'] as bool? ?? false,
+      isOnline: false, // Set by repository from separate stream
+      tripsStarted: map['trips_started'] as bool? ?? false,
       etaMinutes: map['eta_minutes'] as int?,
       nextStopId: map['next_stop_id'] as String?,
       updatedAt: DateTime.parse(map['updated_at'] as String),
@@ -59,6 +63,7 @@ class DriverLocation {
       'speed': speed,
       'trip_type': tripType,
       'is_online': isOnline,
+      'trips_started': tripsStarted,
       'eta_minutes': etaMinutes,
       'next_stop_id': nextStopId,
       'updated_at': updatedAt.toIso8601String(),
@@ -67,7 +72,7 @@ class DriverLocation {
 
   @override
   String toString() =>
-      'DriverLocation(driverId: $driverId, lat: $latitude, lng: $longitude, heading: $heading, tripType: $tripType)';
+      'DriverLocation(driverId: $driverId, lat: $latitude, lng: $longitude, heading: $heading, tripType: $tripType, tripsStarted: $tripsStarted)';
 
   DriverLocation copyWith({
     String? driverId,
@@ -77,6 +82,7 @@ class DriverLocation {
     double? speed,
     String? tripType,
     bool? isOnline,
+    bool? tripsStarted,
     int? etaMinutes,
     String? nextStopId,
     DateTime? updatedAt,
@@ -89,6 +95,7 @@ class DriverLocation {
       speed: speed ?? this.speed,
       tripType: tripType ?? this.tripType,
       isOnline: isOnline ?? this.isOnline,
+      tripsStarted: tripsStarted ?? this.tripsStarted,
       etaMinutes: etaMinutes ?? this.etaMinutes,
       nextStopId: nextStopId ?? this.nextStopId,
       updatedAt: updatedAt ?? this.updatedAt,

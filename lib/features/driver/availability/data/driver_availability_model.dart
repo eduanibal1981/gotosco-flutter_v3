@@ -9,6 +9,9 @@ class DriverAvailabilitySettings {
   final bool isProfileOnline;
   final bool isTrackingActive;
 
+  final bool isAppOnline;
+  final bool isOnlineVisible;
+
   const DriverAvailabilitySettings({
     this.autoOfflineAfterTrip = true,
     this.autoOnlineBeforeTrip = true,
@@ -16,6 +19,8 @@ class DriverAvailabilitySettings {
     this.availabilityMode = 'smart',
     this.isProfileOnline = false,
     this.isTrackingActive = false,
+    this.isAppOnline = false,
+    this.isOnlineVisible = true,
   });
 
   /// Creates settings from Supabase RPC response
@@ -27,6 +32,8 @@ class DriverAvailabilitySettings {
       availabilityMode: map['availability_mode'] as String? ?? 'smart',
       isProfileOnline: map['is_profile_online'] as bool? ?? false,
       isTrackingActive: map['is_tracking_active'] as bool? ?? false,
+      isAppOnline: map['is_app_online'] as bool? ?? false,
+      isOnlineVisible: map['is_online_visible'] as bool? ?? true,
     );
   }
 
@@ -44,6 +51,8 @@ class DriverAvailabilitySettings {
     String? availabilityMode,
     bool? isProfileOnline,
     bool? isTrackingActive,
+    bool? isAppOnline,
+    bool? isOnlineVisible,
   }) {
     return DriverAvailabilitySettings(
       autoOfflineAfterTrip: autoOfflineAfterTrip ?? this.autoOfflineAfterTrip,
@@ -53,10 +62,12 @@ class DriverAvailabilitySettings {
       availabilityMode: availabilityMode ?? this.availabilityMode,
       isProfileOnline: isProfileOnline ?? this.isProfileOnline,
       isTrackingActive: isTrackingActive ?? this.isTrackingActive,
+      isAppOnline: isAppOnline ?? this.isAppOnline,
+      isOnlineVisible: isOnlineVisible ?? this.isOnlineVisible,
     );
   }
 
   @override
   String toString() =>
-      'DriverAvailabilitySettings(mode: $availabilityMode, profileOnline: $isProfileOnline, tracking: $isTrackingActive)';
+      'DriverAvailabilitySettings(mode: $availabilityMode, profileOnline: $isProfileOnline, tracking: $isTrackingActive, appOnline: $isAppOnline, visible: $isOnlineVisible)';
 }

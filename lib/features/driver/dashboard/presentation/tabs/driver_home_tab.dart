@@ -11,7 +11,7 @@ import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
 import '../../../profile/data/driver_profile_repository.dart';
 import '../../../profile/presentation/controllers/driver_profile_scroll_controller.dart';
-import '../../../availability/presentation/availability_control_sheet.dart';
+
 import '../../../availability/presentation/driver_availability_controller.dart';
 import '../widgets/booking_requests_card.dart';
 import '../../../transport_requests/data/transport_requests_repository.dart';
@@ -933,75 +933,41 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     final availabilityAsync = ref.watch(driverAvailabilityControllerProvider);
 
     return availabilityAsync.when(
-      data: (settings) => GestureDetector(
-        onTap: () async {
-          await ref
-              .read(driverAvailabilityControllerProvider.notifier)
-              .toggleProfileVisibility();
-          if (context.mounted) _refreshDashboard();
-        },
-        onLongPress: () => AvailabilityControlSheet.show(context),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: settings.isProfileOnline
-                ? Colors.green
-                : Colors.grey.shade600,
-            borderRadius: BorderRadius.circular(20),
+      data: (settings) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            settings.isProfileOnline ? 'Ad Online' : 'Ad Offline',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+            ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                settings.isProfileOnline ? Icons.circle : Icons.circle_outlined,
-                size: 10,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                settings.isProfileOnline ? 'Visible' : 'Hidden',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 13,
-                ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                settings.isSmartMode ? Icons.auto_awesome : Icons.touch_app,
-                size: 12,
-                color: Colors.white.withValues(alpha: 0.8),
-              ),
-            ],
+          Transform.scale(
+            scale: 0.8,
+            child: Switch(
+              value: settings.isProfileOnline,
+              onChanged: (value) async {
+                await ref
+                    .read(driverAvailabilityControllerProvider.notifier)
+                    .toggleProfileVisibility();
+                if (context.mounted) _refreshDashboard();
+              },
+              activeColor: Colors.teal.shade700,
+              activeTrackColor: Colors.white,
+              inactiveThumbColor: Colors.grey.shade400,
+              inactiveTrackColor: Colors.white.withOpacity(0.5),
+            ),
           ),
-        ),
+        ],
       ),
-      loading: () => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade400,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const SizedBox(
-          width: 60,
-          height: 16,
-          child: LinearProgressIndicator(
-            color: Colors.white,
-            backgroundColor: Colors.transparent,
-          ),
-        ),
+      loading: () => const SizedBox(
+        width: 40,
+        height: 20,
+        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
       ),
-      error: (_, __) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade600,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Text(
-          'Offline',
-          style: TextStyle(color: Colors.white, fontSize: 13),
-        ),
-      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 

@@ -152,4 +152,41 @@ class DriverAvailabilityController extends _$DriverAvailabilityController {
       return false;
     }
   }
+
+  /// Set user app online status (App lifecycle)
+  Future<void> setUserAppOnline(bool isOnline) async {
+    final current = state.value;
+    if (current == null) return;
+
+    state = AsyncData(current.copyWith(isAppOnline: isOnline));
+
+    try {
+      await ref
+          .read(driverAvailabilityRepositoryProvider)
+          .setUserOnlineStatus(isOnline);
+    } catch (e) {
+      state = AsyncData(current);
+      // Don't rethrow for lifecycle updates to avoid crashing
+      print('Error setting app online status: $e');
+    }
+  }
+
+  /// Toggle online visibility preference
+  Future<void> toggleOnlineVisibilityPreference() async {
+    final current = state.value;
+    if (current == null) return;
+
+    final newStatus = !current.isOnlineVisible;
+    state = AsyncData(current.copyWith(isOnlineVisible: newStatus));
+
+    try {
+      await ref
+          .read(driverAvailabilityRepositoryProvider)
+          .setOnlineVisibility(newStatus);
+      ref.invalidate(driverAvailabilitySettingsProvider);
+    } catch (e) {
+      state = AsyncData(current);
+      rethrow;
+    }
+  }
 }

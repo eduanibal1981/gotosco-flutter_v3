@@ -504,11 +504,34 @@ class TripsTab extends ConsumerWidget {
                 icon: Icons.play_arrow,
                 color: Colors.teal,
                 onPressed: () async {
-                  await ref
-                      .read(driverDashboardRepositoryProvider)
-                      .startTrip(trip['id']);
-                  ref.invalidate(todaysTripsProvider);
-                  ref.invalidate(driverDashboardStateProvider);
+                  try {
+                    print('DEBUG: Starting trip ${trip['id']}');
+                    await ref
+                        .read(driverDashboardRepositoryProvider)
+                        .startTrip(trip['id']);
+                    print('DEBUG: Trip started successfully');
+
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Trip started successfully!'),
+                        ),
+                      );
+                    }
+
+                    ref.invalidate(todaysTripsProvider);
+                    ref.invalidate(driverDashboardStateProvider);
+                  } catch (e, st) {
+                    print('ERROR starting trip: $e\n$st');
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error starting trip: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
                 },
               )
             else if (status == 'in_progress')

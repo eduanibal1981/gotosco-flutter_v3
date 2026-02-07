@@ -125,6 +125,7 @@ class DriverStatusMonitor extends ConsumerWidget {
 
     // 1. Determine Status from Event (Priority)
     if (rideEvent != null) {
+      print('rideEvent: $rideEvent');
       final eventType = rideEvent['event_type'] as String? ?? '';
       if (eventType == 'approaching') {
         title = 'Driver Approaching';
@@ -148,6 +149,7 @@ class DriverStatusMonitor extends ConsumerWidget {
         badgeText = 'COMPLETED';
       }
     } else if (isActive) {
+      print('isActive: $isActive');
       // 2. Fallback to Location Status (if no specific event yet)
       badgeColor = Colors.green;
       badgeText = 'LIVE TRIP';
@@ -160,11 +162,18 @@ class DriverStatusMonitor extends ConsumerWidget {
       }
       subtitle = _buildEtaText(nextStopInfo);
     } else if (location?.isOnline == true) {
-      // 3. Online but waiting
-      title = 'Driver Online';
-      subtitle = 'Waiting for trip to start';
-      badgeText = 'ONLINE';
-      badgeColor = Colors.orange;
+      // 3. Online but waiting / scheduled
+      if (location?.tripsStarted == true) {
+        title = 'Trip Started';
+        subtitle = 'Driver on the way';
+        badgeText = 'ON TRIP';
+        badgeColor = Colors.green;
+      } else {
+        title = 'Trip Scheduled';
+        subtitle = 'Driver is online';
+        badgeText = 'SCHEDULED';
+        badgeColor = Colors.blue;
+      }
     } else {
       // 4. Explicitly Offline
       title = 'Scheduled Trip';

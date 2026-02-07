@@ -81,14 +81,25 @@ class TrackingRepository {
             }, onError: controller.addError);
 
         // 2. Listen to Status (Low Frequency)
+        // 2. Listen to Status (Low Frequency)
         driverSub = _supabase
-            .from('drivers')
-            .stream(primaryKey: ['user_id'])
-            .eq('user_id', driverId)
+            .from('users')
+            .stream(primaryKey: ['id'])
+            .eq('id', driverId)
             .listen(
               (data) {
                 if (data.isNotEmpty) {
-                  isOnline = data.first['is_profile_online'] as bool? ?? false;
+                  // Use is_app_online AND is_online_visible from users table
+                  final isAppOnline =
+                      data.first['is_app_online'] as bool? ?? false;
+                  final isVisible =
+                      data.first['is_online_visible'] as bool? ?? true;
+
+                  // Logic:
+                  // If NOT visible -> Always Offline
+                  // If visible -> Online if app is online
+                  isOnline = isVisible && isAppOnline;
+
                   if (lastLocation != null) emit();
                 }
               },
@@ -116,18 +127,21 @@ class TrackingRepository {
           .eq('driver_id', driverId)
           .maybeSingle(),
       _supabase
-          .from('drivers')
-          .select('is_profile_online')
-          .eq('user_id', driverId)
+          .from('users')
+          .select('is_app_online, is_online_visible')
+          .eq('id', driverId)
           .maybeSingle(),
     ]);
 
     final locData = results[0];
-    final driverData = results[1];
+    final userData = results[1];
 
     if (locData == null) return null;
 
-    final isOnline = driverData?['is_profile_online'] as bool? ?? false;
+    final isAppOnline = userData?['is_app_online'] as bool? ?? false;
+    final isVisible = userData?['is_online_visible'] as bool? ?? true;
+    final isOnline = isVisible && isAppOnline;
+
     return DriverLocation.fromMap(locData).copyWith(isOnline: isOnline);
   }
 
