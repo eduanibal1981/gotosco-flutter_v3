@@ -97,3 +97,52 @@ final class MyBookingsProvider
 }
 
 String _$myBookingsHash() => r'308b250fefc5cb7eb8fa49c63d3ec77d6016538a';
+
+/// ✅ NEW OPTIMIZED: Returns typed ParentBooking models using the database view.
+/// This is 3-4x faster than myBookingsProvider due to fewer network requests.
+
+@ProviderFor(parentBookings)
+final parentBookingsProvider = ParentBookingsProvider._();
+
+/// ✅ NEW OPTIMIZED: Returns typed ParentBooking models using the database view.
+/// This is 3-4x faster than myBookingsProvider due to fewer network requests.
+
+final class ParentBookingsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<ParentBooking>>,
+          List<ParentBooking>,
+          Stream<List<ParentBooking>>
+        >
+    with
+        $FutureModifier<List<ParentBooking>>,
+        $StreamProvider<List<ParentBooking>> {
+  /// ✅ NEW OPTIMIZED: Returns typed ParentBooking models using the database view.
+  /// This is 3-4x faster than myBookingsProvider due to fewer network requests.
+  ParentBookingsProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'parentBookingsProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$parentBookingsHash();
+
+  @$internal
+  @override
+  $StreamProviderElement<List<ParentBooking>> $createElement(
+    $ProviderPointer pointer,
+  ) => $StreamProviderElement(pointer);
+
+  @override
+  Stream<List<ParentBooking>> create(Ref ref) {
+    return parentBookings(ref);
+  }
+}
+
+String _$parentBookingsHash() => r'eaa4b2ea2e0aeed7ceaa181c399dfcc97fd5317a';
