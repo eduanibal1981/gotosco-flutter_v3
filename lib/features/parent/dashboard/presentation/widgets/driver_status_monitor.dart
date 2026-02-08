@@ -129,31 +129,50 @@ class DriverStatusMonitor extends ConsumerWidget {
       final eventType = rideEvent['event_type'] as String? ?? '';
       if (eventType == 'approaching') {
         title = 'Driver Approaching';
-        subtitle = _buildEtaText(nextStopInfo);
+        subtitle = _buildApproachingText(nextStopInfo);
         badgeColor = Colors.orange;
         badgeText = 'APPROACHING';
       } else if (eventType == 'arrived') {
         title = 'Driver Arrived';
-        subtitle = 'At pickup/dropoff location';
+        subtitle = _getArrivedSubtitle(nextStopInfo);
         badgeColor = Colors.orange;
         badgeText = 'ARRIVED';
       } else if (eventType == 'picked_up') {
         title = 'Child Picked Up';
-        subtitle = _buildEtaText(nextStopInfo);
+        subtitle = _getOnTripSubtitle(nextStopInfo);
         badgeColor = Colors.green;
         badgeText = 'ON TRIP';
       } else if (eventType == 'dropped_off') {
         title = 'Child Dropped Off';
-        subtitle = 'Trip completed';
+        // Context-aware completion message
+        subtitle = nextStopInfo?.isGoTrip == true
+            ? 'Arrived at school'
+            : (nextStopInfo?.isReturnTrip == true
+                  ? 'Arrived home safely'
+                  : 'Trip completed');
         badgeColor = Colors.green;
         badgeText = 'COMPLETED';
+      } else if (eventType == 'skipped') {
+        title = 'Stop Skipped';
+        subtitle = 'Contact driver for details';
+        badgeColor = Colors.amber;
+        badgeText = 'SKIPPED';
       }
     } else if (isActive) {
       print('isActive: $isActive');
       // 2. Fallback to Location Status (if no specific event yet)
       badgeColor = Colors.green;
       badgeText = 'LIVE TRIP';
-      if (location?.tripType == 'pickup') {
+      // Use trip type for context-aware title
+      if (nextStopInfo?.isGoTrip == true) {
+        title = nextStopInfo?.stopType == 'pickup'
+            ? 'Arriving for Pickup'
+            : 'Heading to School';
+      } else if (nextStopInfo?.isReturnTrip == true) {
+        title = nextStopInfo?.stopType == 'pickup'
+            ? 'Picking Up from School'
+            : 'Heading Home';
+      } else if (location?.tripType == 'pickup') {
         title = 'Arriving for Pickup';
       } else if (location?.tripType == 'dropoff') {
         title = 'Heading to Destination';
@@ -248,19 +267,66 @@ class DriverStatusMonitor extends ConsumerWidget {
     );
   }
 
+  /// Builds ETA text with stops remaining
   String _buildEtaText(ParentNextStopInfo? info) {
     if (info == null) return 'View on map';
     final eta = info.etaMinutes;
     final stops = info.stopsUntilParent;
-    if (eta != null && stops != null) {
-      return '$eta min - $stops stops';
+    if (eta != null && stops != null && stops > 0) {
+      return '$eta min · $stops stops away';
     }
     if (eta != null) {
-      return '$eta min';
+      return '$eta min away';
     }
-    if (stops != null) {
-      return '$stops stops';
+    if (stops != null && stops > 0) {
+      return '$stops stops away';
     }
     return 'View on map';
+  }
+
+  /// Builds approaching subtitle with ETA context
+  String _buildApproachingText(ParentNextStopInfo? info) {
+    if (info == null) return 'View on map';
+    final eta = info.etaMinutes;
+    if (eta != null) {
+      return 'Arriving in ~$eta min';
+    }
+    return 'Almost there';
+  }
+
+  /// Returns context-aware arrived subtitle
+  String _getArrivedSubtitle(ParentNextStopInfo? info) {
+    if (info == null) return 'At pickup/dropoff location';
+
+    // Go trip (morning): Home pickup → School dropoff
+    if (info.isGoTrip) {
+      if (info.stopType == 'pickup') {
+        return 'Ready for pickup at home';
+      } else {
+        return 'Arrived at school';
+      }
+    }
+
+    // Return trip (afternoon): School pickup → Home dropoff
+    if (info.isReturnTrip) {
+      if (info.stopType == 'pickup') {
+        return 'Picking up from school';
+      } else {
+        return 'Arrived at home';
+      }
+    }
+
+    return 'At the child location';
+  }
+
+  /// Returns context-aware on-trip subtitle after pickup
+  String _getOnTripSubtitle(ParentNextStopInfo? info) {
+    if (info == null) return 'On the way';
+    final destination = info.destinationLabel;
+    final eta = info.etaMinutes;
+    if (eta != null) {
+      return 'Heading to $destination · $eta min';
+    }
+    return 'Heading to $destination';
   }
 }
