@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../data/driver_dashboard_repository.dart';
+import '../../data/models/driver_trip_model.dart';
 
 class TripsTab extends ConsumerWidget {
   const TripsTab({super.key});
@@ -67,7 +68,7 @@ class TripsTab extends ConsumerWidget {
                         _buildMiniStat(
                           'Students',
                           statsAsync.when(
-                            data: (s) => '${s['active_students'] ?? 0}',
+                            data: (s) => '${s.activeStudents}',
                             loading: () => '-',
                             error: (_, __) => '0',
                           ),
@@ -76,7 +77,7 @@ class TripsTab extends ConsumerWidget {
                         _buildMiniStat(
                           'Pending',
                           statsAsync.when(
-                            data: (s) => '${s['pending_requests'] ?? 0}',
+                            data: (s) => '${s.pendingRequests}',
                             loading: () => '-',
                             error: (_, __) => '0',
                           ),
@@ -107,16 +108,10 @@ class TripsTab extends ConsumerWidget {
                 }
 
                 final goTrips = trips
-                    .where(
-                      (t) => (t['trip_type'] as String?) == 'Go to School(s)',
-                    )
+                    .where((t) => t.tripType == 'Go to School(s)')
                     .toList();
                 final returnTrips = trips
-                    .where(
-                      (t) =>
-                          (t['trip_type'] as String?) ==
-                          'Return from School(s)',
-                    )
+                    .where((t) => t.tripType == 'Return from School(s)')
                     .toList();
 
                 return SliverList(
@@ -238,7 +233,7 @@ class TripsTab extends ConsumerWidget {
             dashboardState != DriverDashboardState.noProfile &&
             dashboardState != DriverDashboardState.profileIncomplete;
 
-        final int activeBookings = stats?['active_bookings'] ?? 0;
+        final int activeBookings = stats?.activeBookings ?? 0;
         final bool hasActiveBookings = activeBookings > 0;
 
         final bool canGenerate = isProfileComplete && hasActiveBookings;
@@ -424,14 +419,10 @@ class TripsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildTripCard(
-    BuildContext context,
-    WidgetRef ref,
-    Map<String, dynamic> trip,
-  ) {
-    final status = trip['status'] as String? ?? 'scheduled';
-    final stops = (trip['route_stops'] as List?)?.length ?? 0;
-    final tripType = trip['trip_type'] as String? ?? 'Trip';
+  Widget _buildTripCard(BuildContext context, WidgetRef ref, DriverTrip trip) {
+    final status = trip.status ?? 'scheduled';
+    final stops = trip.routeStops.length;
+    final tripType = trip.tripType;
 
     Color statusColor;
     switch (status) {
@@ -505,10 +496,10 @@ class TripsTab extends ConsumerWidget {
                 color: Colors.teal,
                 onPressed: () async {
                   try {
-                    print('DEBUG: Starting trip ${trip['id']}');
+                    print('DEBUG: Starting trip ${trip.id}');
                     await ref
                         .read(driverDashboardRepositoryProvider)
-                        .startTrip(trip['id']);
+                        .startTrip(trip.id);
                     print('DEBUG: Trip started successfully');
 
                     if (context.mounted) {
@@ -543,7 +534,7 @@ class TripsTab extends ConsumerWidget {
                 onPressed: () async {
                   await ref
                       .read(driverDashboardRepositoryProvider)
-                      .endTrip(trip['id']);
+                      .endTrip(trip.id);
                   ref.invalidate(todaysTripsProvider);
                   ref.invalidate(driverDashboardStateProvider);
                 },

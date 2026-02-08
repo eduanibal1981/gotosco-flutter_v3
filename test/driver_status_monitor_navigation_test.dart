@@ -28,7 +28,7 @@ void main() {
         heading: 0,
         speed: 0,
         updatedAt: DateTime.now(),
-        isOnline: false, // Offline triggers _buildScheduledCard
+        isAppOnline: false, // Offline triggers _buildScheduledCard
       );
 
       // 3. Create container with provider overrides that return data immediately

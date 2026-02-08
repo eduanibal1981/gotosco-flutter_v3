@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../transport_requests/data/models/driver_request_model.dart';
 
 class RequestsTab extends ConsumerWidget {
   const RequestsTab({super.key});
@@ -53,10 +54,10 @@ class RequestsTab extends ConsumerWidget {
             sliver: requestsAsync.when(
               data: (requests) {
                 final pending = requests
-                    .where((r) => r['status'] == 'pending')
+                    .where((r) => r.status == 'pending')
                     .toList();
                 final others = requests
-                    .where((r) => r['status'] != 'pending')
+                    .where((r) => r.status != 'pending')
                     .toList();
 
                 if (requests.isEmpty) {
@@ -180,20 +181,18 @@ class RequestsTab extends ConsumerWidget {
   Widget _buildRequestCard(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> request, {
+    DriverRequest request, {
     bool isPending = false,
   }) {
-    final parentName = request['parent_name'] as String? ?? 'Parent';
-    final parentPhoto = request['parent_photo'] as String?;
-    final parentPhone = request['parent_phone'] as String?;
-    final bookingType = request['booking_type'] as String? ?? '';
-    final homeLocation = request['home_location'] as String? ?? '';
-    final schoolLocation = request['school_location'] as String? ?? '';
-    final children = request['children'] as List? ?? [];
-    final status = request['status'] as String?;
-    final createdAt = request['created_at'] != null
-        ? DateTime.tryParse(request['created_at'])
-        : null;
+    final parentName = request.parentName ?? 'Parent';
+    final parentPhoto = request.parentPhoto;
+    final parentPhone = request.parentPhone;
+    final bookingType = request.bookingType ?? '';
+    final homeLocation = request.homeLocation ?? '';
+    final schoolLocation = request.schoolLocation ?? '';
+    final children = request.studentsInfo;
+    final status = request.status;
+    final createdAt = request.createdAt;
 
     Color statusColor;
     switch (status) {
@@ -300,7 +299,8 @@ class RequestsTab extends ConsumerWidget {
                       .map(
                         (c) => Chip(
                           label: Text(
-                            c['name'] ?? '',
+                            children[0]['name'] ??
+                                '', // children/studentsInfo is List<Map>
                             style: const TextStyle(fontSize: 12),
                           ),
                           backgroundColor: Colors.teal.shade50,
@@ -335,8 +335,7 @@ class RequestsTab extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _handleAccept(context, ref, request['id']),
+                      onPressed: () => _handleAccept(context, ref, request.id),
                       icon: const Icon(Icons.check, size: 18),
                       label: const Text('Accept'),
                       style: ElevatedButton.styleFrom(
@@ -352,8 +351,7 @@ class RequestsTab extends ConsumerWidget {
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: () =>
-                          _handleReject(context, ref, request['id']),
+                      onPressed: () => _handleReject(context, ref, request.id),
                       icon: const Icon(
                         Icons.close,
                         size: 18,

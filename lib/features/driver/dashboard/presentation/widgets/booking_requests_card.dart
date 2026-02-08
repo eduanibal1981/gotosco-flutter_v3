@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/driver_dashboard_repository.dart';
+import '../../../transport_requests/data/models/driver_request_model.dart';
 import '../driver_dashboard_screen.dart';
 
 class BookingRequestsCard extends ConsumerWidget {
@@ -14,9 +15,7 @@ class BookingRequestsCard extends ConsumerWidget {
 
     return requestsAsync.when(
       data: (requests) {
-        final pending = requests
-            .where((r) => r['status'] == 'pending')
-            .toList();
+        final pending = requests.where((r) => r.status == 'pending').toList();
 
         // Only show if there are pending requests
         if (pending.isEmpty) {
@@ -141,11 +140,11 @@ class BookingRequestsCard extends ConsumerWidget {
   Widget _buildRequestRow(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> request,
+    DriverRequest request,
   ) {
-    final parentId = request['parent_id'] as String? ?? '';
-    final parentName = request['parent_name'] as String? ?? 'Parent';
-    final children = request['children'] as List? ?? [];
+    final parentId = request.parentId;
+    final parentName = request.parentName ?? 'Parent';
+    final children = request.studentsInfo;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -174,7 +173,7 @@ class BookingRequestsCard extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '${children.length} Children • ${request['hometxt_location'] ?? "Address"}',
+                  '${children.length} Children • ${request.homeLocation ?? "Address"}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

@@ -1,14 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:geolocator/geolocator.dart'; // Add Geolocator
+import 'dart:async'; // Add async
+import '../../data/models/driver_trip_model.dart';
 import '../controllers/active_trip_controller.dart';
 import 'trip_stop_reorder_screen.dart';
 
-class ActiveTripScreen extends ConsumerWidget {
+class ActiveTripScreen extends ConsumerStatefulWidget {
   const ActiveTripScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ActiveTripScreen> createState() => _ActiveTripScreenState();
+}
+
+class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
+  StreamSubscription<Position>? _positionStreamSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _startLocationUpdates();
+  }
+
+  @override
+  void dispose() {
+    _positionStreamSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _startLocationUpdates() async {
+    // Ensure permissions
+    final permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      final requested = await Geolocator.requestPermission();
+      if (requested == LocationPermission.denied) return;
+    }
+
+    // Start listening
+    // settings: distanceFilter: 10 meters to reduce jitter
+    const settings = LocationSettings(
+      accuracy: LocationAccuracy.high,
+      distanceFilter: 10,
+    );
+
+    _positionStreamSubscription =
+        Geolocator.getPositionStream(locationSettings: settings).listen((
+          Position? position,
+        ) {
+          if (position != null) {
+            // Feed to controller for geofence check
+            ref
+                .read(activeTripControllerProvider.notifier)
+                .checkArrivalGeofence(position.latitude, position.longitude);
+          }
+        });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tripAsync = ref.watch(activeTripControllerProvider);
     final controller = ref.read(activeTripControllerProvider.notifier);
 
@@ -19,19 +69,17 @@ class ActiveTripScreen extends ConsumerWidget {
         }
 
         final currentStop = controller.currentStop;
-        final stops = (trip['route_stops'] as List<dynamic>?) ?? [];
+        final stops = trip.routeStops;
 
         // Filter stops to show only pending/arrived/skipped (hide completed unless we want history)
         final upcomingStops = stops.where((s) {
-          final status = s['status'] as String;
+          final status = s.status;
           return status == 'pending' || status == 'arrived';
         }).toList();
 
         // Sort: current stop first, then by sequence
         upcomingStops.sort(
-          (a, b) => (a['sequence_order'] as int).compareTo(
-            b['sequence_order'] as int,
-          ),
+          (a, b) => (a.sequenceOrder ?? 0).compareTo(b.sequenceOrder ?? 0),
         );
 
         return Scaffold(
@@ -48,11 +96,9 @@ class ActiveTripScreen extends ConsumerWidget {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => TripStopReorderScreen(
-                        tripId: trip['id'],
-                        stops: List<Map<String, dynamic>>.from(
-                          trip['route_stops'] ?? [],
-                        ),
-                        tripType: trip['trip_type'],
+                        tripId: trip.id,
+                        stops: trip.routeStops.map((s) => s.toJson()).toList(),
+                        tripType: trip.tripType,
                       ),
                     ),
                   );
@@ -61,7 +107,7 @@ class ActiveTripScreen extends ConsumerWidget {
               PopupMenuButton<String>(
                 onSelected: (val) {
                   if (val == 'end') {
-                    _confirmEndTrip(context, ref, trip['id']);
+                    _confirmEndTrip(context, ref, trip.id);
                   }
                 },
                 itemBuilder: (context) => [
@@ -77,14 +123,9 @@ class ActiveTripScreen extends ConsumerWidget {
             children: [
               // 1. Current Stop Card (Big)
               if (currentStop != null)
-                _buildCurrentStopCard(
-                  context,
-                  ref,
-                  currentStop,
-                  trip['trip_type'],
-                )
+                _buildCurrentStopCard(context, ref, currentStop, trip.tripType)
               else
-                _buildTripCompletedCard(context, ref, trip['id']),
+                _buildTripCompletedCard(context, ref, trip.id),
 
               const Divider(height: 1, thickness: 1),
 
@@ -94,20 +135,19 @@ class ActiveTripScreen extends ConsumerWidget {
                   builder: (context) {
                     // Filter out current stop
                     final nextStops = upcomingStops
-                        .where((s) => s['id'] != currentStop['id'])
+                        .where((s) => s.id != currentStop.id)
                         .toList();
 
-                    if (nextStops.isEmpty)
+                    if (nextStops.isEmpty) {
                       return const Expanded(child: SizedBox());
+                    }
 
                     final pickups = nextStops
-                        .where((s) => s['stop_type'] == 'pickup')
-                        .toList()
-                        .cast<Map<String, dynamic>>();
+                        .where((s) => s.stopType == 'pickup')
+                        .toList();
                     final dropoffs = nextStops
-                        .where((s) => s['stop_type'] == 'dropoff')
-                        .toList()
-                        .cast<Map<String, dynamic>>();
+                        .where((s) => s.stopType == 'dropoff')
+                        .toList();
 
                     return Expanded(
                       child: SingleChildScrollView(
@@ -117,13 +157,13 @@ class ActiveTripScreen extends ConsumerWidget {
                               _buildStopGroup(
                                 "Pickups",
                                 pickups,
-                                trip['trip_type'],
+                                trip.tripType,
                               ),
                             if (dropoffs.isNotEmpty)
                               _buildStopGroup(
                                 "Dropoffs",
                                 dropoffs,
-                                trip['trip_type'],
+                                trip.tripType,
                               ),
                           ],
                         ),
@@ -131,7 +171,7 @@ class ActiveTripScreen extends ConsumerWidget {
                     );
                   },
                 ),
-              ] else if (currentStop == null) ...[
+              ] else ...[
                 const Expanded(child: SizedBox()), // Spacer
               ],
             ],
@@ -147,13 +187,11 @@ class ActiveTripScreen extends ConsumerWidget {
   Widget _buildCurrentStopCard(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> stop,
+    RouteStop stop,
     String tripType,
   ) {
-    final status = stop['status'] as String;
+    final status = stop.status ?? 'pending';
     final locationLabel = _getLocationLabel(stop, tripType);
-
-    // ... (rest of logic)
 
     return Container(
       width: double.infinity,
@@ -163,7 +201,7 @@ class ActiveTripScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
-            "STOP #${stop['sequence_order']}",
+            "STOP #${stop.sequenceOrder ?? 0}",
             style: TextStyle(
               color: Colors.indigo.shade300,
               fontWeight: FontWeight.bold,
@@ -217,7 +255,7 @@ class ActiveTripScreen extends ConsumerWidget {
                 onPressed: () {
                   ref
                       .read(activeTripControllerProvider.notifier)
-                      .arriveAtStop(stop['id']);
+                      .arriveAtStop(stop.id);
                 },
                 icon: const Icon(Icons.location_on),
                 label: const Text("I HAVE ARRIVED"),
@@ -241,7 +279,7 @@ class ActiveTripScreen extends ConsumerWidget {
                       onPressed: () {
                         ref
                             .read(activeTripControllerProvider.notifier)
-                            .processStop(stop['id'], 'skipped');
+                            .processStop(stop.id, 'skipped');
                       },
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.grey,
@@ -261,18 +299,16 @@ class ActiveTripScreen extends ConsumerWidget {
                     height: 56,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        // Determine action based on stop_type?
-                        // stop_type is in route_stops.
-                        final action = stop['stop_type'] == 'pickup'
+                        final action = stop.stopType == 'pickup'
                             ? 'picked_up'
                             : 'dropped_off';
                         ref
                             .read(activeTripControllerProvider.notifier)
-                            .processStop(stop['id'], action);
+                            .processStop(stop.id, action);
                       },
                       icon: const Icon(Icons.check),
                       label: Text(
-                        stop['stop_type'] == 'pickup' ? "PICK UP" : "DROP OFF",
+                        stop.stopType == 'pickup' ? "PICK UP" : "DROP OFF",
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
@@ -330,47 +366,34 @@ class ActiveTripScreen extends ConsumerWidget {
     );
   }
 
-  String _getChildName(Map<String, dynamic> stop) {
-    // Supabase can return joined data as a Map or List depending on relationship
-    final childData = stop['children'];
-    if (childData == null) return "Student";
-
-    if (childData is Map) {
-      return childData['name']?.toString() ?? "Student";
-    } else if (childData is List && childData.isNotEmpty) {
-      return childData[0]['name']?.toString() ?? "Student";
-    }
-
-    return "Student";
+  String _getChildName(RouteStop stop) {
+    // Use the childName field from the RouteStop model
+    return stop.childName ?? "Student";
   }
 
-  String _getLocationLabel(Map<String, dynamic> stop, String tripType) {
-    final stopType = stop['stop_type'] as String;
-    final booking = stop['bookings'];
+  String _getLocationLabel(RouteStop stop, String tripType) {
+    final stopType = stop.stopType ?? '';
 
-    if (booking == null) return stopType.toUpperCase();
-
-    final homeTxt = booking['hometxt_location'] as String? ?? '';
-    final schoolTxt = booking['schooltxt_location'] as String? ?? '';
+    // Use the location fields from RouteStop
+    final homeLocation = stop.homeLocation ?? '';
+    final schoolLocation = stop.schoolLocation ?? '';
 
     if (tripType == 'Go to School(s)') {
-      if (stopType == 'pickup') return homeTxt.isNotEmpty ? homeTxt : "Home";
+      if (stopType == 'pickup')
+        return homeLocation.isNotEmpty ? homeLocation : "Home";
       if (stopType == 'dropoff')
-        return schoolTxt.isNotEmpty ? schoolTxt : "School";
+        return schoolLocation.isNotEmpty ? schoolLocation : "School";
     } else if (tripType == 'Return from School(s)') {
       if (stopType == 'pickup')
-        return schoolTxt.isNotEmpty ? schoolTxt : "School";
-      if (stopType == 'dropoff') return homeTxt.isNotEmpty ? homeTxt : "Home";
+        return schoolLocation.isNotEmpty ? schoolLocation : "School";
+      if (stopType == 'dropoff')
+        return homeLocation.isNotEmpty ? homeLocation : "Home";
     }
 
     return stopType.toUpperCase();
   }
 
-  Widget _buildStopListTile(
-    Map<String, dynamic> stop,
-    int index,
-    String tripType,
-  ) {
+  Widget _buildStopListTile(RouteStop stop, int index, String tripType) {
     // Determine title
     final childName = _getChildName(stop);
     final locationLabel = _getLocationLabel(stop, tripType);
@@ -378,7 +401,7 @@ class ActiveTripScreen extends ConsumerWidget {
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: Colors.grey.shade200,
-        child: Text(stop['sequence_order'].toString()),
+        child: Text((stop.sequenceOrder ?? 0).toString()),
       ),
       title: Text(childName),
       subtitle: Text(
@@ -387,19 +410,15 @@ class ActiveTripScreen extends ConsumerWidget {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(color: Colors.grey),
       ),
-      trailing: stop['status'] == 'completed'
+      trailing: stop.status == 'completed'
           ? const Icon(Icons.check_circle, color: Colors.green)
-          : stop['status'] == 'skipped'
+          : stop.status == 'skipped'
           ? const Icon(Icons.cancel, color: Colors.red)
           : null,
     );
   }
 
-  Widget _buildStopGroup(
-    String title,
-    List<Map<String, dynamic>> stops,
-    String tripType,
-  ) {
+  Widget _buildStopGroup(String title, List<RouteStop> stops, String tripType) {
     return ExpansionTile(
       initiallyExpanded: true,
       title: Text(
@@ -407,27 +426,21 @@ class ActiveTripScreen extends ConsumerWidget {
         style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
       ),
       children: stops.map((stop) {
-        return _buildStopListTile(
-          stop,
-          stop['sequence_order'] as int,
-          tripType,
-        );
+        return _buildStopListTile(stop, stop.sequenceOrder ?? 0, tripType);
       }).toList(),
     );
   }
 
-  Future<void> _launchMaps(Map<String, dynamic>? stop) async {
+  Future<void> _launchMaps(RouteStop? stop) async {
     if (stop == null) return;
-    final lat = stop['location_lat'];
-    final lng = stop['location_lng'];
+    final lat = stop.latitude;
+    final lng = stop.longitude;
     if (lat == null || lng == null) return;
 
     // 1. Try Native Google Maps Navigation Intent (Android)
-    // 'q' sets the destination, 'mode=d' sets driving mode
     final Uri nativeUri = Uri.parse("google.navigation:q=$lat,$lng&mode=d");
 
     // 2. Fallback Web URL (iOS / Browser)
-    // This works on any device with a browser if the app isn't installed
     final Uri webUri = Uri.parse(
       "https://www.google.com/maps/dir/?api=1&destination=$lat,$lng&travelmode=driving",
     );
@@ -436,7 +449,6 @@ class ActiveTripScreen extends ConsumerWidget {
       if (await canLaunchUrl(nativeUri)) {
         await launchUrl(nativeUri);
       } else {
-        // Fallback if the native intent isn't handled
         await launchUrl(webUri, mode: LaunchMode.externalApplication);
       }
     } catch (e) {

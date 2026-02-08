@@ -1,39 +1,35 @@
-// lib/features/driver/profile/data/driver_schedule_model.dart
+// ignore_for_file: invalid_annotation_target
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'driver_schedule_model.freezed.dart';
+part 'driver_schedule_model.g.dart';
 
 /// Model for driver weekly schedules
-class DriverScheduleModel {
-  final String id;
-  final String driverId;
-  final String dayOfWeek;
-  final String shiftType;
-  final String availableFrom; // Time as string HH:MM
-  final String availableUntil; // Time as string HH:MM
-  final int maxCapacity;
-  final bool isActive;
+@freezed
+abstract class DriverScheduleModel with _$DriverScheduleModel {
+  const DriverScheduleModel._();
 
-  DriverScheduleModel({
-    required this.id,
-    required this.driverId,
-    required this.dayOfWeek,
-    required this.shiftType,
-    required this.availableFrom,
-    required this.availableUntil,
-    this.maxCapacity = 8,
-    this.isActive = true,
-  });
+  const factory DriverScheduleModel({
+    @JsonKey(name: 'id')
+    @Default('')
+    String
+    id, // id might be omitted in creates? No, usually id exists on fetch.
+    // If creates, it might be null? The original model required id.
+    // I'll make it default to empty string if missing?
+    // Original had required id.
+    // On create, we don't need id? `createSchedule` takes model.
+    // If create, id might be empty string.
+    @JsonKey(name: 'driver_id') required String driverId,
+    @JsonKey(name: 'day_of_week') required String dayOfWeek,
+    @JsonKey(name: 'shift_type') required String shiftType,
+    @JsonKey(name: 'available_from') required String availableFrom,
+    @JsonKey(name: 'available_until') required String availableUntil,
+    @JsonKey(name: 'max_capacity') @Default(8) int maxCapacity,
+    @JsonKey(name: 'is_active') @Default(true) bool isActive,
+  }) = _DriverScheduleModel;
 
-  factory DriverScheduleModel.fromMap(Map<String, dynamic> map) {
-    return DriverScheduleModel(
-      id: map['id'] ?? '',
-      driverId: map['driver_id'] ?? '',
-      dayOfWeek: map['day_of_week'] ?? '',
-      shiftType: map['shift_type'] ?? '',
-      availableFrom: map['available_from'] ?? '',
-      availableUntil: map['available_until'] ?? '',
-      maxCapacity: map['max_capacity'] ?? 8,
-      isActive: map['is_active'] ?? true,
-    );
-  }
+  factory DriverScheduleModel.fromJson(Map<String, dynamic> json) =>
+      _$DriverScheduleModelFromJson(json);
 
   Map<String, dynamic> toMap() {
     return {
@@ -49,6 +45,7 @@ class DriverScheduleModel {
 
   /// Get display name for day of week
   String get dayDisplayName {
+    if (dayOfWeek.isEmpty) return '';
     return dayOfWeek[0].toUpperCase() + dayOfWeek.substring(1);
   }
 

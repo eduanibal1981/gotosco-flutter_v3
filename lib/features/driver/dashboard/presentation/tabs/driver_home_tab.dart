@@ -7,6 +7,7 @@ import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
 import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
 import '../../data/driver_dashboard_repository.dart';
+import '../../data/models/driver_trip_model.dart';
 import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
 import '../../../profile/data/driver_profile_repository.dart';
@@ -459,7 +460,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     final availabilityAsync = ref.watch(driverAvailabilityControllerProvider);
 
     final isOnline = availabilityAsync.asData?.value.isProfileOnline ?? false;
-    final activeBookings = statsAsync.asData?.value['active_bookings'] ?? 0;
+    final activeBookings = statsAsync.asData?.value.activeBookings ?? 0;
 
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -564,8 +565,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                 _buildSectionTitle('Active Bookings'),
                 const SizedBox(height: 12),
                 statsAsync.when(
-                  data: (stats) =>
-                      _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                  data: (stats) => _buildCapacityCard(stats.activeStudents, 8),
                   loading: () => const SizedBox.shrink(),
                   error: (_, __) => const SizedBox.shrink(),
                 ),
@@ -705,7 +705,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                       label: 'View Requests',
                       color: Colors.orange,
                       badge: statsAsync.when(
-                        data: (s) => s['pending_requests'] ?? 0,
+                        data: (s) => s.pendingRequests,
                         loading: () => 0,
                         error: (_, __) => 0,
                       ),
@@ -737,8 +737,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               // Capacity Card
               statsAsync.when(
-                data: (stats) =>
-                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                data: (stats) => _buildCapacityCard(stats.activeStudents, 8),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
@@ -807,8 +806,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               // Students Card
               statsAsync.when(
-                data: (stats) =>
-                    _buildStudentsCard(stats['active_students'] ?? 0),
+                data: (stats) => _buildStudentsCard(stats.activeStudents),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
@@ -818,7 +816,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               // Monthly Earnings
               statsAsync.when(
                 data: (stats) =>
-                    _buildEarningsCard(stats['monthly_earnings'] ?? 0),
+                    _buildEarningsCard(stats.monthlyEarnings.toInt()),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
@@ -827,8 +825,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
 
               // Capacity
               statsAsync.when(
-                data: (stats) =>
-                    _buildCapacityCard(stats['active_students'] ?? 0, 8),
+                data: (stats) => _buildCapacityCard(stats.activeStudents, 8),
                 loading: () => const SizedBox.shrink(),
                 error: (_, __) => const SizedBox.shrink(),
               ),
@@ -1748,10 +1745,10 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  Widget _buildTripCard(Map<String, dynamic> trip) {
-    final tripType = trip['trip_type'] as String? ?? 'Go to School(s)';
-    final status = trip['status'] as String? ?? 'scheduled';
-    final stops = (trip['route_stops'] as List?)?.length ?? 0;
+  Widget _buildTripCard(DriverTrip trip) {
+    final tripType = trip.tripType;
+    final status = trip.status ?? 'scheduled';
+    final stops = trip.routeStops.length;
 
     final isGoTrip = tripType.contains('Go');
 
@@ -1817,7 +1814,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               onPressed: () async {
                 await ref
                     .read(driverDashboardRepositoryProvider)
-                    .startTrip(trip['id']);
+                    .startTrip(trip.id);
                 ref.invalidate(driverDashboardStateProvider);
               },
               icon: const Icon(Icons.play_arrow),

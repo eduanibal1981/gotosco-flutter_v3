@@ -57,8 +57,12 @@ final class DriverBookingsRepositoryProvider
 String _$driverBookingsRepositoryHash() =>
     r'c8df0afc361373ff19ab11736afebbe7b90d0406';
 
+/// Legacy provider - returns old BookingModel for backward compatibility
+
 @ProviderFor(driverBookings)
 final driverBookingsProvider = DriverBookingsProvider._();
+
+/// Legacy provider - returns old BookingModel for backward compatibility
 
 final class DriverBookingsProvider
     extends
@@ -70,6 +74,7 @@ final class DriverBookingsProvider
     with
         $FutureModifier<List<BookingModel>>,
         $FutureProvider<List<BookingModel>> {
+  /// Legacy provider - returns old BookingModel for backward compatibility
   DriverBookingsProvider._()
     : super(
         from: null,
@@ -96,4 +101,51 @@ final class DriverBookingsProvider
   }
 }
 
-String _$driverBookingsHash() => r'98d94223d7b3e49c49f06e868781ebbcc4db51e3';
+String _$driverBookingsHash() => r'c8e5f0f38fc1e3937cf5eeeceab1d0ac8ad6e013';
+
+/// ✅ NEW: Typed provider - returns Freezed DriverBooking models
+
+@ProviderFor(driverBookingsTyped)
+final driverBookingsTypedProvider = DriverBookingsTypedProvider._();
+
+/// ✅ NEW: Typed provider - returns Freezed DriverBooking models
+
+final class DriverBookingsTypedProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<DriverBooking>>,
+          List<DriverBooking>,
+          FutureOr<List<DriverBooking>>
+        >
+    with
+        $FutureModifier<List<DriverBooking>>,
+        $FutureProvider<List<DriverBooking>> {
+  /// ✅ NEW: Typed provider - returns Freezed DriverBooking models
+  DriverBookingsTypedProvider._()
+    : super(
+        from: null,
+        argument: null,
+        retry: null,
+        name: r'driverBookingsTypedProvider',
+        isAutoDispose: true,
+        dependencies: null,
+        $allTransitiveDependencies: null,
+      );
+
+  @override
+  String debugGetCreateSourceHash() => _$driverBookingsTypedHash();
+
+  @$internal
+  @override
+  $FutureProviderElement<List<DriverBooking>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<DriverBooking>> create(Ref ref) {
+    return driverBookingsTyped(ref);
+  }
+}
+
+String _$driverBookingsTypedHash() =>
+    r'e74c6d3629a5dbdd987066e3ee0ecc81f6e366af';

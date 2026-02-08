@@ -1,5 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'models/parent_notification_model.dart';
 
 part 'notifications_repository.g.dart';
 
@@ -31,130 +32,54 @@ class NotificationsRepository {
 
   NotificationsRepository(this._supabase);
 
-  Stream<List<Map<String, dynamic>>> streamNotifications() {
-    final userId = _supabase.auth.currentUser!.id;
+  /// ✅ HYBRID: Stream typed notifications
+  /// Fetches from view on change.
+  Stream<List<ParentNotification>> streamParentNotifications() async* {
+    // 1. Initial fetch
+    yield await getParentNotifications();
 
-    return _supabase
+    // 2. Subscribe to changes on base table
+    final userId = _supabase.auth.currentUser!.id;
+    final stream = _supabase
         .from('ride_events')
         .stream(primaryKey: ['id'])
         .eq('parent_id', userId)
-        .order('created_at', ascending: false)
-        .asyncMap((events) async {
-          if (events.isEmpty) return <Map<String, dynamic>>[];
+        .order('created_at', ascending: false);
 
-          final childIds = events
-              .map((e) => e['child_id'] as String?)
-              .where((id) => id != null)
-              .cast<String>()
-              .toSet()
-              .toList();
-          final driverIds = events
-              .map((e) => e['driver_id'] as String?)
-              .where((id) => id != null)
-              .cast<String>()
-              .toSet()
-              .toList();
+    // 3. Re-fetch on change
+    // Note: This ignores the data in the stream event and re-fetches from view.
+    // This ensures we always have the joined data.
+    await for (final _ in stream) {
+      yield await getParentNotifications();
+    }
+  }
 
-          final results = await Future.wait([
-            if (childIds.isNotEmpty)
-              _supabase
-                  .from('children')
-                  .select('id, name')
-                  .inFilter('id', childIds)
-            else
-              Future.value(<Map<String, dynamic>>[]),
-            if (driverIds.isNotEmpty)
-              _supabase
-                  .from('users')
-                  .select('id, full_name')
-                  .inFilter('id', driverIds)
-            else
-              Future.value(<Map<String, dynamic>>[]),
-          ]);
-
-          final childrenData = results[0] as List<dynamic>;
-          final driversData = results[1] as List<dynamic>;
-
-          final childMap = {
-            for (final c in childrenData)
-              c['id']: c['name'] as String? ?? 'Child',
-          };
-          final driverMap = {
-            for (final d in driversData)
-              d['id']: d['full_name'] as String? ?? 'Driver',
-          };
-
-          final enriched = events.map((e) {
-            final newMap = Map<String, dynamic>.from(e);
-            final childId = e['child_id'] as String?;
-            final driverId = e['driver_id'] as String?;
-            newMap['child_name'] = childMap[childId] ?? 'Child';
-            newMap['driver_name'] = driverMap[driverId] ?? 'Driver';
-            return newMap;
-          }).toList();
-
-          enriched.sort((a, b) {
-            final aTime = DateTime.tryParse(a['created_at'] ?? '') ?? DateTime(0);
-            final bTime = DateTime.tryParse(b['created_at'] ?? '') ?? DateTime(0);
-            return bTime.compareTo(aTime);
-          });
-
-          return enriched;
-        });
+  Stream<List<Map<String, dynamic>>> streamNotifications() {
+    return streamParentNotifications().map(
+      (list) => list.map((e) => e.toLegacyMap()).toList(),
+    );
   }
 
   Future<List<Map<String, dynamic>>> fetchNotifications() async {
-    final userId = _supabase.auth.currentUser!.id;
-    final events = await _supabase
-        .from('ride_events')
+    final notifications = await getParentNotifications();
+    return notifications.map((e) => e.toLegacyMap()).toList();
+  }
+
+  /// ✅ HYBRID: Fetch typed notifications from View
+  Future<List<ParentNotification>> getParentNotifications() async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) return [];
+
+    final data = await _supabase
+        .from('parent_notifications_view')
         .select()
         .eq('parent_id', userId)
-        .order('created_at', ascending: false);
+        .order(
+          'created_at',
+          ascending: false,
+        ); // View should support ordering if columns match
 
-    if (events is! List || events.isEmpty) return <Map<String, dynamic>>[];
-
-    final childIds = events
-        .map((e) => e['child_id'] as String?)
-        .where((id) => id != null)
-        .cast<String>()
-        .toSet()
-        .toList();
-    final driverIds = events
-        .map((e) => e['driver_id'] as String?)
-        .where((id) => id != null)
-        .cast<String>()
-        .toSet()
-        .toList();
-
-    final results = await Future.wait([
-      if (childIds.isNotEmpty)
-        _supabase.from('children').select('id, name').inFilter('id', childIds)
-      else
-        Future.value(<Map<String, dynamic>>[]),
-      if (driverIds.isNotEmpty)
-        _supabase.from('users').select('id, full_name').inFilter('id', driverIds)
-      else
-        Future.value(<Map<String, dynamic>>[]),
-    ]);
-
-    final childrenData = results[0] as List<dynamic>;
-    final driversData = results[1] as List<dynamic>;
-
-    final childMap = {
-      for (final c in childrenData) c['id']: c['name'] as String? ?? 'Child',
-    };
-    final driverMap = {
-      for (final d in driversData) d['id']: d['full_name'] as String? ?? 'Driver',
-    };
-
-    return (events as List).map((e) {
-      final newMap = Map<String, dynamic>.from(e);
-      final childId = e['child_id'] as String?;
-      final driverId = e['driver_id'] as String?;
-      newMap['child_name'] = childMap[childId] ?? 'Child';
-      newMap['driver_name'] = driverMap[driverId] ?? 'Driver';
-      return newMap;
-    }).toList();
+    return (data as List).map((e) => ParentNotification.fromJson(e)).toList();
   }
 
   Future<void> markAsRead(String eventId) async {

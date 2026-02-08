@@ -1,144 +1,61 @@
-// lib/features/driver/profile/data/driver_profile_model.dart
+// ignore_for_file: invalid_annotation_target
+import 'package:freezed_annotation/freezed_annotation.dart';
+
+part 'driver_profile_model.freezed.dart';
+part 'driver_profile_model.g.dart';
 
 enum VerificationStatus { verified, pending, unverified }
 
-class DriverProfileModel {
-  final String id;
-  final String userId;
-  final String name;
-  final String? photoUrl;
-  final String phone;
-  final String email;
+@freezed
+abstract class DriverProfileModel with _$DriverProfileModel {
+  const DriverProfileModel._(); // Needed for custom methods/getters
 
-  // Driver-specific info
-  final int experienceYears;
-  final String? licenseNumber;
-  final DateTime? licenseExpiry;
-  final String? licenseImageUrl;
+  const factory DriverProfileModel({
+    required String id,
+    required String userId,
+    required String name,
+    String? photoUrl,
+    required String phone,
+    required String email,
+    @Default(0) @JsonKey(name: 'experience_years') int experienceYears,
+    @JsonKey(name: 'license_number') String? licenseNumber,
+    @JsonKey(name: 'license_expiry') DateTime? licenseExpiry,
+    @JsonKey(name: 'license_image_url') String? licenseImageUrl,
+    @JsonKey(name: 'vehicle_type') required String vehicleType,
+    @JsonKey(name: 'vehicle_number') String? vehicleNumber,
+    @JsonKey(name: 'vehicle_capacity') @Default(0) int vehicleCapacity,
+    @JsonKey(name: 'mulkia_image_url') String? mulkiaImageUrl,
+    @JsonKey(name: 'vehicle_image_urls')
+    @Default([])
+    List<String> vehicleImageUrls,
+    @JsonKey(name: 'price_monthly_two_way')
+    @Default(0)
+    double priceMonthlyTwoWay,
+    @JsonKey(name: 'price_monthly_one_way')
+    @Default(0)
+    double priceMonthlyOneWay,
+    @JsonKey(name: 'price_daily') @Default(0) double priceDaily,
+    @Default('') String bio,
+    @Default(0) double rating,
+    @JsonKey(name: 'total_reviews') @Default(0) int totalReviews,
+    @JsonKey(name: 'is_verified') @Default(false) bool isVerified,
+    @JsonKey(name: 'license_verified') @Default(false) bool licenseVerified,
+    @JsonKey(name: 'insurance_verified') @Default(false) bool insuranceVerified,
+    @JsonKey(name: 'background_check_verified')
+    @Default(false)
+    bool backgroundCheckVerified,
+    @JsonKey(name: 'service_areas') @Default([]) List<String> serviceAreas,
+    @Default([]) List<String> schools,
+    @JsonKey(name: 'location_text') String? locationText,
+    @JsonKey(name: 'location_lat') double? locationLat,
+    @JsonKey(name: 'location_lng') double? locationLng,
+    @JsonKey(name: 'start_location_text') String? startLocationText,
+    @JsonKey(name: 'start_location_lat') double? startLocationLat,
+    @JsonKey(name: 'start_location_lng') double? startLocationLng,
+  }) = _DriverProfileModel;
 
-  // Vehicle details
-  final String vehicleType;
-  final String? vehicleNumber;
-  final int vehicleCapacity;
-  final String? mulkiaImageUrl;
-  final List<String> vehicleImageUrls;
-
-  // Pricing
-  final double priceMonthlyTwoWay;
-  final double priceMonthlyOneWay;
-  final double priceDaily;
-
-  // Other
-  final String bio;
-  final double rating;
-  final int totalReviews;
-  final bool isVerified;
-  final bool licenseVerified;
-  final bool insuranceVerified;
-  final bool backgroundCheckVerified;
-  final List<String> serviceAreas;
-  final List<String> schools;
-
-  // Location
-  final String? locationText;
-  final double? locationLat;
-  final double? locationLng;
-  final String? startLocationText;
-  final double? startLocationLat;
-  final double? startLocationLng;
-
-  DriverProfileModel({
-    required this.id,
-    required this.userId,
-    required this.name,
-    this.photoUrl,
-    required this.phone,
-    required this.email,
-    this.experienceYears = 0,
-    this.licenseNumber,
-    this.licenseExpiry,
-    this.licenseImageUrl,
-    required this.vehicleType,
-    this.vehicleNumber,
-    this.vehicleCapacity = 0,
-    this.mulkiaImageUrl,
-    this.vehicleImageUrls = const [],
-    this.priceMonthlyTwoWay = 0,
-    this.priceMonthlyOneWay = 0,
-    this.priceDaily = 0,
-    this.bio = '',
-    this.rating = 0,
-    this.totalReviews = 0,
-    this.isVerified = false,
-    this.licenseVerified = false,
-    this.insuranceVerified = false,
-    this.backgroundCheckVerified = false,
-    this.serviceAreas = const [],
-    this.schools = const [],
-    this.locationText,
-    this.locationLat,
-    this.locationLng,
-    this.startLocationText,
-    this.startLocationLat,
-    this.startLocationLng,
-  });
-
-  factory DriverProfileModel.fromMap(Map<String, dynamic> map) {
-    // Handle nested user data from join
-    final userData = map['users'] as Map<String, dynamic>?;
-    final serviceAreas =
-        (map['service_areas'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
-    final schools =
-        (map['schools'] as List?)?.whereType<String>().toList() ??
-        const <String>[];
-
-    return DriverProfileModel(
-      // Note: drivers table uses user_id as primary key, there's no separate 'id' column
-      id: map['user_id'] ?? '',
-      userId: map['user_id'] ?? '',
-      name: userData?['full_name'] ?? map['name'] ?? 'Driver',
-      photoUrl: userData?['photo_url'] ?? map['photo_url'],
-      phone: userData?['phone'] ?? map['phone'] ?? '',
-      email: userData?['email'] ?? map['email'] ?? '',
-      experienceYears: map['experience_years'] ?? 0,
-      licenseNumber: map['license_number'],
-      licenseExpiry: map['license_expiry'] != null
-          ? DateTime.tryParse(map['license_expiry'].toString())
-          : null,
-      licenseImageUrl: map['license_image_url'],
-      vehicleType: map['vehicle_type'] ?? 'Bus',
-      vehicleNumber: map['vehicle_number'],
-      vehicleCapacity: map['vehicle_capacity'] ?? 0,
-      mulkiaImageUrl: map['mulkia_image_url'],
-      vehicleImageUrls:
-          (map['vehicle_image_urls'] as List?)?.whereType<String>().toList() ??
-          const [],
-      priceMonthlyTwoWay: (map['price_monthly_two_way'] ?? 0).toDouble(),
-      priceMonthlyOneWay: (map['price_monthly_one_way'] ?? 0).toDouble(),
-      priceDaily: (map['price_daily'] ?? 0).toDouble(),
-      bio: map['bio'] ?? '',
-      rating: (map['rating'] ?? 0).toDouble(),
-      // Note: total_reviews column doesn't exist in schema, default to 0
-      totalReviews: map['total_reviews'] ?? 0,
-      isVerified: map['is_verified'] ?? false,
-      licenseVerified: map['license_verified'] ?? false,
-      insuranceVerified: map['insurance_verified'] ?? false,
-      backgroundCheckVerified: map['background_check_verified'] ?? false,
-      serviceAreas: serviceAreas,
-      schools: schools,
-      // Location fields
-      // CHANGED: Prioritize userData (users table) for location info
-      locationText: userData?['location_text'] ?? map['location_text'],
-      locationLat: (userData?['location_lat'] ?? map['location_lat'] as num?)
-          ?.toDouble(),
-      locationLng: (userData?['location_lng'] ?? map['location_lng'] as num?)
-          ?.toDouble(),
-      startLocationText: map['start_location_text'],
-      startLocationLat: (map['start_location_lat'] as num?)?.toDouble(),
-      startLocationLng: (map['start_location_lng'] as num?)?.toDouble(),
-    );
-  }
+  factory DriverProfileModel.fromJson(Map<String, dynamic> json) =>
+      _$DriverProfileModelFromJson(json);
 
   Map<String, dynamic> toUpdateMap() {
     return {
@@ -158,96 +75,15 @@ class DriverProfileModel {
     };
   }
 
-  DriverProfileModel copyWith({
-    String? id,
-    String? userId,
-    String? name,
-    String? photoUrl,
-    String? phone,
-    String? email,
-    int? experienceYears,
-    String? licenseNumber,
-    DateTime? licenseExpiry,
-    String? licenseImageUrl,
-    String? vehicleType,
-    String? vehicleNumber,
-    int? vehicleCapacity,
-    String? mulkiaImageUrl,
-    List<String>? vehicleImageUrls,
-    double? priceMonthlyTwoWay,
-    double? priceMonthlyOneWay,
-    double? priceDaily,
-    String? bio,
-    double? rating,
-    int? totalReviews,
-    bool? isVerified,
-    bool? licenseVerified,
-    bool? insuranceVerified,
-    bool? backgroundCheckVerified,
-    List<String>? serviceAreas,
-    List<String>? schools,
-    String? locationText,
-    double? locationLat,
-    double? locationLng,
-    String? startLocationText,
-    double? startLocationLat,
-    double? startLocationLng,
-  }) {
-    return DriverProfileModel(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      name: name ?? this.name,
-      photoUrl: photoUrl ?? this.photoUrl,
-      phone: phone ?? this.phone,
-      email: email ?? this.email,
-      experienceYears: experienceYears ?? this.experienceYears,
-      licenseNumber: licenseNumber ?? this.licenseNumber,
-      licenseExpiry: licenseExpiry ?? this.licenseExpiry,
-      licenseImageUrl: licenseImageUrl ?? this.licenseImageUrl,
-      vehicleType: vehicleType ?? this.vehicleType,
-      vehicleNumber: vehicleNumber ?? this.vehicleNumber,
-      vehicleCapacity: vehicleCapacity ?? this.vehicleCapacity,
-      mulkiaImageUrl: mulkiaImageUrl ?? this.mulkiaImageUrl,
-      vehicleImageUrls: vehicleImageUrls ?? this.vehicleImageUrls,
-      priceMonthlyTwoWay: priceMonthlyTwoWay ?? this.priceMonthlyTwoWay,
-      priceMonthlyOneWay: priceMonthlyOneWay ?? this.priceMonthlyOneWay,
-      priceDaily: priceDaily ?? this.priceDaily,
-      bio: bio ?? this.bio,
-      rating: rating ?? this.rating,
-      totalReviews: totalReviews ?? this.totalReviews,
-      isVerified: isVerified ?? this.isVerified,
-      licenseVerified: licenseVerified ?? this.licenseVerified,
-      insuranceVerified: insuranceVerified ?? this.insuranceVerified,
-      backgroundCheckVerified:
-          backgroundCheckVerified ?? this.backgroundCheckVerified,
-      serviceAreas: serviceAreas ?? this.serviceAreas,
-      schools: schools ?? this.schools,
-      locationText: locationText ?? this.locationText,
-      locationLat: locationLat ?? this.locationLat,
-      locationLng: locationLng ?? this.locationLng,
-      startLocationText: startLocationText ?? this.startLocationText,
-      startLocationLat: startLocationLat ?? this.startLocationLat,
-      startLocationLng: startLocationLng ?? this.startLocationLng,
-    );
-  }
-
-  /// Get verification status based on document uploads and admin verification
   VerificationStatus get verificationStatus {
-    // If admin has verified the driver
-    if (isVerified) {
-      return VerificationStatus.verified;
-    }
+    if (isVerified) return VerificationStatus.verified;
 
-    // If both documents are uploaded but not yet verified
     final hasLicenseImage =
         licenseImageUrl != null && licenseImageUrl!.isNotEmpty;
     final hasMulkiaImage = mulkiaImageUrl != null && mulkiaImageUrl!.isNotEmpty;
 
-    if (hasLicenseImage && hasMulkiaImage) {
-      return VerificationStatus.pending;
-    }
+    if (hasLicenseImage && hasMulkiaImage) return VerificationStatus.pending;
 
-    // Otherwise, driver hasn't uploaded required documents
     return VerificationStatus.unverified;
   }
 }

@@ -146,7 +146,7 @@ final class TransportRequestsProvider
   }
 }
 
-String _$transportRequestsHash() => r'66010979e79738a875f106dac0fcd76da9fa66a2';
+String _$transportRequestsHash() => r'411987e446e7e546b89fe6d9f5e64cff53245e14';
 
 final class TransportRequestsFamily extends $Family
     with
@@ -194,4 +194,142 @@ final class TransportRequestsFamily extends $Family
 
   @override
   String toString() => r'transportRequestsProvider';
+}
+
+/// Newly added provider for typed access
+
+@ProviderFor(driverRequests)
+final driverRequestsProvider = DriverRequestsFamily._();
+
+/// Newly added provider for typed access
+
+final class DriverRequestsProvider
+    extends
+        $FunctionalProvider<
+          AsyncValue<List<DriverRequest>>,
+          List<DriverRequest>,
+          FutureOr<List<DriverRequest>>
+        >
+    with
+        $FutureModifier<List<DriverRequest>>,
+        $FutureProvider<List<DriverRequest>> {
+  /// Newly added provider for typed access
+  DriverRequestsProvider._({
+    required DriverRequestsFamily super.from,
+    required ({
+      String? status,
+      String? bookingType,
+      String? searchTerm,
+      int? ageMin,
+      int? ageMax,
+      String? schoolName,
+    })
+    super.argument,
+  }) : super(
+         retry: null,
+         name: r'driverRequestsProvider',
+         isAutoDispose: true,
+         dependencies: null,
+         $allTransitiveDependencies: null,
+       );
+
+  @override
+  String debugGetCreateSourceHash() => _$driverRequestsHash();
+
+  @override
+  String toString() {
+    return r'driverRequestsProvider'
+        ''
+        '$argument';
+  }
+
+  @$internal
+  @override
+  $FutureProviderElement<List<DriverRequest>> $createElement(
+    $ProviderPointer pointer,
+  ) => $FutureProviderElement(pointer);
+
+  @override
+  FutureOr<List<DriverRequest>> create(Ref ref) {
+    final argument =
+        this.argument
+            as ({
+              String? status,
+              String? bookingType,
+              String? searchTerm,
+              int? ageMin,
+              int? ageMax,
+              String? schoolName,
+            });
+    return driverRequests(
+      ref,
+      status: argument.status,
+      bookingType: argument.bookingType,
+      searchTerm: argument.searchTerm,
+      ageMin: argument.ageMin,
+      ageMax: argument.ageMax,
+      schoolName: argument.schoolName,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return other is DriverRequestsProvider && other.argument == argument;
+  }
+
+  @override
+  int get hashCode {
+    return argument.hashCode;
+  }
+}
+
+String _$driverRequestsHash() => r'0531eccaa3c6210080bbae93d509e5f973742fe1';
+
+/// Newly added provider for typed access
+
+final class DriverRequestsFamily extends $Family
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<List<DriverRequest>>,
+          ({
+            String? status,
+            String? bookingType,
+            String? searchTerm,
+            int? ageMin,
+            int? ageMax,
+            String? schoolName,
+          })
+        > {
+  DriverRequestsFamily._()
+    : super(
+        retry: null,
+        name: r'driverRequestsProvider',
+        dependencies: null,
+        $allTransitiveDependencies: null,
+        isAutoDispose: true,
+      );
+
+  /// Newly added provider for typed access
+
+  DriverRequestsProvider call({
+    String? status,
+    String? bookingType,
+    String? searchTerm,
+    int? ageMin,
+    int? ageMax,
+    String? schoolName,
+  }) => DriverRequestsProvider._(
+    argument: (
+      status: status,
+      bookingType: bookingType,
+      searchTerm: searchTerm,
+      ageMin: ageMin,
+      ageMax: ageMax,
+      schoolName: schoolName,
+    ),
+    from: this,
+  );
+
+  @override
+  String toString() => r'driverRequestsProvider';
 }

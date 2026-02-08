@@ -160,13 +160,11 @@ final driverStatsProvider = DriverStatsProvider._();
 final class DriverStatsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>>,
-          Map<String, dynamic>,
-          FutureOr<Map<String, dynamic>>
+          AsyncValue<DriverStats>,
+          DriverStats,
+          FutureOr<DriverStats>
         >
-    with
-        $FutureModifier<Map<String, dynamic>>,
-        $FutureProvider<Map<String, dynamic>> {
+    with $FutureModifier<DriverStats>, $FutureProvider<DriverStats> {
   /// Provider for driver stats (students, pending requests, earnings)
   DriverStatsProvider._()
     : super(
@@ -184,17 +182,17 @@ final class DriverStatsProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>> $createElement(
+  $FutureProviderElement<DriverStats> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>> create(Ref ref) {
+  FutureOr<DriverStats> create(Ref ref) {
     return driverStats(ref);
   }
 }
 
-String _$driverStatsHash() => r'55e74896be309018a686562196d5c5fa8ebc691f';
+String _$driverStatsHash() => r'5b440d070e9cbe2cf17e06522ab2de98ce6ceb09';
 
 /// Provider for driver's booking requests (pending)
 
@@ -206,13 +204,13 @@ final driverBookingRequestsProvider = DriverBookingRequestsProvider._();
 final class DriverBookingRequestsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Map<String, dynamic>>>,
-          List<Map<String, dynamic>>,
-          Stream<List<Map<String, dynamic>>>
+          AsyncValue<List<DriverRequest>>,
+          List<DriverRequest>,
+          Stream<List<DriverRequest>>
         >
     with
-        $FutureModifier<List<Map<String, dynamic>>>,
-        $StreamProvider<List<Map<String, dynamic>>> {
+        $FutureModifier<List<DriverRequest>>,
+        $StreamProvider<List<DriverRequest>> {
   /// Provider for driver's booking requests (pending)
   DriverBookingRequestsProvider._()
     : super(
@@ -230,25 +228,27 @@ final class DriverBookingRequestsProvider
 
   @$internal
   @override
-  $StreamProviderElement<List<Map<String, dynamic>>> $createElement(
+  $StreamProviderElement<List<DriverRequest>> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<List<Map<String, dynamic>>> create(Ref ref) {
+  Stream<List<DriverRequest>> create(Ref ref) {
     return driverBookingRequests(ref);
   }
 }
 
 String _$driverBookingRequestsHash() =>
-    r'11c51e05b1e7fdad631509feb9211f9fe4a1012b';
+    r'004f7bcd53dd7426ed44403151cffb27579b9101';
 
 /// Provider for driver's enrolled students
+/// Returns List<Map> for compatibility with existing UI for now
 
 @ProviderFor(driverStudents)
 final driverStudentsProvider = DriverStudentsProvider._();
 
 /// Provider for driver's enrolled students
+/// Returns List<Map> for compatibility with existing UI for now
 
 final class DriverStudentsProvider
     extends
@@ -261,6 +261,7 @@ final class DriverStudentsProvider
         $FutureModifier<List<Map<String, dynamic>>>,
         $FutureProvider<List<Map<String, dynamic>>> {
   /// Provider for driver's enrolled students
+  /// Returns List<Map> for compatibility with existing UI for now
   DriverStudentsProvider._()
     : super(
         from: null,
@@ -299,13 +300,11 @@ final todaysTripsProvider = TodaysTripsProvider._();
 final class TodaysTripsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<List<Map<String, dynamic>>>,
-          List<Map<String, dynamic>>,
-          FutureOr<List<Map<String, dynamic>>>
+          AsyncValue<List<DriverTrip>>,
+          List<DriverTrip>,
+          FutureOr<List<DriverTrip>>
         >
-    with
-        $FutureModifier<List<Map<String, dynamic>>>,
-        $FutureProvider<List<Map<String, dynamic>>> {
+    with $FutureModifier<List<DriverTrip>>, $FutureProvider<List<DriverTrip>> {
   /// Provider for today's trips
   TodaysTripsProvider._()
     : super(
@@ -323,17 +322,17 @@ final class TodaysTripsProvider
 
   @$internal
   @override
-  $FutureProviderElement<List<Map<String, dynamic>>> $createElement(
+  $FutureProviderElement<List<DriverTrip>> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<List<Map<String, dynamic>>> create(Ref ref) {
+  FutureOr<List<DriverTrip>> create(Ref ref) {
     return todaysTrips(ref);
   }
 }
 
-String _$todaysTripsHash() => r'ef32b6b05c3b33cf54a2d2bb97afbb07335217bc';
+String _$todaysTripsHash() => r'105c55dc7141aef324da562d96084ae6ed5b02ba';
 
 /// Provider for active trip (if any)
 
@@ -345,13 +344,11 @@ final activeTripProvider = ActiveTripProvider._();
 final class ActiveTripProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>?>,
-          Map<String, dynamic>?,
-          FutureOr<Map<String, dynamic>?>
+          AsyncValue<DriverTrip?>,
+          DriverTrip?,
+          FutureOr<DriverTrip?>
         >
-    with
-        $FutureModifier<Map<String, dynamic>?>,
-        $FutureProvider<Map<String, dynamic>?> {
+    with $FutureModifier<DriverTrip?>, $FutureProvider<DriverTrip?> {
   /// Provider for active trip (if any)
   ActiveTripProvider._()
     : super(
@@ -369,17 +366,17 @@ final class ActiveTripProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>?> $createElement(
+  $FutureProviderElement<DriverTrip?> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>?> create(Ref ref) {
+  FutureOr<DriverTrip?> create(Ref ref) {
     return activeTrip(ref);
   }
 }
 
-String _$activeTripHash() => r'69584507474dc77487f928b0484739acf85c11e2';
+String _$activeTripHash() => r'4a695fa53ba30da60a9759d74f39293be97feec1';
 
 /// Provider for the next scheduled trip (Go to School first, then Return)
 
@@ -391,13 +388,11 @@ final nextScheduledTripProvider = NextScheduledTripProvider._();
 final class NextScheduledTripProvider
     extends
         $FunctionalProvider<
-          AsyncValue<Map<String, dynamic>?>,
-          Map<String, dynamic>?,
-          FutureOr<Map<String, dynamic>?>
+          AsyncValue<DriverTrip?>,
+          DriverTrip?,
+          FutureOr<DriverTrip?>
         >
-    with
-        $FutureModifier<Map<String, dynamic>?>,
-        $FutureProvider<Map<String, dynamic>?> {
+    with $FutureModifier<DriverTrip?>, $FutureProvider<DriverTrip?> {
   /// Provider for the next scheduled trip (Go to School first, then Return)
   NextScheduledTripProvider._()
     : super(
@@ -415,14 +410,14 @@ final class NextScheduledTripProvider
 
   @$internal
   @override
-  $FutureProviderElement<Map<String, dynamic>?> $createElement(
+  $FutureProviderElement<DriverTrip?> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<Map<String, dynamic>?> create(Ref ref) {
+  FutureOr<DriverTrip?> create(Ref ref) {
     return nextScheduledTrip(ref);
   }
 }
 
-String _$nextScheduledTripHash() => r'14ac1bb8f94920cb2c19b9c13888cedcbac755b3';
+String _$nextScheduledTripHash() => r'bfb560ae2f6f61a27d3efc8af19ddd2cfde4097f';

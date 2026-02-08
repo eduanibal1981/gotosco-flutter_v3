@@ -1,104 +1,57 @@
+// ignore_for_file: invalid_annotation_target
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:latlong2/latlong.dart';
 
-/// Model representing the driver's current location from driver_locations table.
-class DriverLocation {
-  final String driverId;
-  final double latitude;
-  final double longitude;
-  final double heading; // 0-360 degrees for icon rotation
-  final double speed; // km/h for ETA calculation
-  final String? tripType; // 'pickup' | 'dropoff' | 'idle'
-  final bool isOnline;
-  final bool tripsStarted;
-  final int? etaMinutes;
-  final String? nextStopId;
-  final DateTime updatedAt;
+part 'driver_location_model.freezed.dart';
+part 'driver_location_model.g.dart';
 
-  DriverLocation({
-    required this.driverId,
-    required this.latitude,
-    required this.longitude,
-    this.heading = 0.0,
-    this.speed = 0.0,
-    this.tripType,
-    this.isOnline = false,
-    this.tripsStarted = false,
-    this.etaMinutes,
-    this.nextStopId,
-    required this.updatedAt,
-  });
+@freezed
+abstract class DriverLocation with _$DriverLocation {
+  const DriverLocation._();
 
-  /// Convenience getter for flutter_map LatLng.
+  const factory DriverLocation({
+    @JsonKey(name: 'driver_id') required String driverId,
+    required double latitude,
+    required double longitude,
+    @Default(0.0) double heading,
+    @Default(0.0) double speed,
+    @JsonKey(name: 'trip_type') String? tripType,
+    @JsonKey(name: 'trips_started') @Default(false) bool tripsStarted,
+    @JsonKey(name: 'eta_minutes') int? etaMinutes,
+    @JsonKey(name: 'next_stop_id') String? nextStopId,
+    @JsonKey(name: 'updated_at') required DateTime updatedAt,
+    @JsonKey(name: 'is_app_online') @Default(false) bool isAppOnline,
+    @JsonKey(name: 'is_profile_online') @Default(true) bool isOnlineVisible,
+  }) = _DriverLocation;
+
+  factory DriverLocation.fromJson(Map<String, dynamic> json) =>
+      _$DriverLocationFromJson(json);
+
+  // Compatibility factory
+  factory DriverLocation.fromMap(Map<String, dynamic> map) =>
+      DriverLocation.fromJson(map);
+
+  Map<String, dynamic> toMap() => toJson();
+
   LatLng get position => LatLng(latitude, longitude);
 
-  /// Whether driver is currently on a trip (pickup or dropoff).
   bool get isOnTrip =>
       tripType == 'pickup' || tripType == 'dropoff' || tripsStarted;
 
-  /// Returns the heading in radians for Transform.rotate.
   double get headingRadians => heading * (3.14159265359 / 180);
 
-  factory DriverLocation.fromMap(Map<String, dynamic> map) {
-    return DriverLocation(
-      driverId: map['driver_id'] as String,
-      latitude: (map['latitude'] as num).toDouble(),
-      longitude: (map['longitude'] as num).toDouble(),
-      heading: (map['heading'] as num?)?.toDouble() ?? 0.0,
-      speed: (map['speed'] as num?)?.toDouble() ?? 0.0,
-      tripType: map['trip_type'] as String?,
-      isOnline: false, // Set by repository from separate stream
-      tripsStarted: map['trips_started'] as bool? ?? false,
-      etaMinutes: map['eta_minutes'] as int?,
-      nextStopId: map['next_stop_id'] as String?,
-      updatedAt: DateTime.parse(map['updated_at'] as String),
-    );
-  }
+  // Compatibility getter for UI that uses isOnline
+  bool get isOnline => isAppOnline && isOnlineVisible;
 
-  Map<String, dynamic> toMap() {
-    return {
-      'driver_id': driverId,
-      'latitude': latitude,
-      'longitude': longitude,
-      'heading': heading,
-      'speed': speed,
-      'trip_type': tripType,
-      'is_online': isOnline,
-      'trips_started': tripsStarted,
-      'eta_minutes': etaMinutes,
-      'next_stop_id': nextStopId,
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
-
-  @override
-  String toString() =>
-      'DriverLocation(driverId: $driverId, lat: $latitude, lng: $longitude, heading: $heading, tripType: $tripType, tripsStarted: $tripsStarted)';
-
-  DriverLocation copyWith({
-    String? driverId,
-    double? latitude,
-    double? longitude,
-    double? heading,
-    double? speed,
-    String? tripType,
-    bool? isOnline,
-    bool? tripsStarted,
-    int? etaMinutes,
-    String? nextStopId,
-    DateTime? updatedAt,
-  }) {
-    return DriverLocation(
-      driverId: driverId ?? this.driverId,
-      latitude: latitude ?? this.latitude,
-      longitude: longitude ?? this.longitude,
-      heading: heading ?? this.heading,
-      speed: speed ?? this.speed,
-      tripType: tripType ?? this.tripType,
-      isOnline: isOnline ?? this.isOnline,
-      tripsStarted: tripsStarted ?? this.tripsStarted,
-      etaMinutes: etaMinutes ?? this.etaMinutes,
-      nextStopId: nextStopId ?? this.nextStopId,
-      updatedAt: updatedAt ?? this.updatedAt,
-    );
-  }
+  // Computed isOnline getter to matching repo logic?
+  // Repo: isOnline = isVisible && isAppOnline.
+  // We can override the field or use a getter 'isValidOnline'.
+  // But the field 'isOnline' is used by UI.
+  // NOTE: The previous model had 'isOnline' in constructor but repo set it manually.
+  // We can use a custom logic in fromJson? Or just let repo set it?
+  // Riverpod/Freezed: if we pass 'is_online' in json it sets it.
+  // View has no 'is_online' column.
+  // We should compute it or the view should compute it.
+  // SQL View: (is_app_online AND is_online_visible) as is_online.
+  // Let's update the View to include 'is_online' computed column!
 }

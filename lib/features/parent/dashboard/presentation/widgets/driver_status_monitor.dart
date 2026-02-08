@@ -79,6 +79,7 @@ class DriverStatusMonitor extends ConsumerWidget {
   }) {
     // If we have a ride event, show it even if driver is offline
     if (rideEvent != null) {
+      debugPrint('rideEvent: $rideEvent');
       return _buildActiveCard(
         context,
         ref,
@@ -92,7 +93,7 @@ class DriverStatusMonitor extends ConsumerWidget {
         isConnected: false,
       );
     }
-
+    debugPrint('no rideEvent: $rideEvent');
     return _buildScheduledCard(
       context,
       ref,
@@ -245,7 +246,7 @@ class DriverStatusMonitor extends ConsumerWidget {
     return ActiveBookingCard(
       driverName: driverName,
       driverPhoto: driverPhoto,
-      title: 'Scheduled Trip',
+      title:  '$isLoading',//'Scheduled Trip',
       subtitle: isLoading ? 'Checking status...' : 'Driver Offline',
       badgeText: 'SCHEDULED',
       badgeColor: Colors.blue,

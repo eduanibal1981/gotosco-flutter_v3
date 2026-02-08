@@ -32,11 +32,11 @@ final driverLocationProvider = DriverLocationFamily._();
 final class DriverLocationProvider
     extends
         $FunctionalProvider<
-          AsyncValue<DriverLocation>,
-          DriverLocation,
-          Stream<DriverLocation>
+          AsyncValue<DriverLocation?>,
+          DriverLocation?,
+          Stream<DriverLocation?>
         >
-    with $FutureModifier<DriverLocation>, $StreamProvider<DriverLocation> {
+    with $FutureModifier<DriverLocation?>, $StreamProvider<DriverLocation?> {
   /// StreamProvider that listens to real-time driver location updates.
   /// Using a family provider allows tracking different drivers.
   /// Uses Supabase Realtime for instant updates.
@@ -68,12 +68,12 @@ final class DriverLocationProvider
 
   @$internal
   @override
-  $StreamProviderElement<DriverLocation> $createElement(
+  $StreamProviderElement<DriverLocation?> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<DriverLocation> create(Ref ref) {
+  Stream<DriverLocation?> create(Ref ref) {
     final argument = this.argument as String;
     return driverLocation(ref, argument);
   }
@@ -89,7 +89,7 @@ final class DriverLocationProvider
   }
 }
 
-String _$driverLocationHash() => r'b1281596db94b618291c0610af9fdd158fa5412d';
+String _$driverLocationHash() => r'9408eaccffce022eb9343a6ea570dfd7306876d4';
 
 /// StreamProvider that listens to real-time driver location updates.
 /// Using a family provider allows tracking different drivers.
@@ -101,7 +101,7 @@ String _$driverLocationHash() => r'b1281596db94b618291c0610af9fdd158fa5412d';
 /// ```
 
 final class DriverLocationFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<DriverLocation>, String> {
+    with $FunctionalFamilyOverride<Stream<DriverLocation?>, String> {
   DriverLocationFamily._()
     : super(
         retry: null,
@@ -139,11 +139,11 @@ final bookingLocationsProvider = BookingLocationsFamily._();
 final class BookingLocationsProvider
     extends
         $FunctionalProvider<
-          AsyncValue<BookingLocations>,
-          BookingLocations,
-          FutureOr<BookingLocations>
+          AsyncValue<BookingLocation?>,
+          BookingLocation?,
+          FutureOr<BookingLocation?>
         >
-    with $FutureModifier<BookingLocations>, $FutureProvider<BookingLocations> {
+    with $FutureModifier<BookingLocation?>, $FutureProvider<BookingLocation?> {
   /// Provider to fetch booking locations (home and school coordinates).
   /// This is a one-time fetch, not a stream.
   BookingLocationsProvider._({
@@ -169,12 +169,12 @@ final class BookingLocationsProvider
 
   @$internal
   @override
-  $FutureProviderElement<BookingLocations> $createElement(
+  $FutureProviderElement<BookingLocation?> $createElement(
     $ProviderPointer pointer,
   ) => $FutureProviderElement(pointer);
 
   @override
-  FutureOr<BookingLocations> create(Ref ref) {
+  FutureOr<BookingLocation?> create(Ref ref) {
     final argument = this.argument as String;
     return bookingLocations(ref, argument);
   }
@@ -190,13 +190,13 @@ final class BookingLocationsProvider
   }
 }
 
-String _$bookingLocationsHash() => r'2f5d9a064ac5111d51cefba0025f97a0f8f71765';
+String _$bookingLocationsHash() => r'5a6b3fd2bb1e598012faf66dfc91537d684a4763';
 
 /// Provider to fetch booking locations (home and school coordinates).
 /// This is a one-time fetch, not a stream.
 
 final class BookingLocationsFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<BookingLocations>, String> {
+    with $FunctionalFamilyOverride<FutureOr<BookingLocation?>, String> {
   BookingLocationsFamily._()
     : super(
         retry: null,

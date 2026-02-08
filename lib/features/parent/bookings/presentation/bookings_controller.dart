@@ -91,7 +91,7 @@ class BookingsController extends _$BookingsController {
     });
 
     if (!state.hasError) {
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
     }
 
     return !state.hasError;
@@ -130,7 +130,7 @@ class BookingsController extends _$BookingsController {
     });
 
     if (!state.hasError) {
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
     }
 
     return !state.hasError;

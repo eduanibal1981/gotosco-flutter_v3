@@ -1,5 +1,7 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:geolocator/geolocator.dart'; // Add for distance calculation
 import '../../data/driver_dashboard_repository.dart';
+import '../../data/models/driver_trip_model.dart';
 import '../../../availability/data/driver_availability_repository.dart';
 import '../../../availability/presentation/driver_availability_controller.dart';
 
@@ -8,7 +10,7 @@ part 'active_trip_controller.g.dart';
 @riverpod
 class ActiveTripController extends _$ActiveTripController {
   @override
-  FutureOr<Map<String, dynamic>?> build() {
+  FutureOr<DriverTrip?> build() {
     return ref.watch(activeTripProvider.future);
   }
 
@@ -100,29 +102,76 @@ class ActiveTripController extends _$ActiveTripController {
     });
   }
 
-  /// compute the next pending stop from the current trip data
-  Map<String, dynamic>? get currentStop {
+  /// Compute the next pending stop from the current trip data
+  RouteStop? get currentStop {
     final trip = state.value;
     if (trip == null) return null;
 
-    final stops = (trip['route_stops'] as List<dynamic>?) ?? [];
+    final stops = trip.routeStops;
     if (stops.isEmpty) return null;
 
     // Sort by sequence_order just in case
-    stops.sort(
-      (a, b) =>
-          (a['sequence_order'] as int).compareTo(b['sequence_order'] as int),
+    final sortedStops = List<RouteStop>.from(stops);
+    sortedStops.sort(
+      (a, b) => (a.sequenceOrder ?? 0).compareTo(b.sequenceOrder ?? 0),
     );
 
     // Find first non-completed/non-skipped stop
     try {
-      return stops.firstWhere((s) {
-            final status = s['status'] as String;
-            return status == 'pending' || status == 'arrived';
-          })
-          as Map<String, dynamic>;
+      return sortedStops.firstWhere((s) {
+        final status = s.status;
+        return status == 'pending' || status == 'arrived';
+      });
     } catch (e) {
       return null; // All done
+    }
+  }
+
+  /// Check geofence for auto-arrival (Distance < 200m)
+  Future<void> checkArrivalGeofence(double lat, double lng) async {
+    final trip = state.value;
+    if (trip == null) return;
+
+    final stops = trip.routeStops;
+    // Only check pending stops
+    final pendingStops = stops.where((s) => s.status == 'pending').toList();
+
+    if (pendingStops.isEmpty) return;
+
+    // Sort by sequence for safe processing
+    pendingStops.sort(
+      (a, b) => (a.sequenceOrder ?? 0).compareTo(b.sequenceOrder ?? 0),
+    );
+
+    // We check if we are close to ANY pending stop
+    // If we are close to a later stop (e.g. School), we might need to skip previous ones
+    for (final stop in pendingStops) {
+      final stopLat = stop.latitude;
+      final stopLng = stop.longitude;
+
+      if (stopLat == null || stopLng == null) continue;
+
+      final distance = Geolocator.distanceBetween(lat, lng, stopLat, stopLng);
+      // Threshold: 200 meters
+      if (distance < 200) {
+        // We arrived at 'stop'.
+        // Check if there are earlier pending stops we skipped
+        final earlierStops = pendingStops
+            .where((s) => (s.sequenceOrder ?? 0) < (stop.sequenceOrder ?? 0))
+            .toList();
+
+        if (earlierStops.isNotEmpty) {
+          // Auto-skip logic for intermediate stops
+          // This fixes the "Ready for pickup" bug when arriving at school
+          for (final skipped in earlierStops) {
+            await processStop(skipped.id, 'skipped');
+          }
+        }
+
+        // Mark this stop as arrived
+        await arriveAtStop(stop.id, lat: lat, lng: lng);
+        break; // Process one arrival at a time
+      }
     }
   }
 }

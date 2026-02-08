@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/bookings_repository.dart';
+import '../data/models/parent_booking_model.dart';
 import '../../dashboard/presentation/dashboard_controller.dart';
 
 class MyBookingsTab extends ConsumerStatefulWidget {
@@ -18,7 +19,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
 
   @override
   Widget build(BuildContext context) {
-    final bookingsAsync = ref.watch(myBookingsProvider);
+    final bookingsAsync = ref.watch(parentBookingsProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -90,15 +91,15 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
     );
   }
 
-  Widget _buildQuickStats(List<Map<String, dynamic>> bookings) {
+  Widget _buildQuickStats(List<ParentBooking> bookings) {
     final active = bookings.where((b) {
-      final status = b['status'];
-      final subStatus = b['subscription_status'];
+      final status = b.status;
+      final subStatus = b.subscriptionStatus;
       return (status == 'confirmed' || status == 'accepted') &&
           (subStatus == 'active' || subStatus == null);
     }).length;
     final pending = bookings
-        .where((b) => b['status'] == 'pending' || b['status'] == 'posted')
+        .where((b) => b.status == 'pending' || b.status == 'posted')
         .length;
 
     return Row(
@@ -262,27 +263,25 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   SliverList _buildBookingsList(
     BuildContext context,
     WidgetRef ref,
-    List<Map<String, dynamic>> bookings,
+    List<ParentBooking> bookings,
   ) {
     // Group by status
     final activeBookings = bookings.where((b) {
-      final status = b['status'];
-      final subStatus = b['subscription_status'];
+      final status = b.status;
+      final subStatus = b.subscriptionStatus;
       return (status == 'confirmed' || status == 'accepted') &&
           (subStatus == 'active' || subStatus == null);
     }).toList();
 
     final pending = bookings
-        .where((b) => b['status'] == 'pending' || b['status'] == 'posted')
+        .where((b) => b.status == 'pending' || b.status == 'posted')
         .toList();
 
-    final completed = bookings
-        .where((b) => b['status'] == 'completed')
-        .toList();
+    final completed = bookings.where((b) => b.status == 'completed').toList();
 
     final cancelled = bookings.where((b) {
-      final status = b['status'];
-      final subStatus = b['subscription_status'];
+      final status = b.status;
+      final subStatus = b.subscriptionStatus;
       return status == 'cancelled' ||
           status == 'rejected' ||
           subStatus == 'cancelled' ||
@@ -412,25 +411,23 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Widget _buildBookingCard(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking, {
+    ParentBooking booking, {
     bool showTrack = false,
     bool showCancel = false,
     bool showDelete = false,
     bool showRebook = false,
     bool showEdit = false,
   }) {
-    final status = booking['status'] as String?;
-    final driverName = booking['driver_name'] as String? ?? 'Driver';
-    final driverPhoto = booking['driver_photo'] as String?;
-    final bookingType = booking['booking_type'] as String? ?? '';
-    final homeLocation = booking['home_location'] as String? ?? '';
-    final schoolLocation = booking['school_location'] as String? ?? '';
-    final subscriptionStatus = booking['subscription_status'] as String?;
-    final pauseEndDate = booking['pause_end_date'] as String?;
-    final scheduledStopDate = booking['contract_end_date'] as String?;
-    final createdAt = booking['created_at'] != null
-        ? DateTime.tryParse(booking['created_at'])
-        : null;
+    final status = booking.status;
+    final driverName = booking.driverName ?? 'Driver';
+    final driverPhoto = booking.driverPhoto;
+    final bookingType = booking.bookingType;
+    final homeLocation = booking.hometxtLocation ?? '';
+    final schoolLocation = booking.schooltxtLocation ?? '';
+    final subscriptionStatus = booking.subscriptionStatus;
+    final pauseEndDate = booking.pauseEndDate?.toIso8601String();
+    final scheduledStopDate = booking.contractEndDate?.toIso8601String();
+    final createdAt = booking.createdAt;
 
     final isAccepted = status == 'accepted' || status == 'confirmed';
 
@@ -538,12 +535,8 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
               _buildInfoRow(Icons.school, schoolLocation),
 
             // Children Names
-            if (booking['child_names'] != null &&
-                (booking['child_names'] as List).isNotEmpty)
-              _buildInfoRow(
-                Icons.child_care,
-                (booking['child_names'] as List).join(', '),
-              ),
+            if (booking.childNames.isNotEmpty)
+              _buildInfoRow(Icons.child_care, booking.childNames.join(', ')),
 
             // Date
             if (createdAt != null)
@@ -659,7 +652,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () =>
-                              _deleteBooking(context, ref, booking['id']),
+                              _deleteBooking(context, ref, booking.id),
                           icon: const Icon(
                             Icons.delete_outline,
                             size: 18,
@@ -746,19 +739,19 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  void _navigateToTracking(BuildContext context, Map<String, dynamic> booking) {
-    final homeLat = booking['home_lat'] as double?;
-    final homeLng = booking['home_lng'] as double?;
-    final schoolLat = booking['school_lat'] as double?;
-    final schoolLng = booking['school_lng'] as double?;
+  void _navigateToTracking(BuildContext context, ParentBooking booking) {
+    final homeLat = booking.homeLat;
+    final homeLng = booking.homeLng;
+    final schoolLat = booking.schoolLat;
+    final schoolLng = booking.schoolLng;
 
     context.push(
       '/tracking',
       extra: {
-        'bookingId': booking['id'],
-        'driverId': booking['driver_id'],
-        'driverName': booking['driver_name'] ?? 'Driver',
-        'driverPhotoUrl': booking['driver_photo'],
+        'bookingId': booking.id,
+        'driverId': booking.driverId,
+        'driverName': booking.driverName ?? 'Driver',
+        'driverPhotoUrl': booking.driverPhoto,
         'homeLocation': (homeLat != null && homeLng != null)
             ? LatLng(homeLat, homeLng)
             : null,
@@ -821,10 +814,10 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   void _rebookDriver(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) {
-    final driverId = booking['driver_id'];
-    final driverName = booking['driver_name'] ?? 'Driver';
+    final driverId = booking.driverId;
+    final driverName = booking.driverName ?? 'Driver';
 
     if (driverId != null) {
       context.push(
@@ -833,7 +826,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
           'driverId': driverId,
           'driverName': driverName,
           // Pass the existing booking to pre-fill the form
-          'initialData': booking,
+          'initialData': booking.toLegacyMap(),
         },
       );
     } else {
@@ -844,27 +837,24 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   }
 
   /// Navigate to booking flow screen in edit mode for a pending booking
-  void _editBooking(BuildContext context, Map<String, dynamic> booking) {
-    final bookingId = booking['id'] as String?;
-    if (bookingId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cannot edit: Booking ID missing')),
-      );
-      return;
-    }
+  void _editBooking(BuildContext context, ParentBooking booking) {
+    final bookingId = booking.id;
 
     context.push(
       '/booking-flow',
-      extra: {'editBookingId': bookingId, 'editBookingData': booking},
+      extra: {
+        'editBookingId': bookingId,
+        'editBookingData': booking.toLegacyMap(),
+      },
     );
   }
 
   void _showCancelDialog(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) {
-    final status = booking['status'] as String?;
+    final status = booking.status;
     if (status == 'accepted') {
       _showManageBookingDialog(context, ref, booking);
       return;
@@ -892,14 +882,14 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
                 await ref
                     .read(bookingsRepositoryProvider)
                     .cancelBooking(
-                      booking['id'],
+                      booking.id,
                       cancellationType: 'parent_cancel_grace',
                       cancellationReason: 'parent_cancel_grace',
                       cancelRequestedAt: DateTime.now(),
                     );
 
                 // Force refresh the list
-                ref.invalidate(myBookingsProvider);
+                ref.invalidate(parentBookingsProvider);
 
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -930,7 +920,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   void _showManageBookingDialog(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) {
     showModalBottomSheet(
       context: context,
@@ -969,7 +959,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
               const SizedBox(height: 16),
-              if ((booking['subscription_status'] as String?) == 'paused')
+              if (booking.subscriptionStatus == 'paused')
                 _buildManageAction(
                   title: 'Resume Service',
                   subtitle: 'Continue pickups immediately',
@@ -980,7 +970,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
                     await _resumeBooking(context, ref, booking);
                   },
                 ),
-              if (booking['contract_end_date'] != null)
+              if (booking.contractEndDate != null)
                 _buildManageAction(
                   title: 'Cancel Scheduled Stop',
                   subtitle: 'Keep service active',
@@ -1071,21 +1061,21 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Future<void> _applyScheduleStop(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
     DateTime date,
   ) async {
     try {
       await ref
           .read(bookingsRepositoryProvider)
           .cancelBooking(
-            booking['id'],
+            booking.id,
             status: 'accepted',
             cancellationType: 'scheduled_stop',
             cancellationReason: 'parent_scheduled_stop',
             contractEndDate: date,
             cancelRequestedAt: DateTime.now(),
           );
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1103,14 +1093,14 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Future<void> _applyPause(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
     DateTime untilDate,
   ) async {
     try {
       await ref
           .read(bookingsRepositoryProvider)
           .cancelBooking(
-            booking['id'],
+            booking.id,
             status: 'accepted',
             cancellationType: 'pause',
             cancellationReason: 'parent_pause',
@@ -1119,7 +1109,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
             cancelRequestedAt: DateTime.now(),
             subscriptionStatus: 'paused',
           );
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1137,7 +1127,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Future<void> _confirmImmediateStop(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1168,12 +1158,12 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
       await ref
           .read(bookingsRepositoryProvider)
           .cancelBooking(
-            booking['id'],
+            booking.id,
             cancellationType: 'immediate_stop_fee',
             cancellationReason: 'parent_immediate_stop_fee',
             cancelRequestedAt: DateTime.now(),
           );
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1191,7 +1181,7 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Future<void> _confirmSafetyStop(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1222,12 +1212,12 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
       await ref
           .read(bookingsRepositoryProvider)
           .cancelBooking(
-            booking['id'],
+            booking.id,
             cancellationType: 'safety_stop',
             cancellationReason: 'safety_stop_pending_review',
             cancelRequestedAt: DateTime.now(),
           );
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1245,19 +1235,19 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Future<void> _resumeBooking(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) async {
     try {
       await ref
           .read(bookingsRepositoryProvider)
-          .updateBookingFields(booking['id'], {
+          .updateBookingFields(booking.id, {
             'subscription_status': 'active',
             'pause_start_date': null,
             'pause_end_date': null,
             'cancellation_type': null,
             'cancellation_reason': null,
           });
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
@@ -1275,18 +1265,18 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
   Future<void> _clearScheduledStop(
     BuildContext context,
     WidgetRef ref,
-    Map<String, dynamic> booking,
+    ParentBooking booking,
   ) async {
     try {
       await ref
           .read(bookingsRepositoryProvider)
-          .updateBookingFields(booking['id'], {
+          .updateBookingFields(booking.id, {
             'contract_end_date': null,
             'cancellation_type': null,
             'cancellation_reason': null,
             'cancel_requested_at': null,
           });
-      ref.invalidate(myBookingsProvider);
+      ref.invalidate(parentBookingsProvider);
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/geo_parsing.dart';
+import 'models/driver_request_model.dart';
 
 part 'transport_requests_repository.g.dart';
 
@@ -22,16 +23,49 @@ Future<List<Map<String, dynamic>>> transportRequests(
   String? schoolName,
   double? maxDistanceKm,
 }) async {
-  return ref
+  final requests = await ref
       .watch(driverTransportRequestsRepositoryProvider)
-      .getTransportRequests(
+      .getDriverRequests(
         status: status,
         bookingType: bookingType,
         searchTerm: searchTerm,
         ageMin: ageMin,
         ageMax: ageMax,
         schoolName: schoolName,
-        maxDistanceKm: maxDistanceKm,
+      );
+
+  // Filter by distance if needed (client-side)
+  // The view returns all matching the criteria.
+  // We can filter here.
+  var filtered = requests;
+  if (maxDistanceKm != null) {
+    // Logic for distance filtering would be here if lat/lng are parsed
+    // For now, return as is or implement if critical
+  }
+
+  return filtered.map((e) => e.toLegacyMap()).toList();
+}
+
+/// Newly added provider for typed access
+@riverpod
+Future<List<DriverRequest>> driverRequests(
+  Ref ref, {
+  String? status,
+  String? bookingType,
+  String? searchTerm,
+  int? ageMin,
+  int? ageMax,
+  String? schoolName,
+}) async {
+  return ref
+      .watch(driverTransportRequestsRepositoryProvider)
+      .getDriverRequests(
+        status: status,
+        bookingType: bookingType,
+        searchTerm: searchTerm,
+        ageMin: ageMin,
+        ageMax: ageMax,
+        schoolName: schoolName,
       );
 }
 
@@ -40,7 +74,8 @@ class DriverTransportRequestsRepository {
 
   DriverTransportRequestsRepository(this._supabase);
 
-  Future<List<Map<String, dynamic>>> getTransportRequests({
+  /// ✅ HYBRID: Fetches typed DriverRequest models using the database view.
+  Future<List<DriverRequest>> getDriverRequests({
     String? status,
     String? bookingType,
     String? searchTerm,
@@ -49,21 +84,29 @@ class DriverTransportRequestsRepository {
     String? schoolName,
     double? maxDistanceKm,
   }) async {
-    // Query BOOKINGS instead of transport_requests
-    // Open requests have driver_id == null OR status == 'posted'
-    var query = _supabase
-        .from('bookings')
-        .select(
-          '*, homegeo_location:homegeo_location::text, schoolgeo_location:schoolgeo_location::text',
-        )
-        .isFilter('driver_id', null);
+    // Base query on the VIEW
+    var query = _supabase.from('driver_requests_view').select();
 
-    if (status != null && status != 'all') {
-      if (status == 'open') {
-        // Already filtered by driver_id null, but can enforce status
-        query = query.or('status.eq.posted,status.eq.pending');
-      } else {
-        query = query.eq('status', status);
+    // 1. Status Filter
+    // View includes 'open' status mappig if we did it? No, view has raw 'status'.
+    // Repo logic: "Open requests have driver_id == null OR status == 'posted'"
+    // The view 'driver_requests_view' selects * from 'bookings' (aliased).
+    // So it has 'driver_id' and 'status'.
+
+    if (status == 'open') {
+      query = query
+          .or('status.eq.posted,status.eq.pending')
+          .isFilter('driver_id', null);
+    } else if (status != null && status != 'all') {
+      query = query.eq('status', status);
+    } else {
+      // Default behavior for "all"? Or should we default to open?
+      // The original repo had: Query BOOKINGS... isFilter('driver_id', null).
+      // Checks line 59: .isFilter('driver_id', null);
+      // So default was always "no driver assigned" (open requests).
+      // If status is specific, it appends.
+      if (status == null || status == 'open') {
+        query = query.isFilter('driver_id', null);
       }
     }
 
@@ -71,185 +114,65 @@ class DriverTransportRequestsRepository {
       query = query.eq('booking_type', bookingType);
     }
 
-    final bookings = await query.order('created_at', ascending: false);
-    if (bookings is! List || bookings.isEmpty) return [];
+    // Execute Query
+    final data = await query.order('created_at', ascending: false);
 
-    // Filter by school name / location (client-side or server if possible, keeping client for now)
-    var filteredBookings = List<Map<String, dynamic>>.from(bookings);
-
-    // 1. Fetch relations (Children, Schools, Parent)
-    final bookingIds = filteredBookings.map((b) => b['id'] as String).toList();
-    final parentIds = filteredBookings
-        .map((b) => b['parent_id'] as String)
-        .toSet()
+    var requests = (data as List)
+        .map((json) => DriverRequest.fromJson(json))
         .toList();
 
-    // Parallel Fetch
-    final results = await Future.wait([
-      // Parents
-      if (parentIds.isNotEmpty)
-        _supabase
-            .from('users')
-            .select('id, full_name, photo_url, phone')
-            .inFilter('id', parentIds)
-      else
-        Future.value([]),
+    // 2. Client-side Filtering (Search, Age, School Name)
+    // We do this in Dart because some fields (aggregated JSON) are harder to filter in simple Supabase/PostgREST.
 
-      // Children (via booking_children -> children)
-      if (bookingIds.isNotEmpty)
-        _supabase
-            .from('booking_children')
-            .select('booking_id, children(id, name, gender, grade, age)')
-            .inFilter('booking_id', bookingIds)
-      else
-        Future.value([]),
+    if (searchTerm != null && searchTerm.trim().isNotEmpty) {
+      final term = searchTerm.trim().toLowerCase();
+      requests = requests.where((r) {
+        final matchParent = (r.parentName ?? '').toLowerCase().contains(term);
+        final matchLoc =
+            (r.homeLocation ?? '').toLowerCase().contains(term) ||
+            (r.schoolLocation ?? '').toLowerCase().contains(term);
 
-      // Schools (via booking_schools -> schools)
-      if (bookingIds.isNotEmpty)
-        _supabase
-            .from('booking_schools')
-            .select(
-              'booking_id, sequence_order, schools(id, name, address, latitude, longitude)',
-            )
-            .inFilter('booking_id', bookingIds)
-      else
-        Future.value([]),
-    ]);
+        // Search in children
+        final matchChild = r.studentsInfo.any(
+          (c) => (c['name'] as String? ?? '').toLowerCase().contains(term),
+        );
 
-    final parentsData = results[0] as List;
-    final childrenRelData = results[1] as List;
-    final schoolsRelData = results[2] as List;
+        // Search in schools
+        final matchSchool = r.schoolsInfo.any(
+          (s) => (s['name'] as String? ?? '').toLowerCase().contains(term),
+        );
 
-    // Lookup Maps
-    final parentMap = {for (var p in parentsData) p['id']: p};
-
-    final childrenByBooking = <String, List<Map<String, dynamic>>>{};
-    for (var rel in childrenRelData) {
-      final bId = rel['booking_id'];
-      final child = rel['children'];
-      if (child != null) {
-        childrenByBooking.putIfAbsent(bId, () => []).add(child);
-      }
+        return matchParent || matchLoc || matchChild || matchSchool;
+      }).toList();
     }
 
-    final schoolsByBooking = <String, List<Map<String, dynamic>>>{};
-    for (var rel in schoolsRelData) {
-      final bId = rel['booking_id'];
-      final school = rel['schools']; // The school object
-      if (school != null) {
-        // Flatten a bit if needed or keep structure
-        schoolsByBooking.putIfAbsent(bId, () => []).add({
-          'school_id': school['id'],
-          'name': school['name'],
-          'address': school['address'],
-          'latitude': school['latitude'],
-          'longitude': school['longitude'],
-          // sequence logic if needed
+    if (schoolName != null && schoolName.trim().isNotEmpty) {
+      final term = schoolName.trim().toLowerCase();
+      requests = requests.where((r) {
+        // Check explicit school_name field OR schools list
+        final matchSingle = (r.schoolName ?? '').toLowerCase().contains(term);
+        final matchMulti = r.schoolsInfo.any(
+          (s) => (s['name'] as String? ?? '').toLowerCase().contains(term),
+        );
+        return matchSingle || matchMulti;
+      }).toList();
+    }
+
+    if (ageMin != null || ageMax != null) {
+      requests = requests.where((r) {
+        // Check if ANY child matches age range (or specific logic?)
+        // Usually we show request if it matches.
+        return r.studentsInfo.any((c) {
+          final age = c['age'] as int?;
+          if (age == null) return false;
+          if (ageMin != null && age < ageMin) return false;
+          if (ageMax != null && age > ageMax) return false;
+          return true;
         });
-      }
+      }).toList();
     }
 
-    // 2. Map & Filter
-    final List<Map<String, dynamic>> resultList = [];
-
-    for (var b in filteredBookings) {
-      final bId = b['id'];
-      final pId = b['parent_id'];
-      final parent = parentMap[pId];
-      final children = childrenByBooking[bId] ?? [];
-      final schools = schoolsByBooking[bId] ?? [];
-
-      // Search Filter
-      if (searchTerm != null && searchTerm.trim().isNotEmpty) {
-        final term = searchTerm.trim().toLowerCase();
-        final matchesParent = (parent?['full_name'] ?? '')
-            .toLowerCase()
-            .contains(term);
-        final matchesChild = children.any(
-          (c) => (c['name'] ?? '').toLowerCase().contains(term),
-        );
-        final matchesLoc = (b['hometxt_location'] ?? '').toLowerCase().contains(
-          term,
-        );
-        final matchesSchool = schools.any(
-          (s) => (s['name'] ?? '').toLowerCase().contains(term),
-        );
-
-        if (!matchesParent && !matchesChild && !matchesLoc && !matchesSchool) {
-          continue;
-        }
-      }
-
-      // School Name Filter
-      if (schoolName != null && schoolName.trim().isNotEmpty) {
-        final term = schoolName.trim().toLowerCase();
-        final matchesSingle = (b['school_name'] ?? '').toLowerCase().contains(
-          term,
-        );
-        final matchesMulti = schools.any(
-          (s) => (s['name'] ?? '').toLowerCase().contains(term),
-        );
-        if (!matchesSingle && !matchesMulti) continue;
-      }
-
-      // Distance Filter logic (Optional for now, assuming geo points are set in b)
-      // ... (Keep existing if needed, but 'home_lat' might be 'st_y(homegeo_location)' if not selected explicitly)
-      // Note: The booking table might not return 'home_lat' directly if it's a postgis column.
-      // But BookingsRepository inserted 'homegeo_location'.
-      // To get Lat/Lng easily, we usually select st_y(..).
-      // For now, let's assume we rely on text locations or basic filtering.
-      // If critical, we'd need to adjust the SELECT to extract coords.
-
-      // Construct standardized object for UI
-      final firstChild = children.isNotEmpty ? children.first : {};
-
-      resultList.add({
-        'id': bId,
-        'parent_id': pId,
-        'parent_name': parent?['full_name'] ?? 'Parent',
-        'parent_photo': parent?['photo_url'],
-        'parent_phone': parent?['phone'],
-
-        'child_name': firstChild['name'] ?? 'Child',
-        'child_gender': firstChild['gender'],
-        'child_grade': firstChild['grade'],
-
-        'child_age': firstChild['age'],
-        'school_name':
-            b['school_name'] ??
-            (schools.isNotEmpty ? schools.first['name'] : 'School'),
-        'booking_type': b['booking_type'],
-        'trip_category': b['school_id'] != null || b['is_multi_school'] == true
-            ? 'school'
-            : 'other', // Approx logic
-
-        'hometxt_location': b['hometxt_location'],
-        'schooltxt_location': b['schooltxt_location'],
-
-        'home_lat': parseGeoLocation(b['homegeo_location'])?['lat'],
-        'home_lng': parseGeoLocation(b['homegeo_location'])?['lng'],
-        'school_lat': parseGeoLocation(b['schoolgeo_location'])?['lat'],
-        'school_lng': parseGeoLocation(b['schoolgeo_location'])?['lng'],
-
-        'notes': b['notes'],
-        'status': b['status'] == 'posted' ? 'open' : b['status'],
-        'created_at': b['created_at'],
-
-        'propsal_price': b['proposal_price'],
-        'schedule_type': b['is_monthly_subscription'] == true
-            ? 'Monthly Subscription'
-            : (b['is_recurring'] == true ? 'Recurring Trip' : 'One-Time Trip'),
-        'start_date': b['start_date'],
-        'end_date': b['end_date'],
-        'pickup_time': b['home_pickup_time'],
-        'days_of_week': b['recurring_days']?.join(', '), // List -> String
-        // JSON Arrays for View
-        'students_info': children,
-        'schools_info': schools,
-      });
-    }
-
-    return resultList;
+    return requests;
   }
 
   Future<(double, double)?> _getDriverLocation() async {

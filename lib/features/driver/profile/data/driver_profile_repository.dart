@@ -53,128 +53,28 @@ class DriverProfileRepository {
 
   DriverProfileRepository(this._supabase, this._mediaService);
 
-  /// Fetches the driver profile for the given user ID
+  /// Fetches the driver profile for the given user ID using the driver_profile_view
   Future<DriverProfileModel?> getDriverProfile(String userId) async {
     debugPrint('DEBUG: getDriverProfile called with userId: $userId');
 
     try {
-      // First, try with the user join - select all columns from users
-      debugPrint('DEBUG: Attempting JOIN query on drivers table...');
       final response = await _supabase
-          .from('drivers')
-          .select('''
-            *,
-            users!drivers_user_id_fkey(*)
-          ''')
-          .eq('user_id', userId)
-          .maybeSingle();
-
-      debugPrint(
-        'DEBUG: JOIN query response: ${response != null ? 'data found' : 'null'}',
-      );
-
-      if (response != null) {
-        debugPrint('DEBUG: Response data: $response');
-        final coverage = await _getCoverageNames(userId);
-        return DriverProfileModel.fromMap({
-          ...response,
-          'service_areas': coverage['areas'],
-          'schools': coverage['schools'],
-        });
-      }
-    } catch (e) {
-      debugPrint('DEBUG: Error fetching driver profile with JOIN: $e');
-      // Fall through to try without the join
-    }
-
-    // Fallback: Try without the user join (in case foreign key is missing/misconfigured)
-    try {
-      debugPrint('DEBUG: Attempting fallback query (no JOIN)...');
-      final driverData = await _supabase
-          .from('drivers')
+          .from('driver_profile_view')
           .select()
           .eq('user_id', userId)
           .maybeSingle();
 
-      debugPrint(
-        'DEBUG: Fallback driver query result: ${driverData != null ? 'found' : 'null'}',
-      );
-
-      if (driverData == null) {
-        debugPrint('DEBUG: No driver data found for userId: $userId');
+      if (response == null) {
+        debugPrint('DEBUG: Driver profile not found for userId: $userId');
         return null;
       }
 
-      debugPrint('DEBUG: Driver data found: $driverData');
-
-      // Fetch user data separately - use * to get all available columns
-      // since the schema may vary (email column doesn't exist)
-      Map<String, dynamic>? userData;
-      try {
-        userData = await _supabase
-            .from('users')
-            .select('*')
-            .eq('id', userId)
-            .maybeSingle();
-        debugPrint('DEBUG: User data: $userData');
-      } catch (userError) {
-        debugPrint('DEBUG: Error fetching user data: $userError');
-        // Continue without user data - driver data is still valid
-      }
-
-      // Combine the data
-      final coverage = await _getCoverageNames(userId);
-      final combinedData = {
-        ...driverData,
-        'users': userData,
-        'service_areas': coverage['areas'],
-        'schools': coverage['schools'],
-      };
-
-      return DriverProfileModel.fromMap(combinedData);
+      debugPrint('DEBUG: Driver profile found');
+      return DriverProfileModel.fromJson(response);
     } catch (e) {
-      debugPrint('DEBUG: Error fetching driver profile (fallback): $e');
+      debugPrint('DEBUG: Error fetching driver profile: $e');
       return null;
     }
-  }
-
-  Future<Map<String, List<String>>> _getCoverageNames(String userId) async {
-    final serviceAreas = <String>[];
-    final schools = <String>[];
-
-    try {
-      final areaRows = await _supabase
-          .from('driver_service_areas')
-          .select('area:areas(name)')
-          .eq('driver_id', userId);
-      for (final row in areaRows as List) {
-        final area = row['area'] as Map<String, dynamic>?;
-        final name = area?['name'] as String?;
-        if (name != null && name.trim().isNotEmpty) {
-          serviceAreas.add(name);
-        }
-      }
-    } catch (e) {
-      debugPrint('DEBUG: Error loading service areas: $e');
-    }
-
-    try {
-      final schoolRows = await _supabase
-          .from('driver_covered_schools')
-          .select('school:schools(name)')
-          .eq('driver_id', userId);
-      for (final row in schoolRows as List) {
-        final school = row['school'] as Map<String, dynamic>?;
-        final name = school?['name'] as String?;
-        if (name != null && name.trim().isNotEmpty) {
-          schools.add(name);
-        }
-      }
-    } catch (e) {
-      debugPrint('DEBUG: Error loading covered schools: $e');
-    }
-
-    return {'areas': serviceAreas, 'schools': schools};
   }
 
   /// Updates the driver profile
@@ -496,7 +396,7 @@ class DriverProfileRepository {
           .order('day_of_week');
 
       return (response as List)
-          .map((e) => DriverScheduleModel.fromMap(e))
+          .map((e) => DriverScheduleModel.fromJson(e))
           .toList();
     } catch (e) {
       debugPrint('Error fetching driver schedules: $e');
@@ -524,7 +424,7 @@ class DriverProfileRepository {
   /// Create a new schedule
   Future<String?> createSchedule(DriverScheduleModel schedule) async {
     try {
-      final mapData = schedule.toMap();
+      final mapData = schedule.toJson();
       debugPrint(
         'DEBUG createSchedule: Inserting schedule with data: $mapData',
       );

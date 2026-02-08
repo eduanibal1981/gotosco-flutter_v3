@@ -7,6 +7,7 @@ import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_ti
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../data/driver_location_model.dart';
+import '../data/models/booking_location_model.dart';
 import '../data/tracking_repository.dart';
 import 'tracking_controller.dart';
 import 'widgets/tracking_info_card.dart';
@@ -104,38 +105,43 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
         ),
         error: (error, _) =>
             Center(child: Text('Error loading booking: $error')),
-        data: (bookingLocations) => Stack(
-          children: [
-            // Map Layer
-            locationAsync.when(
-              data: (location) => _buildMap(location, bookingLocations),
-              loading: () => _buildMap(null, bookingLocations),
-              error: (error, _) =>
-                  _buildMapWithError(error.toString(), bookingLocations),
-            ),
-
-            // Loading Overlay (only when loading driver location)
-            if (locationAsync.isLoading && !locationAsync.hasValue)
-              const Center(
-                child: CircularProgressIndicator(color: Colors.indigo),
+        data: (bookingLocation) {
+          if (bookingLocation == null) {
+            return const Center(child: Text('Booking location not found'));
+          }
+          return Stack(
+            children: [
+              // Map Layer
+              locationAsync.when(
+                data: (location) => _buildMap(location, bookingLocation),
+                loading: () => _buildMap(null, bookingLocation),
+                error: (error, _) =>
+                    _buildMapWithError(error.toString(), bookingLocation),
               ),
 
-            // Bottom Info Card
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: _buildInfoCard(locationAsync, bookingLocations),
-            ),
-          ],
-        ),
+              // Loading Overlay (only when loading driver location)
+              if (locationAsync.isLoading && !locationAsync.hasValue)
+                const Center(
+                  child: CircularProgressIndicator(color: Colors.indigo),
+                ),
+
+              // Bottom Info Card
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: _buildInfoCard(locationAsync, bookingLocation),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 
   Widget _buildInfoCard(
-    AsyncValue<DriverLocation> locationAsync,
-    BookingLocations bookingLocations,
+    AsyncValue<DriverLocation?> locationAsync,
+    BookingLocation bookingLocations,
   ) {
     final driverName = bookingLocations.driverName ?? 'Driver';
 
@@ -144,7 +150,7 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
     // Determine status based on async state
     final String status = locationAsync.when(
       data: (location) {
-        if (!location.isOnline) {
+        if (location == null || !location.isOnline) {
           return 'Driver offline';
         }
         // Calculate ETA
@@ -185,7 +191,7 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);
           } else {
-            if (context.mounted) {
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('Could not launch phone app')),
               );
@@ -194,7 +200,9 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
         } else {
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Driver phone number not available')),
+              const SnackBar(
+                content: Text('Driver phone number not available'),
+              ),
             );
           }
         }
@@ -206,7 +214,7 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
   /// Determines the destination based on trip type.
   /// - pickup: Driver is going to home location
   /// - dropoff: Driver is going to school location
-  LatLng? _getDestination(DriverLocation location, BookingLocations booking) {
+  LatLng? _getDestination(DriverLocation location, BookingLocation booking) {
     switch (location.tripType) {
       case 'pickup':
         return booking.home;
@@ -220,7 +228,7 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
 
   Widget _buildMap(
     DriverLocation? driverLocation,
-    BookingLocations bookingLocations,
+    BookingLocation bookingLocations,
   ) {
     final driverPosition = driverLocation?.position;
 
@@ -308,7 +316,7 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
     );
   }
 
-  Widget _buildMapWithError(String error, BookingLocations bookingLocations) {
+  Widget _buildMapWithError(String error, BookingLocation bookingLocations) {
     return Stack(
       children: [
         _buildMap(null, bookingLocations),

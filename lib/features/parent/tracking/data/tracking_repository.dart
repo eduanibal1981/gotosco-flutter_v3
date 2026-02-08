@@ -3,31 +3,13 @@ import 'package:latlong2/latlong.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'driver_location_model.dart';
+import 'models/booking_location_model.dart';
 
 part 'tracking_repository.g.dart';
 
 @riverpod
 TrackingRepository trackingRepository(Ref ref) {
   return TrackingRepository(Supabase.instance.client);
-}
-
-/// Represents the home and school locations from a booking.
-class BookingLocations {
-  final LatLng? home;
-  final LatLng? school;
-  final String? driverId;
-  final String? driverName;
-  final String? driverPhone;
-
-  BookingLocations({
-    this.home,
-    this.school,
-    this.driverId,
-    this.driverName,
-    this.driverPhone,
-  });
-
-  bool get hasLocations => home != null || school != null;
 }
 
 class TrackingRepository {
@@ -38,162 +20,97 @@ class TrackingRepository {
   /// Returns a stream of real-time driver location updates.
   /// Uses Supabase Realtime to listen for changes to the driver_locations table.
   /// Only returns data when driver is online.
-  Stream<DriverLocation> getDriverLocationStream(String driverId) {
-    // Manually merge streams since we don't have RxDart
-    late StreamController<DriverLocation> controller;
-    StreamSubscription? locationSub;
-    StreamSubscription? driverSub;
+  /// Returns a stream of real-time driver location updates.
+  /// Uses Supabase Realtime for trigger, then fetches full data from View.
+  Stream<DriverLocation?> getDriverLocationStream(String driverId) {
+    late StreamController<DriverLocation?> controller;
+    StreamSubscription? sub;
 
-    DriverLocation? lastLocation;
-    bool isOnline = false;
-
-    void emit() {
-      if (lastLocation != null && !controller.isClosed) {
-        controller.add(lastLocation!.copyWith(isOnline: isOnline));
-      }
-    }
-
-    controller = StreamController<DriverLocation>(
+    controller = StreamController<DriverLocation?>(
       onListen: () {
-        // 1. Listen to Data (High Frequency)
-        locationSub = _supabase
+        // Initial Fetch
+        getDriverLocation(driverId).then((loc) {
+          //if (loc != null && !controller.isClosed) controller.add(loc);
+          if (!controller.isClosed) controller.add(loc);
+        });
+
+        // Listen to changes on base table 'driver_locations'
+        sub = _supabase
             .from('driver_locations')
             .stream(primaryKey: ['driver_id'])
             .eq('driver_id', driverId)
-            .listen((data) {
-              if (data.isNotEmpty) {
-                lastLocation = DriverLocation.fromMap(data.first);
-                emit();
-              } else {
-                // If no location record exists, create a default "offline" one
-                // This prevents the stream from hanging in "loading" state
-                lastLocation = DriverLocation(
-                  driverId: driverId,
-                  latitude: 0,
-                  longitude: 0,
-                  heading: 0,
-                  speed: 0,
-                  updatedAt: DateTime.now(),
-                  isOnline: isOnline,
-                );
-                emit();
+            .listen((_) async {
+              // Re-fetch from view to get joined status
+              final loc = await getDriverLocation(driverId);
+              if (!controller.isClosed) {
+                controller.add(loc);
               }
-            }, onError: controller.addError);
-
-        // 2. Listen to Status (Low Frequency)
-        // 2. Listen to Status (Low Frequency)
-        driverSub = _supabase
-            .from('users')
-            .stream(primaryKey: ['id'])
-            .eq('id', driverId)
-            .listen(
-              (data) {
-                if (data.isNotEmpty) {
-                  // Use is_app_online AND is_online_visible from users table
-                  final isAppOnline =
-                      data.first['is_app_online'] as bool? ?? false;
-                  final isVisible =
-                      data.first['is_online_visible'] as bool? ?? true;
-
-                  // Logic:
-                  // If NOT visible -> Always Offline
-                  // If visible -> Online if app is online
-                  isOnline = isVisible && isAppOnline;
-
-                  if (lastLocation != null) emit();
-                }
-              },
-              onError: (e) {
-                // Log but don't crash main stream
-                print('Error streaming driver status: $e');
-              },
-            );
+            });
       },
       onCancel: () {
-        locationSub?.cancel();
-        driverSub?.cancel();
+        sub?.cancel();
       },
     );
 
     return controller.stream;
   }
 
-  /// Fetches the latest driver location (one-time read).
+  /// Fetches the latest driver location from View.
   Future<DriverLocation?> getDriverLocation(String driverId) async {
-    final results = await Future.wait([
-      _supabase
-          .from('driver_locations')
-          .select()
-          .eq('driver_id', driverId)
-          .maybeSingle(),
-      _supabase
-          .from('users')
-          .select('is_app_online, is_online_visible')
-          .eq('id', driverId)
-          .maybeSingle(),
-    ]);
+    final data = await _supabase
+        .from('tracking_view')
+        .select()
+        .eq('driver_id', driverId)
+        .maybeSingle();
 
-    final locData = results[0];
-    final userData = results[1];
-
-    if (locData == null) return null;
-
-    final isAppOnline = userData?['is_app_online'] as bool? ?? false;
-    final isVisible = userData?['is_online_visible'] as bool? ?? true;
-    final isOnline = isVisible && isAppOnline;
-
-    return DriverLocation.fromMap(locData).copyWith(isOnline: isOnline);
+    if (data == null) return null;
+    return DriverLocation.fromJson(data);
   }
 
   /// Fetches home and school locations from a booking.
-  Future<BookingLocations> getBookingLocations(String bookingId) async {
-    final response = await _supabase
-        .from('bookings')
-        .select('''
-          home_lat, home_lng, school_lat, school_lng, driver_id,
-          drivers!bookings_driver_id_fkey(
-            users!drivers_user_id_fkey(full_name, phone)
-          )
-        ''')
-        .eq('id', bookingId)
+  Future<BookingLocation?> getBookingLocations(String bookingId) async {
+    final data = await _supabase
+        .from('booking_locations_view')
+        .select()
+        .eq('booking_id', bookingId)
         .maybeSingle();
 
-    if (response == null) {
-      return BookingLocations();
+    if (data == null) {
+      return null;
     }
 
-    final homeLat = response['home_lat'] as num?;
-    final homeLng = response['home_lng'] as num?;
-    final schoolLat = response['school_lat'] as num?;
-    final schoolLng = response['school_lng'] as num?;
-
-    // Navigate through the nested structure: drivers -> users -> full_name
-    final driverData = response['drivers']?['users'];
-    final driverName = driverData?['full_name'] as String?;
-    final driverPhone = driverData?['phone'] as String?;
-
-    return BookingLocations(
-      home: (homeLat != null && homeLng != null)
-          ? LatLng(homeLat.toDouble(), homeLng.toDouble())
-          : null,
-      school: (schoolLat != null && schoolLng != null)
-          ? LatLng(schoolLat.toDouble(), schoolLng.toDouble())
-          : null,
-      driverId: response['driver_id'] as String?,
-      driverName: driverName,
-      driverPhone: driverPhone,
-    );
+    return BookingLocation.fromJson(data);
   }
 
   Stream<Map<String, dynamic>?> streamLatestRideEvent(String bookingId) {
+    final now = DateTime.now();
+
+    // 1. Get Midnight in LOCAL time (e.g., 00:00 Muscat)
+    final localMidnight = DateTime(now.year, now.month, now.day);
+
+    // 2. Convert to UTC (e.g., 20:00 Yesterday UTC)
+    // This adds the 'Z' at the end: "2026-02-07T20:00:00.000Z"
+    final utcMidnightStr = localMidnight.toUtc().toIso8601String();
+
     return _supabase
         .from('ride_events')
         .stream(primaryKey: ['id'])
         .eq('booking_id', bookingId)
         .order('created_at', ascending: false)
+        .limit(1)
         .map((events) {
           if (events.isEmpty) return null;
-          return Map<String, dynamic>.from(events.first);
+          final event = events.first;
+
+          // Filter in Dart since .gte() is not supported on stream()
+          final eventTime = DateTime.tryParse(event['created_at'].toString());
+          final cutoffTime = DateTime.parse(utcMidnightStr);
+
+          if (eventTime != null && eventTime.isBefore(cutoffTime)) {
+            return null;
+          }
+
+          return Map<String, dynamic>.from(event);
         });
   }
 

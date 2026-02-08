@@ -1,6 +1,9 @@
 // lib/features/driver/dashboard/data/driver_dashboard_repository.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'models/driver_stats_model.dart';
+import 'models/driver_trip_model.dart';
+import '../../transport_requests/data/models/driver_request_model.dart';
 
 part 'driver_dashboard_repository.g.dart';
 
@@ -23,19 +26,20 @@ Future<DriverDashboardState> driverDashboardState(Ref ref) async {
 
 /// Provider for driver stats (students, pending requests, earnings)
 @riverpod
-Future<Map<String, dynamic>> driverStats(Ref ref) async {
+Future<DriverStats> driverStats(Ref ref) async {
   return ref.watch(driverDashboardRepositoryProvider).getDriverStats();
 }
 
 /// Provider for driver's booking requests (pending)
 @riverpod
-Stream<List<Map<String, dynamic>>> driverBookingRequests(Ref ref) {
+Stream<List<DriverRequest>> driverBookingRequests(Ref ref) {
   return ref
       .watch(driverDashboardRepositoryProvider)
       .getBookingRequestsStream();
 }
 
 /// Provider for driver's enrolled students
+/// Returns List<Map> for compatibility with existing UI for now
 @riverpod
 Future<List<Map<String, dynamic>>> driverStudents(Ref ref) {
   return ref.watch(driverDashboardRepositoryProvider).getEnrolledStudents();
@@ -43,34 +47,30 @@ Future<List<Map<String, dynamic>>> driverStudents(Ref ref) {
 
 /// Provider for today's trips
 @riverpod
-Future<List<Map<String, dynamic>>> todaysTrips(Ref ref) {
+Future<List<DriverTrip>> todaysTrips(Ref ref) {
   return ref.watch(driverDashboardRepositoryProvider).getTodaysTrips();
 }
 
 /// Provider for active trip (if any)
 @riverpod
-Future<Map<String, dynamic>?> activeTrip(Ref ref) {
+Future<DriverTrip?> activeTrip(Ref ref) {
   return ref.watch(driverDashboardRepositoryProvider).getActiveTrip();
 }
 
 /// Provider for the next scheduled trip (Go to School first, then Return)
 @riverpod
-Future<Map<String, dynamic>?> nextScheduledTrip(Ref ref) async {
+Future<DriverTrip?> nextScheduledTrip(Ref ref) async {
   final trips = await ref.watch(todaysTripsProvider.future);
   if (trips.isEmpty) return null;
 
   // Filter to only scheduled trips (not in_progress or completed)
-  final scheduledTrips = trips
-      .where((t) => t['status'] == 'scheduled')
-      .toList();
+  final scheduledTrips = trips.where((t) => t.status == 'scheduled').toList();
   if (scheduledTrips.isEmpty) return null;
 
   // Sort: Go to School(s) first, then Return from School(s)
   scheduledTrips.sort((a, b) {
-    final aType = a['trip_type'] as String? ?? '';
-    final bType = b['trip_type'] as String? ?? '';
-    if (aType.contains('Go') && !bType.contains('Go')) return -1;
-    if (!aType.contains('Go') && bType.contains('Go')) return 1;
+    if (a.tripType.contains('Go') && !b.tripType.contains('Go')) return -1;
+    if (!a.tripType.contains('Go') && b.tripType.contains('Go')) return 1;
     return 0;
   });
 
@@ -169,10 +169,7 @@ class DriverDashboardRepository {
   }
 
   /// Check if driver profile has all required fields filled
-  /// Required: vehicle_type, vehicle_number, vehicle_capacity, license_number,
-  /// license_image_url, mulkia_image_url
   Future<bool> isProfileComplete(Map<String, dynamic> profile) async {
-    // Check vehicle details
     final hasVehicleType =
         profile['vehicle_type'] != null &&
         (profile['vehicle_type'] as String).isNotEmpty;
@@ -182,23 +179,15 @@ class DriverDashboardRepository {
     final hasVehicleCapacity =
         profile['vehicle_capacity'] != null &&
         (profile['vehicle_capacity'] as int) > 0;
-
-    // Check driver license
     final hasLicenseNumber =
         profile['license_number'] != null &&
         (profile['license_number'] as String).isNotEmpty;
-
-    // Check document uploads (license and registration pictures)
     final hasLicenseImage =
         profile['license_image_url'] != null &&
         (profile['license_image_url'] as String).isNotEmpty;
     final hasMulkiaImage =
         profile['mulkia_image_url'] != null &&
         (profile['mulkia_image_url'] as String).isNotEmpty;
-
-    // Check schedules - driver schedule is now OPTIONAL (as per advanced logic)
-    // We allow Manual Mode by default for new drivers.
-    // final hasSchedule = await hasSchedules();
 
     return hasVehicleType &&
         hasVehicleNumber &&
@@ -210,164 +199,92 @@ class DriverDashboardRepository {
 
   /// Determine the current dashboard state
   Future<DriverDashboardState> getDashboardState() async {
-    // 1. Check for driver profile existence
     final profile = await getDriverProfile();
     if (profile == null) {
       return DriverDashboardState.noProfile;
     }
 
-    // 2. Check if profile is complete (has all required fields + schedule)
     final profileComplete = await isProfileComplete(profile);
     if (!profileComplete) {
       return DriverDashboardState.profileIncomplete;
     }
 
-    // 3. Check for active trip
     final activeTrip = await getActiveTrip();
     if (activeTrip != null) {
       return DriverDashboardState.activeTrip;
     }
 
-    // 4. Check for today's trips
     final todaysTrips = await getTodaysTrips();
     if (todaysTrips.isNotEmpty) {
       return DriverDashboardState.hasTrips;
     }
 
-    // 5. Check for pending requests
     final stats = await getDriverStats();
-    if ((stats['pending_requests'] as int) > 0) {
+    if (stats.pendingRequests > 0) {
       return DriverDashboardState.hasRequests;
     }
 
-    // 6. Default: Profile only (complete but no bookings)
     return DriverDashboardState.profileOnly;
   }
 
-  /// Get driver stats: active students, pending requests, monthly earnings
-  Future<Map<String, dynamic>> getDriverStats() async {
+  /// Get driver stats from driver_stats_view
+  Future<DriverStats> getDriverStats() async {
     try {
-      // 1. Get all accepted bookings to calculate earnings and get booking IDs
-      // Added 'active' to the status filter just in case
-      final acceptedBookings = await _supabase
-          .from('bookings')
-          .select('id, price')
+      final response = await _supabase
+          .from('driver_stats_view')
+          .select()
           .eq('driver_id', _driverId)
-          .inFilter('status', ['accepted', 'confirmed', 'active']);
+          .maybeSingle();
 
-      print(
-        'DEBUG: Found ${acceptedBookings.length} active bookings for stats',
-      );
-
-      // 2. Get unique children count across all accepted bookings
-      final acceptedBookingIds = (acceptedBookings as List)
-          .map((b) => b['id'])
-          .toList();
-      int uniqueStudents = 0;
-      if (acceptedBookingIds.isNotEmpty) {
-        final children = await _supabase
-            .from('booking_children')
-            .select('child_id')
-            .inFilter('booking_id', acceptedBookingIds);
-
-        // Use a set to count unique child IDs
-        final uniqueChildIds = (children as List)
-            .map((c) => c['child_id'])
-            .toSet();
-        uniqueStudents = uniqueChildIds.length;
+      if (response == null) {
+        return DriverStats(driverId: _driverId);
       }
-
-      // 3. Get pending requests count
-      final pendingCount = await _supabase
-          .from('bookings')
-          .select('id')
-          .eq('driver_id', _driverId)
-          .eq('status', 'pending');
-
-      final int pendingRequests = (pendingCount as List).length;
-
-      // 4. Calculate total monthly earnings (sum of price of accepted bookings)
-      double totalEarnings = 0;
-      for (var booking in acceptedBookings) {
-        // Robust parsing handling String or num
-        final priceVal = booking['price'];
-        double price = 0;
-        if (priceVal is num) {
-          price = priceVal.toDouble();
-        } else if (priceVal is String) {
-          price = double.tryParse(priceVal) ?? 0;
-        }
-        totalEarnings += price;
-      }
-
-      return {
-        'active_students': uniqueStudents,
-        'pending_requests': pendingRequests,
-        'active_bookings': acceptedBookings.length,
-        'monthly_earnings': totalEarnings.toInt(),
-      };
+      return DriverStats.fromJson(response);
     } catch (e) {
       print('Error in getDriverStats: $e');
-      return {
-        'active_students': 0,
-        'pending_requests': 0,
-        'active_bookings': 0,
-        'monthly_earnings': 0,
-      };
+      return DriverStats(driverId: _driverId);
     }
   }
 
-  /// Get today's trips
-  Future<List<Map<String, dynamic>>> getTodaysTrips() async {
+  /// Get today's trips from driver_trips_view
+  Future<List<DriverTrip>> getTodaysTrips() async {
     final today = DateTime.now();
     final todayStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     try {
-      // First, check ALL trips for this driver (diagnostic)
-      final allTrips = await _supabase
-          .from('trips')
-          .select('id, trip_date, trip_type, status')
-          .eq('driver_id', _driverId);
-      print('DEBUG getTodaysTrips: ALL trips for driver: $allTrips');
-
-      // Now get today's trips
       final trips = await _supabase
-          .from('trips')
-          .select(
-            '*, route_stops(*, children(name), bookings(hometxt_location, schooltxt_location))',
-          )
+          .from('driver_trips_view')
+          .select()
           .eq('driver_id', _driverId)
           .eq('trip_date', todayStr)
           .order('trip_type');
 
-      print('DEBUG getTodaysTrips: Found ${trips.length} trips for $todayStr');
-      return List<Map<String, dynamic>>.from(trips);
+      return (trips as List).map((t) => DriverTrip.fromJson(t)).toList();
     } catch (e) {
       print('DEBUG getTodaysTrips error: $e');
       return [];
     }
   }
 
-  /// Get active trip (status = 'in_progress')
-  Future<Map<String, dynamic>?> getActiveTrip() async {
+  /// Get active trip from driver_trips_view
+  Future<DriverTrip?> getActiveTrip() async {
     try {
       final trip = await _supabase
-          .from('trips')
-          .select(
-            '*, route_stops(*, children(name), bookings(hometxt_location, schooltxt_location))',
-          )
+          .from('driver_trips_view')
+          .select()
           .eq('driver_id', _driverId)
           .eq('status', 'in_progress')
           .maybeSingle();
-      return trip;
+
+      if (trip == null) return null;
+      return DriverTrip.fromJson(trip);
     } catch (e) {
       return null;
     }
   }
 
   /// Generate all daily trips using database RPC functions
-  /// Calls both generate_go_trips and generate_return_trips
   Future<Map<String, bool>> generateDailyTrips() async {
     final goSuccess = await generateGoTrips();
     final returnSuccess = await generateReturnTrips();
@@ -380,15 +297,10 @@ class DriverDashboardRepository {
       final today = DateTime.now();
       final todayStr =
           '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      print('DEBUG generateGoTrips: Calling RPC for driver $_driverId');
-      final result = await _supabase.rpc(
+      await _supabase.rpc(
         'generate_go_trips',
-        params: {
-          'target_date': todayStr, // Add target_date back
-          'target_driver_id': _driverId,
-        },
+        params: {'target_date': todayStr, 'target_driver_id': _driverId},
       );
-      print('DEBUG generateGoTrips: RPC completed, result: $result');
       return true;
     } catch (e) {
       print('DEBUG generateGoTrips ERROR: $e');
@@ -413,27 +325,15 @@ class DriverDashboardRepository {
     }
   }
 
-  /// Delete today's trips for the current driver
+  /// Delete today's trips
   Future<bool> deleteTodaysTrips() async {
     final today = DateTime.now();
     final todayStr =
         '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     try {
-      // Use the regeneration function which handles secure deletion
-      // But we just want to delete?
-      // If we just want to delete, we can try the raw delete again, but we know it might fail due to RLS.
-      // Ideally we'd have a delete_trips RPC.
-      // For now, let's stick to the manual logic but wrap it better?
-      // No, let's rely on regenerateDailyTrips for the main use case.
-      // If this is called independently, we might have issues.
-      // But looking at usages, it's seemingly only used in regenerateDailyTrips mostly.
-
-      // Let's iterate and delete manually for now if this is needed standalone,
-      // OR better: create a specific RPC for deletion if this is critical.
-      // Taking a look at the previous implementation, the RLS issue is the main blocker.
-      // For now, let's leave this as is (best effort) but fix regenerateDailyTrips which is the user issue.
-
+      // Manual delete logic for dependencies if RPC doesn't handle it
+      // But assuming we want to use direct delete if allowed
       final trips = await _supabase
           .from('trips')
           .select('id')
@@ -476,7 +376,7 @@ class DriverDashboardRepository {
     }
   }
 
-  /// Start a trip (update status to in_progress)
+  /// Start a trip
   Future<void> startTrip(String tripId, {double? lat, double? lng}) async {
     await _supabase.rpc(
       'start_trip',
@@ -484,7 +384,7 @@ class DriverDashboardRepository {
     );
   }
 
-  /// End a trip (update status to completed)
+  /// End a trip
   Future<void> endTrip(String tripId, {double? lat, double? lng}) async {
     await _supabase.rpc(
       'complete_trip',
@@ -498,49 +398,21 @@ class DriverDashboardRepository {
     double? lat,
     double? lng,
   }) async {
-    print('DEBUG: markStopArrived called for stop $stopId');
-    try {
-      await _supabase.rpc(
-        'process_stop',
-        params: {
-          'stop_id_input': stopId,
-          'action': 'arrived',
-          'driver_lat': lat,
-          'driver_lng': lng,
-        },
-      );
-      print('DEBUG: markStopArrived query successful');
-    } catch (e) {
-      print('DEBUG: markStopArrived failed: $e');
-      rethrow;
-    }
+    await processStop(stopId, 'arrived', lat: lat, lng: lng);
   }
 
   /// Update sequence order for a list of stops
   Future<void> updateStopSequences(
     List<Map<String, dynamic>> updatedStops,
   ) async {
-    // Extract only id and sequence_order to avoid overwriting other fields
     final payload = updatedStops
-        .map(
-          (s) => {
-            'id': s['id'],
-            'sequence_order': s['sequence_order'],
-            // We also need other required fields?
-            // No, for update (upsert on id), partial is usually fine
-            // BUT to be safe given constraints, let's hope it's a PATCH.
-            // Actually standard upsert replaces.
-            // Better to use a specific RPC or just use .update() in a loop?
-            // No, let's use upsert with specific columns.
-          },
-        )
+        .map((s) => {'id': s['id'], 'sequence_order': s['sequence_order']})
         .toList();
 
-    // Use RPC to avoid RLS issues with upsert
     await _supabase.rpc('update_route_order', params: {'updates': payload});
   }
 
-  /// Save current trip order as default for future trips
+  /// Save current trip order as default
   Future<void> saveTripOrderAsDefault(String tripId) async {
     await _supabase.rpc(
       'save_trip_order_as_default',
@@ -548,7 +420,7 @@ class DriverDashboardRepository {
     );
   }
 
-  /// Process stop action (picked_up, dropped_off, skipped, reset)
+  /// Process stop action
   Future<void> processStop(
     String stopId,
     String action, {
@@ -574,176 +446,51 @@ class DriverDashboardRepository {
         .eq('user_id', _driverId);
   }
 
-  /// Stream of pending booking requests
-  Stream<List<Map<String, dynamic>>> getBookingRequestsStream() {
-    // We use select with joins to get parent and children in one go
-    // Note: booking_children join might need to be handled carefully in stream
-    // For simplicity and correctness with Supabase Stream, we'll keep the enrichment
-    // but use safer fetching (maybeSingle or join)
+  /// Stream of pending booking requests using driver_requests_view
+  Stream<List<DriverRequest>> getBookingRequestsStream() {
     return _supabase
-        .from('bookings')
+        .from('driver_requests_view')
         .stream(primaryKey: ['id'])
         .eq('driver_id', _driverId)
         .order('created_at', ascending: false)
-        .asyncMap((bookings) async {
-          if (bookings.isEmpty) return <Map<String, dynamic>>[];
-
-          final bookingIds = bookings.map((b) => b['id']).toList();
-          final parentIds = bookings
-              .map((b) => b['parent_id'])
-              .where((id) => id != null)
-              .toSet() // Unique
-              .toList();
-
-          // 1. Fetch all parents
-          Map<String, Map<String, dynamic>> parentsMap = {};
-          if (parentIds.isNotEmpty) {
-            try {
-              final parents = await _supabase
-                  .from('users')
-                  .select('id, full_name, photo_url, phone')
-                  .inFilter('id', parentIds);
-
-              for (var p in parents as List) {
-                parentsMap[p['id']] = p;
-              }
-            } catch (e) {
-              print('Error fetching parents batch: $e');
-            }
-          }
-
-          // 2. Fetch all children for these bookings
-          Map<String, List<Map<String, dynamic>>> childrenMap = {};
-          if (bookingIds.isNotEmpty) {
-            try {
-              final childrenData = await _supabase
-                  .from('booking_children')
-                  .select('booking_id, children(*)')
-                  .inFilter('booking_id', bookingIds);
-
-              for (var item in childrenData as List) {
-                final bId = item['booking_id'] as String;
-                final child = item['children'] as Map<String, dynamic>?;
-
-                if (child != null) {
-                  if (!childrenMap.containsKey(bId)) {
-                    childrenMap[bId] = [];
-                  }
-                  childrenMap[bId]!.add(child);
-                }
-              }
-            } catch (e) {
-              print('Error fetching children batch: $e');
-            }
-          }
-
-          // 3. Assemble
-          final enriched = <Map<String, dynamic>>[];
-          for (var booking in bookings) {
-            final parent = parentsMap[booking['parent_id']];
-            final children = childrenMap[booking['id']] ?? [];
-
-            enriched.add({
-              ...booking,
-              'parent_name': parent?['full_name'] ?? 'Unknown Parent',
-              'parent_photo': parent?['photo_url'],
-              'parent_phone': parent?['phone'] ?? '',
-              'children': children,
-              // Compatibility mapping
-              'home_location': booking['hometxt_location'],
-              'school_location': booking['schooltxt_location'],
-            });
-          }
-          return enriched;
-        });
+        .map(
+          (data) => data.map((json) => DriverRequest.fromJson(json)).toList(),
+        )
+        .map(
+          (requests) => requests.where((r) => r.status == 'pending').toList(),
+        );
   }
 
-  /// Get all enrolled students (children from accepted bookings)
+  /// Get all enrolled students using driver_requests_view
   Future<List<Map<String, dynamic>>> getEnrolledStudents() async {
     try {
-      // 1. Fetch active bookings
-      final bookings = await _supabase
-          .from('bookings')
+      final requests = await _supabase
+          .from('driver_requests_view')
           .select()
           .eq('driver_id', _driverId)
-          .inFilter('status', ['accepted', 'confirmed']);
+          .inFilter('status', ['accepted', 'confirmed', 'active']);
 
-      if ((bookings as List).isEmpty) return [];
-
-      final bookingList = bookings as List;
-      final bookingIds = bookingList.map((b) => b['id'] as String).toList();
-      final parentIds = bookingList
-          .map((b) => b['parent_id'] as String?)
-          .where((id) => id != null)
-          .toSet()
-          .toList();
-
-      // 2. Fetch Parents
-      final Map<String, Map<String, dynamic>> parentsMap = {};
-      if (parentIds.isNotEmpty) {
-        try {
-          final parents = await _supabase
-              .from('users')
-              .select('id, full_name, phone')
-              .inFilter('id', parentIds);
-          for (var p in parents as List) {
-            parentsMap[p['id']] = p as Map<String, dynamic>;
-          }
-        } catch (e) {
-          print('Error fetching parents: $e');
-        }
-      }
-
-      // 3. Fetch Children via booking_children
-      final Map<String, List<Map<String, dynamic>>> childrenMap = {};
-      if (bookingIds.isNotEmpty) {
-        try {
-          // Join with children table to get details efficiently
-          final childrenData = await _supabase
-              .from('booking_children')
-              .select('booking_id, children(*)')
-              .inFilter('booking_id', bookingIds);
-
-          for (var item in childrenData as List) {
-            final bookingId = item['booking_id'] as String;
-            final child = item['children'] as Map<String, dynamic>?;
-            if (child != null) {
-              if (!childrenMap.containsKey(bookingId)) {
-                childrenMap[bookingId] = [];
-              }
-              childrenMap[bookingId]!.add(child);
-            }
-          }
-        } catch (e) {
-          print('Error fetching children: $e');
-          // Fallback: fetch without join if join fails (though unlikely)
-        }
-      }
-
-      // 4. Assemble result
       final students = <Map<String, dynamic>>[];
-      final seenChildIds = <String>{};
-
-      for (var booking in bookingList) {
-        final bookingId = booking['id'];
-        final parent = parentsMap[booking['parent_id']];
-        final bookingChildren = childrenMap[bookingId] ?? [];
-
-        for (var child in bookingChildren) {
-          if (!seenChildIds.contains(child['id'])) {
-            seenChildIds.add(child['id']);
-            students.add({
-              ...child,
-              'parent_name': parent?['full_name'] ?? 'Unknown Parent',
-              'parent_phone': parent?['phone'] ?? '',
-              'booking_id': bookingId,
-              'home_location': booking['hometxt_location'],
-              'school_location': booking['schooltxt_location'],
-            });
-          }
+      for (final requestJson in requests) {
+        final request = DriverRequest.fromJson(requestJson);
+        // Flatten students info
+        for (final studentInfo in request.studentsInfo) {
+          // We map it to the expected structure
+          // Legacy structure: {id, name, parent_name, parent_phone, booking_id, home_location, school_location, ...}
+          students.add({
+            ...studentInfo,
+            'id': studentInfo['id'],
+            'name': studentInfo['name'],
+            'parent_name': request.parentName,
+            'parent_phone': request.parentPhone,
+            'parent_photo': request.parentPhoto,
+            'booking_id': request.id,
+            'home_location': request.homeLocation,
+            'school_location': request.schoolLocation,
+            // Add other fields if needed
+          });
         }
       }
-
       return students;
     } catch (e) {
       print('Error in getEnrolledStudents: $e');
@@ -751,7 +498,7 @@ class DriverDashboardRepository {
     }
   }
 
-  /// Accept a booking request
+  // Accept/Reject methods
   Future<void> acceptBooking(String bookingId) async {
     await _supabase
         .from('bookings')
@@ -759,7 +506,6 @@ class DriverDashboardRepository {
         .eq('id', bookingId);
   }
 
-  /// Reject a booking request
   Future<void> rejectBooking(String bookingId) async {
     await _supabase
         .from('bookings')

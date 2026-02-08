@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../dashboard/data/models/driver_stats_model.dart';
 import '../../profile/data/driver_profile_repository.dart';
 import '../../dashboard/presentation/driver_dashboard_screen.dart';
 import '../../profile/data/driver_profile_model.dart';
@@ -72,7 +73,7 @@ class EarningsTab extends ConsumerWidget {
                         const SizedBox(height: 8),
                         statsAsync.when(
                           data: (stats) => Text(
-                            '${stats['monthly_earnings'] ?? 0} OMR',
+                            '${stats.monthlyEarnings.toStringAsFixed(0)} OMR',
                             style: TextStyle(
                               fontSize: 36,
                               fontWeight: FontWeight.bold,
@@ -85,7 +86,7 @@ class EarningsTab extends ConsumerWidget {
                         const SizedBox(height: 8),
                         statsAsync.when(
                           data: (stats) => Text(
-                            'From ${stats['active_bookings'] ?? 0} active subscription${(stats['active_bookings'] ?? 0) != 1 ? 's' : ''}',
+                            'From ${stats.activeBookings} active subscription${stats.activeBookings != 1 ? 's' : ''}',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 13,
@@ -186,7 +187,7 @@ class EarningsTab extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatsRow(BuildContext context, Map<String, dynamic> stats) {
+  Widget _buildStatsRow(BuildContext context, DriverStats stats) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16),
       decoration: BoxDecoration(
@@ -204,14 +205,14 @@ class EarningsTab extends ConsumerWidget {
         children: [
           _buildStatItem(
             icon: Icons.people,
-            value: '${stats['active_students'] ?? 0}',
+            value: '${stats.activeStudents}',
             label: 'Students',
             color: Colors.blue,
           ),
           _buildDivider(),
           _buildStatItem(
             icon: Icons.book,
-            value: '${stats['active_bookings'] ?? 0}',
+            value: '${stats.activeBookings}',
             label: 'Bookings',
             color: Colors.purple,
           ),
@@ -224,7 +225,8 @@ class EarningsTab extends ConsumerWidget {
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text('Payment methods management coming soon')),
+                  content: Text('Payment methods management coming soon'),
+                ),
               );
             },
           ),
@@ -272,9 +274,7 @@ class EarningsTab extends ConsumerWidget {
       );
     }
 
-    return Expanded(
-      child: content,
-    );
+    return Expanded(child: content);
   }
 
   Widget _buildDivider() {

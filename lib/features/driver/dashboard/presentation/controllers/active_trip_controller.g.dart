@@ -13,8 +13,7 @@ part of 'active_trip_controller.dart';
 final activeTripControllerProvider = ActiveTripControllerProvider._();
 
 final class ActiveTripControllerProvider
-    extends
-        $AsyncNotifierProvider<ActiveTripController, Map<String, dynamic>?> {
+    extends $AsyncNotifierProvider<ActiveTripController, DriverTrip?> {
   ActiveTripControllerProvider._()
     : super(
         from: null,
@@ -35,25 +34,19 @@ final class ActiveTripControllerProvider
 }
 
 String _$activeTripControllerHash() =>
-    r'ce7aefaaa131178f632fa331433b0127ba04159d';
+    r'fa964137ac193373beea8c676e1a60d1c3f89d3d';
 
-abstract class _$ActiveTripController
-    extends $AsyncNotifier<Map<String, dynamic>?> {
-  FutureOr<Map<String, dynamic>?> build();
+abstract class _$ActiveTripController extends $AsyncNotifier<DriverTrip?> {
+  FutureOr<DriverTrip?> build();
   @$mustCallSuper
   @override
   void runBuild() {
-    final ref =
-        this.ref
-            as $Ref<AsyncValue<Map<String, dynamic>?>, Map<String, dynamic>?>;
+    final ref = this.ref as $Ref<AsyncValue<DriverTrip?>, DriverTrip?>;
     final element =
         ref.element
             as $ClassProviderElement<
-              AnyNotifier<
-                AsyncValue<Map<String, dynamic>?>,
-                Map<String, dynamic>?
-              >,
-              AsyncValue<Map<String, dynamic>?>,
+              AnyNotifier<AsyncValue<DriverTrip?>, DriverTrip?>,
+              AsyncValue<DriverTrip?>,
               Object?,
               Object?
             >;
