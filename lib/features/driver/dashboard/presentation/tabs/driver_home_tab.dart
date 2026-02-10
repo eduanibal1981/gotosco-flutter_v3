@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
-import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
-import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
-import '../../data/driver_dashboard_repository.dart';
+import 'package:gotosco_v3/features/auth/application/user_provider.dart';
+import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:gotosco_v3/features/auth/presentation/widgets/role_switcher_button.dart';
+import '../../domain/repositories/driver_dashboard_repository.dart';
 import '../../data/models/driver_trip_model.dart';
+import '../../application/driver_dashboard_providers.dart'; // Add providers import
 import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
 import '../../../profile/data/driver_profile_repository.dart';

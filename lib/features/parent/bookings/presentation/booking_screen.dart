@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/widgets/location_input_field.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/dashboard_controller.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../find_driver/presentation/drivers_controller.dart';
+import '../../find_driver/application/find_driver_providers.dart';
 import '../../children/data/children_repository.dart';
 import 'bookings_controller.dart';
 
@@ -127,8 +127,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     // Child Names to select later
     if (data['child_names'] != null &&
         (data['child_names'] as List).isNotEmpty) {
-      _initialChildNames =
-          (data['child_names'] as List).map((e) => e.toString()).toList();
+      _initialChildNames = (data['child_names'] as List)
+          .map((e) => e.toString())
+          .toList();
     }
   }
 
@@ -244,8 +245,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       } catch (_) {
         // fallthrough
       }
-      final pointMatch = RegExp(r'POINT\\(([-\\d\\.]+) ([-\\d\\.]+)\\)')
-          .firstMatch(text);
+      final pointMatch = RegExp(
+        r'POINT\\(([-\\d\\.]+) ([-\\d\\.]+)\\)',
+      ).firstMatch(text);
       if (pointMatch != null) {
         final lng = double.tryParse(pointMatch.group(1)!);
         final lat = double.tryParse(pointMatch.group(2)!);
@@ -292,8 +294,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
             schoolLocation: _useManualSchool
                 ? _schoolLocController.text.trim()
                 : (_schoolLocController.text.trim().isEmpty
-                    ? null
-                    : _schoolLocController.text.trim()),
+                      ? null
+                      : _schoolLocController.text.trim()),
             homeLat: _homeLat,
             homeLng: _homeLng,
             schoolLat: _schoolLat,
@@ -799,8 +801,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         InkWell(
           onTap: () async {
             if (_useManualSchool) return;
-            final result =
-                await showModalBottomSheet<Map<String, dynamic>>(
+            final result = await showModalBottomSheet<Map<String, dynamic>>(
               context: context,
               isScrollControlled: true,
               useSafeArea: true,
@@ -1021,8 +1022,7 @@ class _SchoolSelectionSheetState extends ConsumerState<_SchoolSelectionSheet> {
                           const Divider(height: 1),
                       itemBuilder: (context, index) {
                         final school = filtered[index];
-                        final isSelected =
-                            school['id'] == _selectedSchoolId;
+                        final isSelected = school['id'] == _selectedSchoolId;
                         return ListTile(
                           title: Text(school['name'] as String? ?? 'School'),
                           subtitle: school['address'] != null

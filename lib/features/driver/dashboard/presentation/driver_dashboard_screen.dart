@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
-import '../data/driver_dashboard_repository.dart';
+import '../application/driver_dashboard_providers.dart';
 import '../../earnings/presentation/earnings_tab.dart';
 import '../../profile/presentation/driver_profile_tab.dart';
 import '../../availability/presentation/driver_availability_controller.dart';
@@ -11,7 +11,7 @@ import 'package:gotosco_v3/features/driver/transport_requests/data/transport_req
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
 import '../../../../core/widgets/double_back_to_exit_wrapper.dart';
-import '../../../../core/services/driver_user_presence_service.dart';
+import '../../availability/presentation/driver_presence_service.dart';
 
 // Provider for managing selected tab index
 final driverDashboardIndexProvider =

@@ -381,6 +381,16 @@ class DriverProfileRepository {
     }
   }
 
+  /// Creates a complete driver profile with full details
+  Future<void> createCompleteProfile(Map<String, dynamic> payload) async {
+    try {
+      await _supabase.from('drivers').insert(payload);
+    } catch (e) {
+      debugPrint('Error creating complete driver profile: $e');
+      rethrow;
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // SCHEDULE METHODS
   // ═══════════════════════════════════════════════════════════════════════════

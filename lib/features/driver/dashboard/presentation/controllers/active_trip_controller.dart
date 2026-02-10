@@ -1,7 +1,9 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:geolocator/geolocator.dart'; // Add for distance calculation
-import '../../data/driver_dashboard_repository.dart';
+import '../../data/repositories/driver_dashboard_repository_impl.dart';
 import '../../data/models/driver_trip_model.dart';
+
+import '../../application/driver_dashboard_providers.dart';
 import '../../../availability/data/driver_availability_repository.dart';
 import '../../../availability/presentation/driver_availability_controller.dart';
 

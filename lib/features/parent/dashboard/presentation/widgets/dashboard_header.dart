@@ -3,10 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
-import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
-import 'package:gotosco_v3/core/widgets/role_switcher_button.dart';
-import 'package:gotosco_v3/features/parent/notifications/data/notifications_repository.dart';
+import 'package:gotosco_v3/features/auth/application/auth_controller.dart';
+import 'package:gotosco_v3/features/auth/application/user_provider.dart';
+import 'package:gotosco_v3/features/auth/presentation/widgets/role_switcher_button.dart';
+import 'package:gotosco_v3/features/parent/notifications/application/notifications_providers.dart';
 
 class DashboardHeader extends ConsumerWidget {
   const DashboardHeader({super.key});
@@ -66,7 +66,9 @@ class DashboardHeader extends ConsumerWidget {
               ),
               // Notifications Icon
               _NotificationsIcon(
-                unreadCountStream: ref.watch(parentUnreadNotificationsCountProvider),
+                unreadCountStream: ref.watch(
+                  parentUnreadNotificationsCountProvider,
+                ),
                 onPressed: () => context.push('/notifications'),
               ),
             ],
@@ -162,11 +164,12 @@ class DashboardHeader extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(authRepositoryProvider).signOut();
+              await ref.read(authControllerProvider.notifier).signOut();
               if (context.mounted) {
                 context.go('/login');
               }
             },
+
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,

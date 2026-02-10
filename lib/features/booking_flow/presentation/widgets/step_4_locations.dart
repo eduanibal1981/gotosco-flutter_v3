@@ -11,7 +11,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/widgets/map_picker_screen.dart';
 import '../controllers/booking_flow_controller.dart';
-import '../../../auth/presentation/user_provider.dart';
+import '../../../auth/application/user_provider.dart';
 
 /// Step 4: Set pickup and dropoff locations
 class Step4Locations extends ConsumerStatefulWidget {

@@ -19,6 +19,9 @@ abstract class UserSession with _$UserSession {
     required List<String> roles,
     required String activeRole,
     @Default('phone') String authProvider,
+    String? locationText,
+    double? locationLat,
+    double? locationLng,
   }) = _UserSession;
 
   const UserSession._();

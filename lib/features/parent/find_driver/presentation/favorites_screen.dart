@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'providers/favorites_provider.dart';
+import '../application/find_driver_providers.dart';
 import 'widgets/driver_ad_card.dart';
 
 class FavoritesScreen extends ConsumerWidget {
@@ -42,10 +42,7 @@ class FavoritesScreen extends ConsumerWidget {
                   const SizedBox(height: 8),
                   Text(
                     'Save drivers you like to see them here',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
                   ),
                 ],
               ),
@@ -66,9 +63,7 @@ class FavoritesScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Text('Error: $error'),
-        ),
+        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
   }

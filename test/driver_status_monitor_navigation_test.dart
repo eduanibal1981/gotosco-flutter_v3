@@ -5,8 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/dashboard_controller.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/widgets/driver_status_monitor.dart';
-import 'package:gotosco_v3/features/parent/tracking/presentation/tracking_controller.dart';
-import 'package:gotosco_v3/features/parent/tracking/data/driver_location_model.dart';
+import 'package:gotosco_v3/features/parent/tracking/application/tracking_providers.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/models/driver_location_model.dart';
 
 void main() {
   testWidgets(

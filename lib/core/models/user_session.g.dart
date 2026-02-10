@@ -15,6 +15,9 @@ _UserSession _$UserSessionFromJson(Map<String, dynamic> json) => _UserSession(
   roles: (json['roles'] as List<dynamic>).map((e) => e as String).toList(),
   activeRole: json['activeRole'] as String,
   authProvider: json['authProvider'] as String? ?? 'phone',
+  locationText: json['locationText'] as String?,
+  locationLat: (json['locationLat'] as num?)?.toDouble(),
+  locationLng: (json['locationLng'] as num?)?.toDouble(),
 );
 
 Map<String, dynamic> _$UserSessionToJson(_UserSession instance) =>
@@ -27,4 +30,7 @@ Map<String, dynamic> _$UserSessionToJson(_UserSession instance) =>
       'roles': instance.roles,
       'activeRole': instance.activeRole,
       'authProvider': instance.authProvider,
+      'locationText': instance.locationText,
+      'locationLat': instance.locationLat,
+      'locationLng': instance.locationLng,
     };

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$UserSession {
 
- String get userId; String get fullName; String? get email; String? get phone; String? get photoUrl; List<String> get roles; String get activeRole; String get authProvider;
+ String get userId; String get fullName; String? get email; String? get phone; String? get photoUrl; List<String> get roles; String get activeRole; String get authProvider; String? get locationText; double? get locationLat; double? get locationLng;
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $UserSessionCopyWith<UserSession> get copyWith => _$UserSessionCopyWithImpl<User
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other.roles, roles)&&(identical(other.activeRole, activeRole) || other.activeRole == activeRole)&&(identical(other.authProvider, authProvider) || other.authProvider == authProvider));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other.roles, roles)&&(identical(other.activeRole, activeRole) || other.activeRole == activeRole)&&(identical(other.authProvider, authProvider) || other.authProvider == authProvider)&&(identical(other.locationText, locationText) || other.locationText == locationText)&&(identical(other.locationLat, locationLat) || other.locationLat == locationLat)&&(identical(other.locationLng, locationLng) || other.locationLng == locationLng));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,fullName,email,phone,photoUrl,const DeepCollectionEquality().hash(roles),activeRole,authProvider);
+int get hashCode => Object.hash(runtimeType,userId,fullName,email,phone,photoUrl,const DeepCollectionEquality().hash(roles),activeRole,authProvider,locationText,locationLat,locationLng);
 
 @override
 String toString() {
-  return 'UserSession(userId: $userId, fullName: $fullName, email: $email, phone: $phone, photoUrl: $photoUrl, roles: $roles, activeRole: $activeRole, authProvider: $authProvider)';
+  return 'UserSession(userId: $userId, fullName: $fullName, email: $email, phone: $phone, photoUrl: $photoUrl, roles: $roles, activeRole: $activeRole, authProvider: $authProvider, locationText: $locationText, locationLat: $locationLat, locationLng: $locationLng)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $UserSessionCopyWith<$Res>  {
   factory $UserSessionCopyWith(UserSession value, $Res Function(UserSession) _then) = _$UserSessionCopyWithImpl;
 @useResult
 $Res call({
- String userId, String fullName, String? email, String? phone, String? photoUrl, List<String> roles, String activeRole, String authProvider
+ String userId, String fullName, String? email, String? phone, String? photoUrl, List<String> roles, String activeRole, String authProvider, String? locationText, double? locationLat, double? locationLng
 });
 
 
@@ -65,7 +65,7 @@ class _$UserSessionCopyWithImpl<$Res>
 
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? fullName = null,Object? email = freezed,Object? phone = freezed,Object? photoUrl = freezed,Object? roles = null,Object? activeRole = null,Object? authProvider = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? userId = null,Object? fullName = null,Object? email = freezed,Object? phone = freezed,Object? photoUrl = freezed,Object? roles = null,Object? activeRole = null,Object? authProvider = null,Object? locationText = freezed,Object? locationLat = freezed,Object? locationLng = freezed,}) {
   return _then(_self.copyWith(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
@@ -75,7 +75,10 @@ as String?,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: 
 as String?,roles: null == roles ? _self.roles : roles // ignore: cast_nullable_to_non_nullable
 as List<String>,activeRole: null == activeRole ? _self.activeRole : activeRole // ignore: cast_nullable_to_non_nullable
 as String,authProvider: null == authProvider ? _self.authProvider : authProvider // ignore: cast_nullable_to_non_nullable
-as String,
+as String,locationText: freezed == locationText ? _self.locationText : locationText // ignore: cast_nullable_to_non_nullable
+as String?,locationLat: freezed == locationLat ? _self.locationLat : locationLat // ignore: cast_nullable_to_non_nullable
+as double?,locationLng: freezed == locationLng ? _self.locationLng : locationLng // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 
@@ -160,10 +163,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  String fullName,  String? email,  String? phone,  String? photoUrl,  List<String> roles,  String activeRole,  String authProvider)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( String userId,  String fullName,  String? email,  String? phone,  String? photoUrl,  List<String> roles,  String activeRole,  String authProvider,  String? locationText,  double? locationLat,  double? locationLng)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _UserSession() when $default != null:
-return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoUrl,_that.roles,_that.activeRole,_that.authProvider);case _:
+return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoUrl,_that.roles,_that.activeRole,_that.authProvider,_that.locationText,_that.locationLat,_that.locationLng);case _:
   return orElse();
 
 }
@@ -181,10 +184,10 @@ return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoU
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  String fullName,  String? email,  String? phone,  String? photoUrl,  List<String> roles,  String activeRole,  String authProvider)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( String userId,  String fullName,  String? email,  String? phone,  String? photoUrl,  List<String> roles,  String activeRole,  String authProvider,  String? locationText,  double? locationLat,  double? locationLng)  $default,) {final _that = this;
 switch (_that) {
 case _UserSession():
-return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoUrl,_that.roles,_that.activeRole,_that.authProvider);case _:
+return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoUrl,_that.roles,_that.activeRole,_that.authProvider,_that.locationText,_that.locationLat,_that.locationLng);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -201,10 +204,10 @@ return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoU
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  String fullName,  String? email,  String? phone,  String? photoUrl,  List<String> roles,  String activeRole,  String authProvider)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( String userId,  String fullName,  String? email,  String? phone,  String? photoUrl,  List<String> roles,  String activeRole,  String authProvider,  String? locationText,  double? locationLat,  double? locationLng)?  $default,) {final _that = this;
 switch (_that) {
 case _UserSession() when $default != null:
-return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoUrl,_that.roles,_that.activeRole,_that.authProvider);case _:
+return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoUrl,_that.roles,_that.activeRole,_that.authProvider,_that.locationText,_that.locationLat,_that.locationLng);case _:
   return null;
 
 }
@@ -216,7 +219,7 @@ return $default(_that.userId,_that.fullName,_that.email,_that.phone,_that.photoU
 @JsonSerializable()
 
 class _UserSession extends UserSession {
-  const _UserSession({required this.userId, required this.fullName, this.email, this.phone, this.photoUrl, required final  List<String> roles, required this.activeRole, this.authProvider = 'phone'}): _roles = roles,super._();
+  const _UserSession({required this.userId, required this.fullName, this.email, this.phone, this.photoUrl, required final  List<String> roles, required this.activeRole, this.authProvider = 'phone', this.locationText, this.locationLat, this.locationLng}): _roles = roles,super._();
   factory _UserSession.fromJson(Map<String, dynamic> json) => _$UserSessionFromJson(json);
 
 @override final  String userId;
@@ -233,6 +236,9 @@ class _UserSession extends UserSession {
 
 @override final  String activeRole;
 @override@JsonKey() final  String authProvider;
+@override final  String? locationText;
+@override final  double? locationLat;
+@override final  double? locationLng;
 
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
@@ -247,16 +253,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other._roles, _roles)&&(identical(other.activeRole, activeRole) || other.activeRole == activeRole)&&(identical(other.authProvider, authProvider) || other.authProvider == authProvider));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _UserSession&&(identical(other.userId, userId) || other.userId == userId)&&(identical(other.fullName, fullName) || other.fullName == fullName)&&(identical(other.email, email) || other.email == email)&&(identical(other.phone, phone) || other.phone == phone)&&(identical(other.photoUrl, photoUrl) || other.photoUrl == photoUrl)&&const DeepCollectionEquality().equals(other._roles, _roles)&&(identical(other.activeRole, activeRole) || other.activeRole == activeRole)&&(identical(other.authProvider, authProvider) || other.authProvider == authProvider)&&(identical(other.locationText, locationText) || other.locationText == locationText)&&(identical(other.locationLat, locationLat) || other.locationLat == locationLat)&&(identical(other.locationLng, locationLng) || other.locationLng == locationLng));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,userId,fullName,email,phone,photoUrl,const DeepCollectionEquality().hash(_roles),activeRole,authProvider);
+int get hashCode => Object.hash(runtimeType,userId,fullName,email,phone,photoUrl,const DeepCollectionEquality().hash(_roles),activeRole,authProvider,locationText,locationLat,locationLng);
 
 @override
 String toString() {
-  return 'UserSession(userId: $userId, fullName: $fullName, email: $email, phone: $phone, photoUrl: $photoUrl, roles: $roles, activeRole: $activeRole, authProvider: $authProvider)';
+  return 'UserSession(userId: $userId, fullName: $fullName, email: $email, phone: $phone, photoUrl: $photoUrl, roles: $roles, activeRole: $activeRole, authProvider: $authProvider, locationText: $locationText, locationLat: $locationLat, locationLng: $locationLng)';
 }
 
 
@@ -267,7 +273,7 @@ abstract mixin class _$UserSessionCopyWith<$Res> implements $UserSessionCopyWith
   factory _$UserSessionCopyWith(_UserSession value, $Res Function(_UserSession) _then) = __$UserSessionCopyWithImpl;
 @override @useResult
 $Res call({
- String userId, String fullName, String? email, String? phone, String? photoUrl, List<String> roles, String activeRole, String authProvider
+ String userId, String fullName, String? email, String? phone, String? photoUrl, List<String> roles, String activeRole, String authProvider, String? locationText, double? locationLat, double? locationLng
 });
 
 
@@ -284,7 +290,7 @@ class __$UserSessionCopyWithImpl<$Res>
 
 /// Create a copy of UserSession
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? fullName = null,Object? email = freezed,Object? phone = freezed,Object? photoUrl = freezed,Object? roles = null,Object? activeRole = null,Object? authProvider = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? userId = null,Object? fullName = null,Object? email = freezed,Object? phone = freezed,Object? photoUrl = freezed,Object? roles = null,Object? activeRole = null,Object? authProvider = null,Object? locationText = freezed,Object? locationLat = freezed,Object? locationLng = freezed,}) {
   return _then(_UserSession(
 userId: null == userId ? _self.userId : userId // ignore: cast_nullable_to_non_nullable
 as String,fullName: null == fullName ? _self.fullName : fullName // ignore: cast_nullable_to_non_nullable
@@ -294,7 +300,10 @@ as String?,photoUrl: freezed == photoUrl ? _self.photoUrl : photoUrl // ignore: 
 as String?,roles: null == roles ? _self._roles : roles // ignore: cast_nullable_to_non_nullable
 as List<String>,activeRole: null == activeRole ? _self.activeRole : activeRole // ignore: cast_nullable_to_non_nullable
 as String,authProvider: null == authProvider ? _self.authProvider : authProvider // ignore: cast_nullable_to_non_nullable
-as String,
+as String,locationText: freezed == locationText ? _self.locationText : locationText // ignore: cast_nullable_to_non_nullable
+as String?,locationLat: freezed == locationLat ? _self.locationLat : locationLat // ignore: cast_nullable_to_non_nullable
+as double?,locationLng: freezed == locationLng ? _self.locationLng : locationLng // ignore: cast_nullable_to_non_nullable
+as double?,
   ));
 }
 

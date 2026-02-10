@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../dashboard/application/driver_dashboard_providers.dart';
 
 class StudentsTab extends ConsumerWidget {
   const StudentsTab({super.key});
@@ -52,7 +52,7 @@ class StudentsTab extends ConsumerWidget {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.15),
+                        color: Colors.white.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -223,7 +223,7 @@ class StudentsTab extends ConsumerWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: genderColor.withOpacity(0.1),
+                    color: genderColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(

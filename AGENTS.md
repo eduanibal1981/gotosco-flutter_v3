@@ -5,28 +5,52 @@
 Before writing code or answering architectural questions, you **MUST** follow this protocol:
 1.  **QUERY:** Search the NotebookLM link below for `DB Schema`, `Business Logic`, and `Detailed Rules`.
     **🔗 NOTEBOOK URL:** https://notebooklm.google.com/notebook/9a5e5cde-2a69-4726-ae2d-5ec276e9a0bf
-2.  **VERIFY:** Use Supabase MCP to inspect *live* table structures if needed , My Project_id = ixjkvasziamjkeupqvfc
+2.  **VERIFY:** Use Supabase MCP to inspect *live* table structures.
+    *   **Supabase Project ID:** `ixjkvasziamjkeupqvfc` (REQUIRED for mcp connection)
 3.  **IMPLEMENT:** Write code adhering strictly to the Architecture & Style defined below.
 4.  **Avoid:** Don't Analyze supabase_schema.sql unless no other source is available or you are explicitly asked to do so.
 5.  **NOTE:** If you are asked to analyze the schema, use the NotebookLM link provided in step 1.
 
 ---
 
-## 🏗️ ARCHITECTURE & TECH STACK (NON-NEGOTIABLE)
-- **Architecture:** Feature-First / Riverpod Clean Architecture.
-  - Structure: `lib/features/<feature_name>/{data, presentation, domain}`.
-  - Logic: **NEVER** inside UI. Use `AsyncNotifier` controllers.
-- **State Management:** Riverpod 2.x (Generator Syntax `@riverpod` is MANDATORY).
-- **Data Models:** `Freezed` + `json_serializable` (Immutable classes).
-- **Backend:** Supabase (PostgreSQL). *Do not hallucinate column names; check the Notebook.*
-- **Routing:** `GoRouter` (Type-safe routes in `lib/core/router/`).
+## 🏗️ ARCHITECTURE: GOTOSCO LAYER CONTRACT (STRICT)
 
-## 📝 CODING STANDARDS (SUMMARY)
-1.  **Null Safety:** Strict Dart 3 rules. No `!` operators unless absolutely safe.
-2.  **Repository Pattern:** UI → Controller → Repository → Supabase.
-3.  **Error Handling:** Wrap repository calls in `try/catch` and return `RepositoryException`.
-4.  **UI Components:** Use `AppTheme` constants. Avoid hardcoded colors/sizes.
-5.  **Files:** Keep files under 300 lines. Split Widgets if too large.
+### 1. STRICT FLOW (Unidirectional)
+`UI (View)` → `application (Logic)` → `domain (Interface)` ← `data (Implementation)`
+*   **UI:** `presentation/` folder. Only renders state.
+*   **Logic:** `application/` folder. State management (Riverpod).
+*   **Interface:** `domain/` folder. Pure Dart models & repository contracts.
+*   **Implementation:** `data/` folder. Supabase calls & repository implementations.
+
+### 2. LAYER RULES
+#### 🎨 PRESENTATION (UI)
+*   **Location:** `features/<feature>/presentation/`
+*   **Rule:** NEVER import `supabase_flutter`, `http`, or `data/`.
+*   **Rule:** UI only watches `application/` providers.
+
+#### 🧠 APPLICATION (Logic)
+*   **Location:** `features/<feature>/application/`
+*   **Rule:** Contains Controllers (AsyncNotifier) and State classes.
+*   **Rule:** Providers distinct logic but live **adjacent** to implementation (e.g., `run_controller.dart`).
+*   **Async Rule:** Expose `AsyncValue<T>` for all async operations.
+
+#### 📦 DOMAIN (Contracts & Models)
+*   **Location:** `features/<feature>/domain/`
+*   **Models:** `domain/models/` (Freezed + fromJson). One model per entity.
+*   **Repositories:** `domain/repositories/` (Abstract Interfaces only).
+*   **Rule:** Pure Dart. No Flutter dependencies if possible.
+
+#### 💾 DATA (Implementation)
+*   **Location:** `features/<feature>/data/`
+*   **Repositories:** `data/repositories/` (Implement interfaces from domain).
+*   **DataSources:** `data/datasources/` (Direct Supabase calls).
+*   **Rule:** Only Repositories call DataSources. Supabase types never leak up.
+
+### 3. CODING STANDARDS (SUMMARY)
+1.  **Null Safety:** Strict Dart 3. No `!` unless guaranteed.
+2.  **State Management:** Riverpod 2.x Generator (`@riverpod`) is MANDATORY.
+3.  **Error Handling:** Wrap repo calls in `try/catch`, return Domain Failures.
+4.  **Files:** Keep under 300 lines.
 
 ## 🛠️ OPERATIONAL COMMANDS
 | Action | Command |

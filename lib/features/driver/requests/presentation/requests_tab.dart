@@ -1,7 +1,7 @@
 // lib/features/driver/requests/presentation/requests_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../dashboard/application/driver_dashboard_providers.dart';
 import '../../transport_requests/data/models/driver_request_model.dart';
 
 class RequestsTab extends ConsumerWidget {
@@ -165,7 +165,7 @@ class RequestsTab extends ConsumerWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -270,7 +270,7 @@ class RequestsTab extends ConsumerWidget {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.1),
+                    color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(

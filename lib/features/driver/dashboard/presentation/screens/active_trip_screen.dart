@@ -379,15 +379,19 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     final schoolLocation = stop.schoolLocation ?? '';
 
     if (tripType == 'Go to School(s)') {
-      if (stopType == 'pickup')
+      if (stopType == 'pickup') {
         return homeLocation.isNotEmpty ? homeLocation : "Home";
-      if (stopType == 'dropoff')
+      }
+      if (stopType == 'dropoff') {
         return schoolLocation.isNotEmpty ? schoolLocation : "School";
+      }
     } else if (tripType == 'Return from School(s)') {
-      if (stopType == 'pickup')
+      if (stopType == 'pickup') {
         return schoolLocation.isNotEmpty ? schoolLocation : "School";
-      if (stopType == 'dropoff')
+      }
+      if (stopType == 'dropoff') {
         return homeLocation.isNotEmpty ? homeLocation : "Home";
+      }
     }
 
     return stopType.toUpperCase();

@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:gotosco_v3/core/widgets/optimized_image.dart';
-import '../../data/driver_ad_model.dart';
-import '../providers/favorites_provider.dart';
+import '../../domain/models/driver_ad_model.dart';
+import '../../application/find_driver_providers.dart';
 
 class DriverAdCard extends ConsumerWidget {
   final DriverAdModel driver;

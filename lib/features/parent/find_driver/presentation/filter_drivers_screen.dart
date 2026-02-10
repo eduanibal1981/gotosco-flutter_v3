@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'drivers_controller.dart';
+import '../application/find_driver_providers.dart';
 
 class FilterDriversScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> initialFilters;

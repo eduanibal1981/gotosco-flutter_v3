@@ -6,7 +6,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/filter_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/favorites_screen.dart';
 import 'widgets/driver_ad_card.dart';
-import 'drivers_controller.dart';
+import '../application/find_driver_providers.dart';
 
 class FindDriversScreen extends ConsumerStatefulWidget {
   const FindDriversScreen({super.key});
@@ -145,9 +145,9 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
 
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 300), () {
-      ref
-          .read(driversFilterControllerProvider.notifier)
-          .updateFilters({'searchQuery': value.trim()});
+      ref.read(driversFilterControllerProvider.notifier).updateFilters({
+        'searchQuery': value.trim(),
+      });
       ref.invalidate(
         driverAdsProvider(
           lat: _currentPosition?.latitude,
@@ -202,7 +202,10 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                         textInputAction: TextInputAction.search,
                         decoration: InputDecoration(
                           hintText: "Search by driver name, area, school...",
-                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          prefixIcon: const Icon(
+                            Icons.search,
+                            color: Colors.grey,
+                          ),
                           suffixIcon: _showClearButton
                               ? IconButton(
                                   icon: const Icon(
@@ -215,8 +218,9 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding:
-                              const EdgeInsets.symmetric(vertical: 14),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 14,
+                          ),
                         ),
                         onChanged: _onSearchChanged,
                       ),
@@ -229,10 +233,9 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 Semantics(
                   button: true,
                   label: "Filter drivers",
-                  hint:
-                      filterSummary != null
-                          ? "Filters active: $filterSummary"
-                          : null,
+                  hint: filterSummary != null
+                      ? "Filters active: $filterSummary"
+                      : null,
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: [
@@ -492,8 +495,12 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
     final body = _locationServiceDisabled
         ? 'Location is off. Turn it on to find nearby drivers.'
         : 'Allow location to improve driver search results.';
-    final actionLabel = _locationServiceDisabled ? 'Open Settings' : 'Grant Access';
-    final onTap = _locationServiceDisabled ? _openLocationSettings : _openAppSettings;
+    final actionLabel = _locationServiceDisabled
+        ? 'Open Settings'
+        : 'Grant Access';
+    final onTap = _locationServiceDisabled
+        ? _openLocationSettings
+        : _openAppSettings;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -520,18 +527,12 @@ class _FindDriversScreenState extends ConsumerState<FindDriversScreen> {
                 const SizedBox(height: 4),
                 Text(
                   body,
-                  style: TextStyle(
-                    color: Colors.orange.shade700,
-                    fontSize: 12,
-                  ),
+                  style: TextStyle(color: Colors.orange.shade700, fontSize: 12),
                 ),
               ],
             ),
           ),
-          TextButton(
-            onPressed: onTap,
-            child: Text(actionLabel),
-          ),
+          TextButton(onPressed: onTap, child: Text(actionLabel)),
         ],
       ),
     );

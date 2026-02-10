@@ -11,9 +11,8 @@ import '../widgets/children_section.dart';
 import '../widgets/featured_drivers.dart';
 import '../widgets/today_trip_list.dart';
 
-import '../../../bookings/data/bookings_repository.dart'; // Import repo
-import '../../../bookings/data/models/parent_booking_model.dart';
-import '../../data/parent_dashboard_repository.dart';
+import '../../../bookings/application/bookings_providers.dart';
+import '../../application/dashboard_providers.dart';
 
 class DashboardTab extends ConsumerWidget {
   const DashboardTab({super.key});

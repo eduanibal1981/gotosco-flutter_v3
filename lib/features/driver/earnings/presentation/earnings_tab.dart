@@ -1,7 +1,7 @@
 // lib/features/driver/earnings/presentation/earnings_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../dashboard/application/driver_dashboard_providers.dart';
 import '../../dashboard/data/models/driver_stats_model.dart';
 import '../../profile/data/driver_profile_repository.dart';
 import '../../dashboard/presentation/driver_dashboard_screen.dart';

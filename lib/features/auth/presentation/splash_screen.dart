@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../data/auth_repository.dart';
+import '../data/repositories/auth_repository_impl.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -76,12 +76,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   void _checkAuthAndNavigate() {
-    // Read the current session synchronously (fast)
-    final session = ref.read(authRepositoryProvider).currentSession;
+    // Read the current user synchronously (fast)
+    final user = ref.read(authRepositoryProvider).currentUser;
 
-    if (session != null) {
+    if (user != null) {
       // Check role and route accordingly
-      final role = session.user.userMetadata?['role'];
+      final role = user.metadata?['role'];
       if (role == 'driver') {
         context.go('/driver-home');
       } else {

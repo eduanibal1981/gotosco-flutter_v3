@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:gotosco_v3/features/auth/presentation/auth_controller.dart';
+import 'package:gotosco_v3/features/auth/application/auth_controller.dart';
 import 'package:gotosco_v3/features/auth/presentation/login_screen.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -12,8 +12,9 @@ class MockAuthController extends AuthController {
 }
 
 void main() {
-  testWidgets('LoginScreen shows inline errors on empty submission',
-      (tester) async {
+  testWidgets('LoginScreen shows inline errors on empty submission', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1000);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
@@ -23,9 +24,7 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => MockAuthController()),
         ],
-        child: const MaterialApp(
-          home: LoginScreen(),
-        ),
+        child: const MaterialApp(home: LoginScreen()),
       ),
     );
 
@@ -55,9 +54,7 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(() => MockAuthController()),
         ],
-        child: const MaterialApp(
-          home: LoginScreen(),
-        ),
+        child: const MaterialApp(home: LoginScreen()),
       ),
     );
 

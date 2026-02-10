@@ -2,7 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart';
+import '../domain/models/driver_ad_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class DriverDetailScreen extends ConsumerWidget {

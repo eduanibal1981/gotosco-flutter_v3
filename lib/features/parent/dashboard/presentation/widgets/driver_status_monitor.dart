@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../dashboard_controller.dart';
-import '../../../tracking/presentation/tracking_controller.dart';
-import '../../../tracking/data/tracking_repository.dart';
-import '../../../tracking/data/driver_location_model.dart'; // Add this import
+import 'package:gotosco_v3/features/parent/tracking/application/tracking_providers.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/repositories/tracking_repository.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/models/driver_location_model.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/models/parent_next_stop_info.dart';
 import 'active_booking_card.dart';
 
 /// A widget that monitors the driver's online status and location
@@ -162,25 +163,41 @@ class DriverStatusMonitor extends ConsumerWidget {
     } else if (isActive) {
       print('isActive: $isActive');
       // 2. Fallback to Location Status (if no specific event yet)
-      badgeColor = Colors.green;
-      badgeText = 'LIVE TRIP';
-      // Use trip type for context-aware title
-      if (nextStopInfo?.isGoTrip == true) {
-        title = nextStopInfo?.stopType == 'pickup'
-            ? 'Arriving for Pickup'
-            : 'Heading to School';
-      } else if (nextStopInfo?.isReturnTrip == true) {
-        title = nextStopInfo?.stopType == 'pickup'
-            ? 'Picking Up from School'
-            : 'Heading Home';
-      } else if (location?.tripType == 'pickup') {
-        title = 'Arriving for Pickup';
-      } else if (location?.tripType == 'dropoff') {
-        title = 'Heading to Destination';
+
+      // NEW: Check if we are officially ARRIVED at the stop according to DB
+      if (nextStopInfo?.stopStatus == 'arrived') {
+        badgeColor = Colors.orange;
+        badgeText = 'ARRIVED';
+
+        if (nextStopInfo?.isGoTrip == true) {
+          title = "Arrived at School";
+          subtitle = "Waiting for child drop-off";
+        } else {
+          title = "Arrived at Home";
+          subtitle = "Waiting for child drop-off";
+        }
       } else {
-        title = 'Trip in Progress';
+        // Standard "On the way" logic
+        badgeColor = Colors.green;
+        badgeText = 'LIVE TRIP';
+        // Use trip type for context-aware title
+        if (nextStopInfo?.isGoTrip == true) {
+          title = nextStopInfo?.stopType == 'pickup'
+              ? 'Arriving for Pickup'
+              : 'Heading to School';
+        } else if (nextStopInfo?.isReturnTrip == true) {
+          title = nextStopInfo?.stopType == 'pickup'
+              ? 'Picking Up from School'
+              : 'Heading Home';
+        } else if (location?.tripType == 'pickup') {
+          title = 'Arriving for Pickup';
+        } else if (location?.tripType == 'dropoff') {
+          title = 'Heading to Destination';
+        } else {
+          title = 'Trip in Progress';
+        }
+        subtitle = _buildEtaText(nextStopInfo);
       }
-      subtitle = _buildEtaText(nextStopInfo);
     } else if (location?.isOnline == true) {
       // 3. Online but waiting / scheduled
       if (location?.tripsStarted == true) {
@@ -246,7 +263,7 @@ class DriverStatusMonitor extends ConsumerWidget {
     return ActiveBookingCard(
       driverName: driverName,
       driverPhoto: driverPhoto,
-      title:  '$isLoading',//'Scheduled Trip',
+      title: '$isLoading', //'Scheduled Trip',
       subtitle: isLoading ? 'Checking status...' : 'Driver Offline',
       badgeText: 'SCHEDULED',
       badgeColor: Colors.blue,
@@ -316,7 +333,7 @@ class DriverStatusMonitor extends ConsumerWidget {
         return 'Arrived at home';
       }
     }
-
+    debugPrint('info========: $info');
     return 'At the child location';
   }
 

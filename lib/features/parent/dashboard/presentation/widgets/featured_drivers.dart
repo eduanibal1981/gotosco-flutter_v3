@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/core/widgets/optimized_image.dart';
-import 'package:gotosco_v3/features/parent/find_driver/data/drivers_repository.dart';
+import 'package:gotosco_v3/features/parent/find_driver/application/find_driver_providers.dart';
+import 'package:gotosco_v3/features/parent/find_driver/domain/models/driver_ad_model.dart';
 
 class FeaturedDrivers extends ConsumerWidget {
   const FeaturedDrivers({super.key});
@@ -24,7 +25,7 @@ class FeaturedDrivers extends ConsumerWidget {
             itemCount: drivers.length,
             separatorBuilder: (context, index) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
-              final driver = drivers[index];
+              final DriverAdModel driver = drivers[index];
               return _buildDriverCard(
                 name: driver.name,
                 rating: "${driver.rating}",

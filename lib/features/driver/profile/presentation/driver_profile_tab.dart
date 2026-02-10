@@ -5,19 +5,17 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:gotosco_v3/features/auth/application/user_session_provider.dart';
 import 'package:gotosco_v3/core/models/user_session.dart';
 import 'package:gotosco_v3/core/widgets/map_picker_screen.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
-import '../data/driver_profile_repository.dart';
+import '../application/driver_profile_providers.dart';
 import 'widgets/coverage_summary_content.dart';
-import '../data/driver_profile_model.dart';
-import '../data/driver_schedule_model.dart';
-import '../../dashboard/data/driver_dashboard_repository.dart';
+
+import '../../dashboard/application/driver_dashboard_providers.dart';
 import 'controllers/driver_profile_scroll_controller.dart';
 import '../../availability/presentation/driver_availability_controller.dart';
 
@@ -2947,7 +2945,7 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
   Future<void> _createProfile() async {
     setState(() => _isLoading = true);
 
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = ref.read(authRepositoryProvider).currentUser?.id;
     if (userId == null) {
       setState(() => _isLoading = false);
       if (mounted) {
@@ -3015,7 +3013,9 @@ class _CreateProfileSheetState extends ConsumerState<DriverCreateProfileSheet> {
             'SRID=4326;POINT(${_locationLng} ${_locationLat})';
       }
 
-      await Supabase.instance.client.from('drivers').insert(payload);
+      await ref
+          .read(driverProfileRepositoryProvider)
+          .createCompleteProfile(payload);
 
       setState(() => _isLoading = false);
 
@@ -3407,7 +3407,7 @@ class _AddScheduleSheetState extends ConsumerState<_AddScheduleSheet> {
     String fromTime,
     String untilTime,
   ) async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = ref.read(authRepositoryProvider).currentUser?.id;
     if (userId == null) return;
 
     setState(() => _isLoading = true);
@@ -3458,7 +3458,7 @@ class _AddScheduleSheetState extends ConsumerState<_AddScheduleSheet> {
   }
 
   Future<void> _addSchedule() async {
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = ref.read(authRepositoryProvider).currentUser?.id;
     if (userId == null) return;
 
     setState(() => _isLoading = true);

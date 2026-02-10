@@ -2,8 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../data/driver_dashboard_repository.dart';
+import '../../domain/repositories/driver_dashboard_repository.dart';
 import '../../data/models/driver_trip_model.dart';
+import '../../application/driver_dashboard_providers.dart';
 
 class TripsTab extends ConsumerWidget {
   const TripsTab({super.key});

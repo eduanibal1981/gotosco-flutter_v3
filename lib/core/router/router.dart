@@ -27,7 +27,7 @@ import 'package:gotosco_v3/features/driver/profile/data/driver_profile_model.dar
 import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
-import 'package:gotosco_v3/features/parent/find_driver/data/driver_ad_model.dart';
+import 'package:gotosco_v3/features/parent/find_driver/domain/models/driver_ad_model.dart';
 import 'package:gotosco_v3/features/parent/profile/presentation/edit_profile_screen.dart';
 
 import 'package:gotosco_v3/features/parent/notifications/presentation/notifications_screen.dart';
@@ -35,7 +35,7 @@ import 'package:gotosco_v3/features/parent/support/presentation/help_support_scr
 import 'package:gotosco_v3/features/parent/support/presentation/terms_conditions_screen.dart';
 import 'package:gotosco_v3/features/parent/support/presentation/privacy_policy_screen.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
-import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/features/auth/application/user_session_provider.dart';
 import 'package:gotosco_v3/features/booking_flow/presentation/screens/booking_flow_screen.dart';
 
 part 'router.g.dart';

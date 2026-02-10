@@ -6,10 +6,9 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../data/driver_location_model.dart';
-import '../data/models/booking_location_model.dart';
-import '../data/tracking_repository.dart';
-import 'tracking_controller.dart';
+import '../domain/models/driver_location_model.dart';
+import '../domain/models/booking_location_model.dart';
+import '../application/tracking_providers.dart';
 import 'widgets/tracking_info_card.dart';
 
 /// Live tracking screen that displays the driver's real-time location on a map.

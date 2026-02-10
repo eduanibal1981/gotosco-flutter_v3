@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../data/driver_dashboard_repository.dart';
+import '../../application/driver_dashboard_providers.dart';
 import '../../../transport_requests/data/models/driver_request_model.dart';
 import '../driver_dashboard_screen.dart';
 

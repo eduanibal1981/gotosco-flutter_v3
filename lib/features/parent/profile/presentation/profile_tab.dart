@@ -2,11 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/features/auth/data/auth_repository.dart';
-import 'package:gotosco_v3/features/auth/presentation/user_provider.dart';
+import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:gotosco_v3/features/auth/application/user_provider.dart';
 import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
 import 'package:gotosco_v3/features/parent/bookings/data/bookings_repository.dart';
-import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/features/auth/application/user_session_provider.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});

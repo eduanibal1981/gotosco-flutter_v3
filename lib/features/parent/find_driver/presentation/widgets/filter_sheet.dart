@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/location_repository.dart';
+import '../../application/find_driver_providers.dart';
 
 class FilterSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic> currentFilters;
@@ -43,10 +43,10 @@ class _FilterSheetState extends ConsumerState<FilterSheet> {
     final citiesAsync = ref.watch(citiesProvider);
     final areasAsync = _selectedCityId == null
         ? const AsyncValue.data(<Map<String, dynamic>>[])
-        : ref.watch(areasProvider(_selectedCityId!));
+        : ref.watch(areasProvider(cityId: _selectedCityId!));
     final schoolsAsync = _selectedAreaId == null
         ? const AsyncValue.data(<Map<String, dynamic>>[])
-        : ref.watch(schoolsProvider(_selectedAreaId!));
+        : ref.watch(schoolsProvider(areaId: _selectedAreaId!));
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.85, // Taller sheet

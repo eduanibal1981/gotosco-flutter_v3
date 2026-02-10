@@ -5,7 +5,7 @@ import 'area_model.dart';
 import 'city_model.dart';
 import 'driver_profile_repository.dart';
 import 'school_model.dart';
-import '../../dashboard/data/driver_dashboard_repository.dart';
+import '../../dashboard/application/driver_dashboard_providers.dart';
 
 part 'driver_coverage_repository.g.dart';
 

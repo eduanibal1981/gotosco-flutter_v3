@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
-import 'auth_controller.dart';
+import 'package:gotosco_v3/features/auth/application/auth_controller.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -23,7 +23,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
-
 
   // Professional Color Palette used in this screen
   final Color _primaryDark = Colors.indigo.shade900;
@@ -459,7 +458,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ? 'Safe journeys for your children.'
               : 'Join the community today.',
           style: TextStyle(
-              fontSize: 16, color: Colors.white.withValues(alpha: 0.9)),
+            fontSize: 16,
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
         ),
       ],
     );

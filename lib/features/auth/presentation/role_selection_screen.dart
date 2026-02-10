@@ -2,8 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:gotosco_v3/core/providers/user_session_provider.dart';
+import 'package:gotosco_v3/features/auth/application/auth_controller.dart';
+import 'package:gotosco_v3/features/auth/application/user_session_provider.dart';
 
 /// Screen where users select their role(s) after signing up.
 ///
@@ -132,15 +132,10 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     setState(() => isLoading = true);
 
     try {
-      final userId = Supabase.instance.client.auth.currentUser!.id;
-
-      // Update role in database
-      await Supabase.instance.client
-          .from('users')
-          .update({
-            'role': [selectedRole],
-          })
-          .eq('id', userId);
+      // Update role via controller
+      await ref.read(authControllerProvider.notifier).updateRoles([
+        selectedRole!,
+      ]);
 
       if (!mounted) return;
 
@@ -174,15 +169,11 @@ class _RoleSelectionScreenState extends ConsumerState<RoleSelectionScreen> {
     setState(() => isLoading = true);
 
     try {
-      final userId = Supabase.instance.client.auth.currentUser!.id;
-
       // Assign both roles
-      await Supabase.instance.client
-          .from('users')
-          .update({
-            'role': ['driver', 'parent'],
-          })
-          .eq('id', userId);
+      await ref.read(authControllerProvider.notifier).updateRoles([
+        'driver',
+        'parent',
+      ]);
 
       if (!mounted) return;
 
@@ -312,8 +303,9 @@ class _RoleCard extends StatelessWidget {
                 Icon(
                   icon,
                   size: 48,
-                  color:
-                      isSelected ? Colors.indigo.shade900 : Colors.grey.shade600,
+                  color: isSelected
+                      ? Colors.indigo.shade900
+                      : Colors.grey.shade600,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -323,18 +315,18 @@ class _RoleCard extends StatelessWidget {
                       Text(
                         title,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: isSelected
-                                  ? Colors.indigo.shade900
-                                  : Colors.black87,
-                            ),
+                          fontWeight: FontWeight.bold,
+                          color: isSelected
+                              ? Colors.indigo.shade900
+                              : Colors.black87,
+                        ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Colors.grey.shade600,
-                            ),
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ],
                   ),
