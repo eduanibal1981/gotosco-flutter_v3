@@ -143,10 +143,10 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                     }
 
                     final pickups = nextStops
-                        .where((s) => s.stopType == 'pickup')
+                        .where((s) => _isPickup(s.stopType))
                         .toList();
                     final dropoffs = nextStops
-                        .where((s) => s.stopType == 'dropoff')
+                        .where((s) => _isDropoff(s.stopType))
                         .toList();
 
                     return Expanded(
@@ -299,19 +299,21 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
                     height: 56,
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        final action = stop.stopType == 'pickup'
-                            ? 'picked_up'
-                            : 'dropped_off';
+                        final isPickup = _isPickup(stop.stopType);
+                        final action = isPickup ? 'picked_up' : 'dropped_off';
                         ref
                             .read(activeTripControllerProvider.notifier)
                             .processStop(stop.id, action);
                       },
                       icon: const Icon(Icons.check),
                       label: Text(
-                        stop.stopType == 'pickup' ? "PICK UP" : "DROP OFF",
+                        _isPickup(stop.stopType) ? "PICK UP" : "DROP OFF",
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
+                        backgroundColor: _isPickup(stop.stopType)
+                            ? Colors.green
+                            : Colors
+                                  .orange, // Different colors for visual distinction
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -373,23 +375,33 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
 
   String _getLocationLabel(RouteStop stop, String tripType) {
     final stopType = stop.stopType ?? '';
+    final isPickup = _isPickup(stopType);
+    final isDropoff = _isDropoff(stopType);
 
     // Use the location fields from RouteStop
     final homeLocation = stop.homeLocation ?? '';
     final schoolLocation = stop.schoolLocation ?? '';
 
-    if (tripType == 'Go to School(s)') {
-      if (stopType == 'pickup') {
+    // Normalize trip type identifiers
+    final isMorning =
+        tripType == 'Go to School(s)' ||
+        tripType.toLowerCase().contains('morning');
+    final isAfternoon =
+        tripType == 'Return from School(s)' ||
+        tripType.toLowerCase().contains('afternoon');
+
+    if (isMorning) {
+      if (isPickup) {
         return homeLocation.isNotEmpty ? homeLocation : "Home";
       }
-      if (stopType == 'dropoff') {
+      if (isDropoff) {
         return schoolLocation.isNotEmpty ? schoolLocation : "School";
       }
-    } else if (tripType == 'Return from School(s)') {
-      if (stopType == 'pickup') {
+    } else if (isAfternoon) {
+      if (isPickup) {
         return schoolLocation.isNotEmpty ? schoolLocation : "School";
       }
-      if (stopType == 'dropoff') {
+      if (isDropoff) {
         return homeLocation.isNotEmpty ? homeLocation : "Home";
       }
     }
@@ -481,5 +493,18 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
         ],
       ),
     );
+  }
+
+  bool _isPickup(String? stopType) {
+    if (stopType == null) return false;
+    final lower = stopType.toLowerCase().trim();
+    // Inclusive check for "pickup", "pick up", "pick-up", "pick up from home"
+    return lower.contains('pick');
+  }
+
+  bool _isDropoff(String? stopType) {
+    if (stopType == null) return false;
+    final lower = stopType.toLowerCase().trim();
+    return lower.contains('drop');
   }
 }

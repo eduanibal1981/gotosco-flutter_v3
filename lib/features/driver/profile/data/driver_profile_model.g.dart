@@ -10,12 +10,14 @@ _DriverProfileModel _$DriverProfileModelFromJson(
   Map<String, dynamic> json,
 ) => _DriverProfileModel(
   id: json['id'] as String,
-  userId: json['userId'] as String,
+  userId: json['user_id'] as String,
   name: json['name'] as String,
-  photoUrl: json['photoUrl'] as String?,
-  phone: json['phone'] as String,
-  email: json['email'] as String,
-  experienceYears: (json['experience_years'] as num?)?.toInt() ?? 0,
+  photoUrl: json['photo_url'] as String?,
+  phone: json['phone'] as String?,
+  email: json['email'] as String?,
+  experienceYears: json['experience_years'] == null
+      ? 0
+      : _parseInt(json['experience_years']),
   licenseNumber: json['license_number'] as String?,
   licenseExpiry: json['license_expiry'] == null
       ? null
@@ -23,19 +25,29 @@ _DriverProfileModel _$DriverProfileModelFromJson(
   licenseImageUrl: json['license_image_url'] as String?,
   vehicleType: json['vehicle_type'] as String,
   vehicleNumber: json['vehicle_number'] as String?,
-  vehicleCapacity: (json['vehicle_capacity'] as num?)?.toInt() ?? 0,
+  vehicleCapacity: json['vehicle_capacity'] == null
+      ? 0
+      : _parseInt(json['vehicle_capacity']),
   mulkiaImageUrl: json['mulkia_image_url'] as String?,
   vehicleImageUrls:
       (json['vehicle_image_urls'] as List<dynamic>?)
           ?.map((e) => e as String)
           .toList() ??
       const [],
-  priceMonthlyTwoWay: (json['price_monthly_two_way'] as num?)?.toDouble() ?? 0,
-  priceMonthlyOneWay: (json['price_monthly_one_way'] as num?)?.toDouble() ?? 0,
-  priceDaily: (json['price_daily'] as num?)?.toDouble() ?? 0,
+  priceMonthlyTwoWay: json['price_monthly_two_way'] == null
+      ? 0
+      : _parseDouble(json['price_monthly_two_way']),
+  priceMonthlyOneWay: json['price_monthly_one_way'] == null
+      ? 0
+      : _parseDouble(json['price_monthly_one_way']),
+  priceDaily: json['price_daily'] == null
+      ? 0
+      : _parseDouble(json['price_daily']),
   bio: json['bio'] as String? ?? '',
-  rating: (json['rating'] as num?)?.toDouble() ?? 0,
-  totalReviews: (json['total_reviews'] as num?)?.toInt() ?? 0,
+  rating: json['rating'] == null ? 0 : _parseDouble(json['rating']),
+  totalReviews: json['total_reviews'] == null
+      ? 0
+      : _parseInt(json['total_reviews']),
   isVerified: json['is_verified'] as bool? ?? false,
   licenseVerified: json['license_verified'] as bool? ?? false,
   insuranceVerified: json['insurance_verified'] as bool? ?? false,
@@ -59,9 +71,9 @@ _DriverProfileModel _$DriverProfileModelFromJson(
 Map<String, dynamic> _$DriverProfileModelToJson(_DriverProfileModel instance) =>
     <String, dynamic>{
       'id': instance.id,
-      'userId': instance.userId,
+      'user_id': instance.userId,
       'name': instance.name,
-      'photoUrl': instance.photoUrl,
+      'photo_url': instance.photoUrl,
       'phone': instance.phone,
       'email': instance.email,
       'experience_years': instance.experienceYears,

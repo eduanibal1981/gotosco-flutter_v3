@@ -154,6 +154,17 @@ class DriverStatusMonitor extends ConsumerWidget {
                   : 'Trip completed');
         badgeColor = Colors.green;
         badgeText = 'COMPLETED';
+      } else if (eventType == 'trip_started') {
+        title = 'Trip Started';
+        final stops = nextStopInfo?.stopsUntilParent;
+        if (stops != null && stops > 0) {
+          final s = stops == 1 ? 'stop' : 'stops';
+          subtitle = 'View on the map · $stops $s away';
+        } else {
+          subtitle = 'View on the map';
+        }
+        badgeColor = Colors.green;
+        badgeText = 'ON TRIP';
       } else if (eventType == 'skipped') {
         title = 'Stop Skipped';
         subtitle = 'Contact driver for details';

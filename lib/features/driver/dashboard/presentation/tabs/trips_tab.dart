@@ -497,7 +497,21 @@ class TripsTab extends ConsumerWidget {
                 color: Colors.teal,
                 onPressed: () async {
                   try {
-                    print('DEBUG: Starting trip ${trip.id}');
+                    final bookingIds = trip.routeStops
+                        .map((s) => s.bookingId)
+                        .where((id) => id != null)
+                        .cast<String>()
+                        .toSet()
+                        .toList();
+
+                    print(
+                      'DEBUG: Starting trip ${trip.id}. DriverID: ${trip.driverId}, BookingIDs: $bookingIds',
+                    );
+
+                    await ref
+                        .read(driverDashboardRepositoryProvider)
+                        .broadcastTripStarted(trip.id, bookingIds);
+
                     await ref
                         .read(driverDashboardRepositoryProvider)
                         .startTrip(trip.id);

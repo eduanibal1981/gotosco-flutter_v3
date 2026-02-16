@@ -83,4 +83,7 @@ abstract class DriverDashboardRepository {
 
   /// Reject booking
   Future<void> rejectBooking(String bookingId);
+
+  /// Broadcast trip started event for associated bookings
+  Future<void> broadcastTripStarted(String tripId, List<String> bookingIds);
 }

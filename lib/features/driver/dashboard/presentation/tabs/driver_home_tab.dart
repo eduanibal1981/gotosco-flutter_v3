@@ -1813,6 +1813,23 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
+                final bookingIds = trip.routeStops
+                    .map((s) => s.bookingId)
+                    .where((id) => id != null)
+                    .cast<String>()
+                    .toSet()
+                    .toList();
+
+                print(
+                  'DEBUG: Trip Started. TripID: ${trip.id}, DriverID: ${trip.driverId}, BookingIDs: $bookingIds',
+                );
+
+                // Broadcast start event
+                /* await */
+                ref
+                    .read(driverDashboardRepositoryProvider)
+                    .broadcastTripStarted(trip.id, bookingIds);
+
                 await ref
                     .read(driverDashboardRepositoryProvider)
                     .startTrip(trip.id);

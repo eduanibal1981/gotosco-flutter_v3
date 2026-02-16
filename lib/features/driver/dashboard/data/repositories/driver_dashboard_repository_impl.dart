@@ -437,4 +437,32 @@ class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
         .update({'status': 'rejected'})
         .eq('id', bookingId);
   }
+
+  @override
+  Future<void> broadcastTripStarted(
+    String tripId,
+    List<String> bookingIds,
+  ) async {
+    if (bookingIds.isEmpty) return;
+
+    final payload = bookingIds.map((bid) {
+      return {
+        'booking_id': bid,
+        'daily_trip_id': tripId,
+        'driver_id': _driverId,
+        'event_type': 'trip_started',
+        'created_at': DateTime.now().toIso8601String(),
+        'event_data': {
+          'description': 'Driver has started the trip',
+          'event_time': DateTime.now().toIso8601String(),
+        },
+      };
+    }).toList();
+
+    try {
+      await _supabase.from('ride_events').insert(payload);
+    } catch (e) {
+      print('Error broadcasting trip start events: $e');
+    }
+  }
 }

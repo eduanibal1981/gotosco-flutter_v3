@@ -693,7 +693,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
           const SizedBox(height: 8),
           // Email
           Text(
-            profile.email,
+            profile.email ?? '',
             style: TextStyle(
               color: Colors.white.withOpacity(0.8),
               fontSize: 14,
