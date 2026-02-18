@@ -19,6 +19,7 @@ class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
   String get _driverId => _supabase.auth.currentUser!.id;
 
   @override
+  @Deprecated('Use currentDriverProfileProvider instead')
   Future<Map<String, dynamic>?> getDriverProfile() async {
     try {
       final response = await _supabase
@@ -122,6 +123,7 @@ class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
   }
 
   @override
+  @Deprecated('Use driverDashboardStateProvider instead')
   Future<DriverDashboardState> getDashboardState() async {
     final profile = await getDriverProfile();
     if (profile == null) {

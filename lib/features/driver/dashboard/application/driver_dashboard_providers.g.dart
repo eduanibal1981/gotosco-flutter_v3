@@ -52,7 +52,7 @@ final class DriverProfileProvider
   }
 }
 
-String _$driverProfileHash() => r'8c2f2a9ee486877264b5a9d36dac35a8ce264ee2';
+String _$driverProfileHash() => r'6ac2c7fe312a40065cd8717c9dc1931e3a8827a6';
 
 /// Provider for driver dashboard state (1-5)
 
@@ -99,7 +99,7 @@ final class DriverDashboardStateProvider
 }
 
 String _$driverDashboardStateHash() =>
-    r'd80e8bccf15bec668af66c26bca9216a17dab289';
+    r'4625763ac37e8ca2e7cdc7781bf1d9be34685774';
 
 /// Provider for driver stats (students, pending requests, earnings)
 

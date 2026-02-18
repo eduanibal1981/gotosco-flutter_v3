@@ -111,6 +111,23 @@ abstract class DriverProfileModel with _$DriverProfileModel {
 
     return VerificationStatus.unverified;
   }
+
+  bool get isComplete {
+    final hasVehicleType = vehicleType.isNotEmpty;
+    final hasVehicleNumber = vehicleNumber != null && vehicleNumber!.isNotEmpty;
+    final hasVehicleCapacity = vehicleCapacity > 0;
+    final hasLicenseNumber = licenseNumber != null && licenseNumber!.isNotEmpty;
+    final hasLicenseImage =
+        licenseImageUrl != null && licenseImageUrl!.isNotEmpty;
+    final hasMulkiaImage = mulkiaImageUrl != null && mulkiaImageUrl!.isNotEmpty;
+
+    return hasVehicleType &&
+        hasVehicleNumber &&
+        hasVehicleCapacity &&
+        hasLicenseNumber &&
+        hasLicenseImage &&
+        hasMulkiaImage;
+  }
 }
 
 Map<String, dynamic> _sanitizeDriverProfileJson(Map<String, dynamic> json) {

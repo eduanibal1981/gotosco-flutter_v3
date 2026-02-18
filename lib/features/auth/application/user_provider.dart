@@ -2,12 +2,20 @@ import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.
 import 'package:gotosco_v3/features/auth/domain/models/auth_user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:gotosco_v3/features/auth/application/user_session_provider.dart';
 
 part 'user_provider.g.dart';
 
 // AUTH STATE STREAM is provided by user_session_provider.dart
+
+@riverpod
+String? currentUserId(Ref ref) {
+  ref.watch(authStateChangesProvider);
+  return Supabase.instance.client.auth.currentUser?.id;
+}
 
 /// CURRENT USER PROFILE
 /// Fetches the full 'UserModel' (name, role, phone) from the database.

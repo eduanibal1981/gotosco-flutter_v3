@@ -102,7 +102,7 @@ final class CurrentDriverProfileProvider
 }
 
 String _$currentDriverProfileHash() =>
-    r'02d9b4472ee22b4dff71062ab44e99ddabafc726';
+    r'f21d5ec77a0c20254b827ec0eb5b9e76ae0eabfa';
 
 /// Provider for the current driver's schedules
 
@@ -148,4 +148,4 @@ final class DriverSchedulesProvider
   }
 }
 
-String _$driverSchedulesHash() => r'3bbc552b5e9d71645cc106fef4184c79254fa02b';
+String _$driverSchedulesHash() => r'900acc1a059f005b426eafa1ce04f045676ef850';

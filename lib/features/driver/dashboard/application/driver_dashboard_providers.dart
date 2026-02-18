@@ -4,20 +4,47 @@ import '../data/repositories/driver_dashboard_repository_impl.dart';
 export '../data/repositories/driver_dashboard_repository_impl.dart';
 import '../data/models/driver_stats_model.dart';
 import '../data/models/driver_trip_model.dart';
+import '../../profile/data/driver_profile_model.dart';
 import '../../transport_requests/data/models/driver_request_model.dart';
+
+import '../../profile/data/driver_profile_repository.dart';
 
 part 'driver_dashboard_providers.g.dart';
 
 /// Provider for checking if driver has a profile in drivers table
 @riverpod
 Future<Map<String, dynamic>?> driverProfile(Ref ref) async {
-  return ref.watch(driverDashboardRepositoryProvider).getDriverProfile();
+  final profile = await ref.watch(currentDriverProfileProvider.future);
+  return profile?.toJson();
 }
 
 /// Provider for driver dashboard state (1-5)
 @riverpod
 Future<DriverDashboardState> driverDashboardState(Ref ref) async {
-  return ref.watch(driverDashboardRepositoryProvider).getDashboardState();
+  // 1. Check Profile
+  final profile = await ref.watch(currentDriverProfileProvider.future);
+  if (profile == null) return DriverDashboardState.noProfile;
+
+  // 2. Check Completeness (pure function)
+  if (!profile.isComplete) {
+    return DriverDashboardState.profileIncomplete;
+  }
+
+  final repo = ref.watch(driverDashboardRepositoryProvider);
+
+  // 3. Active Trip
+  final activeTrip = await repo.getActiveTrip();
+  if (activeTrip != null) return DriverDashboardState.activeTrip;
+
+  // 4. Scheduled Trips
+  final todaysTrips = await repo.getTodaysTrips();
+  if (todaysTrips.isNotEmpty) return DriverDashboardState.hasTrips;
+
+  // 5. Requests
+  final stats = await repo.getDriverStats();
+  if (stats.pendingRequests > 0) return DriverDashboardState.hasRequests;
+
+  return DriverDashboardState.profileOnly;
 }
 
 /// Provider for driver stats (students, pending requests, earnings)

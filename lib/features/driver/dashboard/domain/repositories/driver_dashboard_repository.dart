@@ -14,12 +14,14 @@ enum DriverDashboardState {
 
 abstract class DriverDashboardRepository {
   /// Check if driver has a profile in drivers table
+  @Deprecated('Use currentDriverProfileProvider instead')
   Future<Map<String, dynamic>?> getDriverProfile();
 
   /// Check if driver has at least one active schedule
   Future<bool> hasSchedules();
 
   /// Determine the current dashboard state
+  @Deprecated('Use driverDashboardStateProvider instead')
   Future<DriverDashboardState> getDashboardState();
 
   /// Get driver stats from driver_stats_view

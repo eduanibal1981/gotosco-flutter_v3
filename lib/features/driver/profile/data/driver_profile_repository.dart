@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/core/services/media_service.dart';
 import 'driver_profile_model.dart';
 import 'driver_schedule_model.dart';
+import 'package:gotosco_v3/features/auth/application/user_provider.dart';
 
 part 'driver_profile_repository.g.dart';
 
@@ -21,7 +22,7 @@ DriverProfileRepository driverProfileRepository(Ref ref) {
 /// Provider for the current driver's profile
 @riverpod
 Future<DriverProfileModel?> currentDriverProfile(Ref ref) async {
-  final userId = Supabase.instance.client.auth.currentUser?.id;
+  final userId = ref.watch(currentUserIdProvider);
   debugPrint('DEBUG: currentDriverProfile called, userId: $userId');
 
   if (userId == null) {
@@ -40,7 +41,7 @@ Future<DriverProfileModel?> currentDriverProfile(Ref ref) async {
 /// Provider for the current driver's schedules
 @riverpod
 Future<List<DriverScheduleModel>> driverSchedules(Ref ref) async {
-  final userId = Supabase.instance.client.auth.currentUser?.id;
+  final userId = ref.watch(currentUserIdProvider);
   if (userId == null) return [];
 
   final repository = ref.read(driverProfileRepositoryProvider);
