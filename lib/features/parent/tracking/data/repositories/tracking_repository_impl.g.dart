@@ -15,11 +15,11 @@ final trackingRepositoryProvider = TrackingRepositoryProvider._();
 final class TrackingRepositoryProvider
     extends
         $FunctionalProvider<
-          TrackingRepository,
-          TrackingRepository,
-          TrackingRepository
+          TrackingContract,
+          TrackingContract,
+          TrackingContract
         >
-    with $Provider<TrackingRepository> {
+    with $Provider<TrackingContract> {
   TrackingRepositoryProvider._()
     : super(
         from: null,
@@ -36,23 +36,22 @@ final class TrackingRepositoryProvider
 
   @$internal
   @override
-  $ProviderElement<TrackingRepository> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<TrackingContract> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  TrackingRepository create(Ref ref) {
+  TrackingContract create(Ref ref) {
     return trackingRepository(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(TrackingRepository value) {
+  Override overrideWithValue(TrackingContract value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<TrackingRepository>(value),
+      providerOverride: $SyncValueProvider<TrackingContract>(value),
     );
   }
 }
 
 String _$trackingRepositoryHash() =>
-    r'afd7ceee9d6d631f302ffb82b2a0105c26a3c3f7';
+    r'86cfb0d163e36b21245ec8cd7275fa0d3730af82';

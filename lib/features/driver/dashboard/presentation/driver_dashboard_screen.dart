@@ -5,13 +5,13 @@ import 'package:flutter_riverpod/legacy.dart';
 import '../application/driver_dashboard_providers.dart';
 import '../../earnings/presentation/earnings_tab.dart';
 import '../../profile/presentation/driver_profile_tab.dart';
-import '../../availability/presentation/driver_availability_controller.dart';
+import '../../availability/application/driver_availability_controller.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 import 'package:gotosco_v3/features/driver/transport_requests/data/transport_requests_repository.dart';
 import 'tabs/driver_home_tab.dart';
 import 'tabs/trips_tab.dart';
 import '../../../../core/widgets/double_back_to_exit_wrapper.dart';
-import '../../availability/presentation/driver_presence_service.dart';
+import '../../availability/application/driver_presence_service.dart';
 
 // Provider for managing selected tab index
 final driverDashboardIndexProvider =

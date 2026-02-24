@@ -1,18 +1,18 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+﻿import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../data/models/driver_stats_model.dart';
-import '../../data/models/driver_trip_model.dart';
-import '../../../transport_requests/data/models/driver_request_model.dart';
-import '../../domain/repositories/driver_dashboard_repository.dart';
+import '../../domain/models/driver_stats_model.dart';
+import '../../domain/models/driver_trip_model.dart';
+import '../../../transport_requests/domain/models/driver_request_model.dart';
+import '../../domain/contracts/driver_dashboard_contract.dart';
 
 part 'driver_dashboard_repository_impl.g.dart';
 
 @riverpod
-DriverDashboardRepository driverDashboardRepository(Ref ref) {
+DriverDashboardContract driverDashboardRepository(Ref ref) {
   return DriverDashboardRepositoryImpl(Supabase.instance.client);
 }
 
-class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
+class DriverDashboardRepositoryImpl implements DriverDashboardContract {
   final SupabaseClient _supabase;
   DriverDashboardRepositoryImpl(this._supabase);
 
@@ -85,7 +85,7 @@ class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
           .from('driver_schedules')
           .select('id')
           .eq('driver_id', _driverId)
-          .eq('is_active', true)
+          .eq('is_schedactive', true)
           .limit(1);
 
       return (response as List).isNotEmpty;
@@ -364,13 +364,6 @@ class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
     );
   }
 
-  @override
-  Future<void> setOnlineStatus(bool isOnline) async {
-    await _supabase
-        .from('drivers')
-        .update({'is_profile_online': isOnline})
-        .eq('user_id', _driverId);
-  }
 
   @override
   Stream<List<DriverRequest>> getBookingRequestsStream() {
@@ -468,3 +461,4 @@ class DriverDashboardRepositoryImpl implements DriverDashboardRepository {
     }
   }
 }
+

@@ -1,4 +1,4 @@
-// lib/features/driver/dashboard/presentation/tabs/driver_home_tab.dart
+﻿// lib/features/driver/dashboard/presentation/tabs/driver_home_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -6,15 +6,16 @@ import 'package:intl/intl.dart';
 import 'package:gotosco_v3/features/auth/application/user_provider.dart';
 import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
 import 'package:gotosco_v3/features/auth/presentation/widgets/role_switcher_button.dart';
-import '../../domain/repositories/driver_dashboard_repository.dart';
-import '../../data/models/driver_trip_model.dart';
+import '../../domain/contracts/driver_dashboard_contract.dart';
+import '../../domain/models/driver_trip_model.dart';
 import '../../application/driver_dashboard_providers.dart'; // Add providers import
 import '../driver_dashboard_screen.dart';
 import '../screens/active_trip_screen.dart';
+import '../controllers/active_trip_controller.dart';
 import '../../../profile/data/driver_profile_repository.dart';
 import '../../../profile/presentation/controllers/driver_profile_scroll_controller.dart';
 
-import '../../../availability/presentation/driver_availability_controller.dart';
+import '../../../availability/application/driver_availability_controller.dart';
 import '../widgets/booking_requests_card.dart';
 import '../../../transport_requests/data/transport_requests_repository.dart';
 
@@ -166,9 +167,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATE 1: NO PROFILE
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   Widget _buildNoProfileState() {
     return CustomScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -259,9 +260,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATE 2: PROFILE INCOMPLETE (Missing required fields)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   Widget _buildProfileIncompleteState(AsyncValue userAsync) {
     final profileAsync = ref.watch(driverProfileProvider);
 
@@ -452,9 +453,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATE 3: PROFILE ONLY (No Pending Requests, No Active Trips)
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   Widget _buildProfileOnlyState(AsyncValue userAsync) {
     final profileAsync = ref.watch(driverProfileProvider);
     final statsAsync = ref.watch(driverStatsProvider);
@@ -665,9 +666,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATE 3: HAS REQUESTS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   Widget _buildHasRequestsState(AsyncValue userAsync) {
     final statsAsync = ref.watch(driverStatsProvider);
 
@@ -751,9 +752,9 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATE 4: HAS TRIPS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   Widget _buildHasTripsState(AsyncValue userAsync) {
     final statsAsync = ref.watch(driverStatsProvider);
 
@@ -762,7 +763,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
       slivers: [
         _buildHeader(
           title: DateFormat('EEEE, MMM d, yyyy').format(DateTime.now()),
-          subtitle: 'ONLINE ✓',
+          subtitle: 'ONLINE âœ“',
           showOnlineToggle: true,
         ),
         SliverPadding(
@@ -773,7 +774,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
               const BookingRequestsCard(),
 
               // Next Trip - Show only the upcoming scheduled trip
-              _buildSectionTitle("🚨 Next Trip"),
+              _buildSectionTitle("ðŸš¨ Next Trip"),
               const SizedBox(height: 12),
 
               // Use nextScheduledTripProvider to show only the next trip
@@ -839,16 +840,16 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATE 5: ACTIVE TRIP
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   Widget _buildActiveTripState() {
     return const ActiveTripScreen();
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // SHARED COMPONENTS
-  // ═══════════════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   SliverToBoxAdapter _buildHeader({
     required String title,
@@ -1433,7 +1434,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                                 ),
                               ),
                               Text(
-                                '$childName · $schoolName',
+                                '$childName Â· $schoolName',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -1813,27 +1814,28 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () async {
-                final bookingIds = trip.routeStops
-                    .map((s) => s.bookingId)
-                    .where((id) => id != null)
-                    .cast<String>()
-                    .toSet()
-                    .toList();
-
-                print(
-                  'DEBUG: Trip Started. TripID: ${trip.id}, DriverID: ${trip.driverId}, BookingIDs: $bookingIds',
-                );
-
-                // Broadcast start event
-                /* await */
-                ref
-                    .read(driverDashboardRepositoryProvider)
-                    .broadcastTripStarted(trip.id, bookingIds);
-
-                await ref
-                    .read(driverDashboardRepositoryProvider)
-                    .startTrip(trip.id);
-                ref.invalidate(driverDashboardStateProvider);
+                try {
+                  await ref
+                      .read(activeTripControllerProvider.notifier)
+                      .startTrip(trip);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Trip started successfully!'),
+                      ),
+                    );
+                  }
+                } catch (e, st) {
+                  debugPrint('ERROR starting trip: $e\n$st');
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error starting trip: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               icon: const Icon(Icons.play_arrow),
               label: const Text('Start Trip'),
@@ -1878,7 +1880,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Today\'s Trips Generated ✓',
+                    'Today\'s Trips Generated âœ“',
                     style: TextStyle(
                       color: Colors.green.shade700,
                       fontWeight: FontWeight.w600,

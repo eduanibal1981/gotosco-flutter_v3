@@ -1,10 +1,11 @@
-// lib/features/driver/dashboard/presentation/tabs/trips_tab.dart
+﻿// lib/features/driver/dashboard/presentation/tabs/trips_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../../domain/repositories/driver_dashboard_repository.dart';
-import '../../data/models/driver_trip_model.dart';
+import '../../domain/contracts/driver_dashboard_contract.dart';
+import '../../domain/models/driver_trip_model.dart';
 import '../../application/driver_dashboard_providers.dart';
+import '../controllers/active_trip_controller.dart';
 
 class TripsTab extends ConsumerWidget {
   const TripsTab({super.key});
@@ -118,13 +119,16 @@ class TripsTab extends ConsumerWidget {
                 return SliverList(
                   delegate: SliverChildListDelegate([
                     if (goTrips.isNotEmpty) ...[
-                      _buildSectionHeader('🏫 Go to School(s)', goTrips.length),
+                      _buildSectionHeader(
+                        'ðŸ« Go to School(s)',
+                        goTrips.length,
+                      ),
                       ...goTrips.map((t) => _buildTripCard(context, ref, t)),
                       const SizedBox(height: 16),
                     ],
                     if (returnTrips.isNotEmpty) ...[
                       _buildSectionHeader(
-                        '🏠 Return from School(s)',
+                        'ðŸ  Return from School(s)',
                         returnTrips.length,
                       ),
                       ...returnTrips.map(
@@ -497,25 +501,9 @@ class TripsTab extends ConsumerWidget {
                 color: Colors.teal,
                 onPressed: () async {
                   try {
-                    final bookingIds = trip.routeStops
-                        .map((s) => s.bookingId)
-                        .where((id) => id != null)
-                        .cast<String>()
-                        .toSet()
-                        .toList();
-
-                    print(
-                      'DEBUG: Starting trip ${trip.id}. DriverID: ${trip.driverId}, BookingIDs: $bookingIds',
-                    );
-
                     await ref
-                        .read(driverDashboardRepositoryProvider)
-                        .broadcastTripStarted(trip.id, bookingIds);
-
-                    await ref
-                        .read(driverDashboardRepositoryProvider)
-                        .startTrip(trip.id);
-                    print('DEBUG: Trip started successfully');
+                        .read(activeTripControllerProvider.notifier)
+                        .startTrip(trip);
 
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -524,9 +512,6 @@ class TripsTab extends ConsumerWidget {
                         ),
                       );
                     }
-
-                    ref.invalidate(todaysTripsProvider);
-                    ref.invalidate(driverDashboardStateProvider);
                   } catch (e, st) {
                     print('ERROR starting trip: $e\n$st');
                     if (context.mounted) {

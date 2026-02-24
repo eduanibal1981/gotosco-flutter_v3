@@ -15,11 +15,11 @@ final locationRepositoryProvider = LocationRepositoryProvider._();
 final class LocationRepositoryProvider
     extends
         $FunctionalProvider<
-          LocationRepository,
-          LocationRepository,
-          LocationRepository
+          LocationContract,
+          LocationContract,
+          LocationContract
         >
-    with $Provider<LocationRepository> {
+    with $Provider<LocationContract> {
   LocationRepositoryProvider._()
     : super(
         from: null,
@@ -36,23 +36,22 @@ final class LocationRepositoryProvider
 
   @$internal
   @override
-  $ProviderElement<LocationRepository> $createElement(
-    $ProviderPointer pointer,
-  ) => $ProviderElement(pointer);
+  $ProviderElement<LocationContract> $createElement($ProviderPointer pointer) =>
+      $ProviderElement(pointer);
 
   @override
-  LocationRepository create(Ref ref) {
+  LocationContract create(Ref ref) {
     return locationRepository(ref);
   }
 
   /// {@macro riverpod.override_with_value}
-  Override overrideWithValue(LocationRepository value) {
+  Override overrideWithValue(LocationContract value) {
     return $ProviderOverride(
       origin: this,
-      providerOverride: $SyncValueProvider<LocationRepository>(value),
+      providerOverride: $SyncValueProvider<LocationContract>(value),
     );
   }
 }
 
 String _$locationRepositoryHash() =>
-    r'5f2a1f0f4979b0728d76f58bd9c2dc21005f9fef';
+    r'066c086106f63df7a04f343cdb98b7c440b9b270';

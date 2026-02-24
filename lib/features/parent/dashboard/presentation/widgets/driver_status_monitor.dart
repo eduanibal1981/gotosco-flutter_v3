@@ -5,8 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../dashboard_controller.dart';
 import 'package:gotosco_v3/features/parent/tracking/application/tracking_providers.dart';
-import 'package:gotosco_v3/features/parent/tracking/domain/repositories/tracking_repository.dart';
-import 'package:gotosco_v3/features/parent/tracking/domain/models/driver_location_model.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/models/tracking_view_model.dart';
 import 'package:gotosco_v3/features/parent/tracking/domain/models/parent_next_stop_info.dart';
 import 'active_booking_card.dart';
 
@@ -29,11 +28,15 @@ class DriverStatusMonitor extends ConsumerWidget {
     // Watch the real-time location stream for this driver
     final driverLocationAsync = ref.watch(driverLocationProvider(driverId));
     final rideEventAsync = ref.watch(latestRideEventProvider(bookingId));
-    final nextStopAsync = ref.watch(parentNextStopInfoProvider(bookingId));
+    final nextStopAsync = ref.watch(
+      parentNextStopInfoProvider(bookingId, driverId),
+    );
 
     return driverLocationAsync.when(
       data: (location) {
+        //check the driver location table if has row or not
         return _buildActiveCard(
+          // if has row show active card
           context,
           ref,
           driverName,
@@ -54,6 +57,7 @@ class DriverStatusMonitor extends ConsumerWidget {
         bookingId,
         driverId,
         rideEventAsync.asData?.value,
+        nextStopAsync.asData?.value,
       ),
       loading: () => _handleOfflineState(
         context,
@@ -63,6 +67,7 @@ class DriverStatusMonitor extends ConsumerWidget {
         bookingId,
         driverId,
         rideEventAsync.asData?.value,
+        nextStopAsync.asData?.value,
         isLoading: true,
       ),
     );
@@ -75,12 +80,13 @@ class DriverStatusMonitor extends ConsumerWidget {
     String? driverPhoto,
     String bookingId,
     String driverId,
-    Map<String, dynamic>? rideEvent, {
+    Map<String, dynamic>? rideEvent,
+    ParentNextStopInfo? nextStopInfo, {
     bool isLoading = false,
   }) {
-    // If we have a ride event, show it even if driver is offline
-    if (rideEvent != null) {
-      debugPrint('rideEvent: $rideEvent');
+    // If we have a ride event or nextStopInfo has data, show it even if driver location stream is offline
+    if (rideEvent != null || nextStopInfo != null) {
+      debugPrint('has rideEvent: $driverName');
       return _buildActiveCard(
         context,
         ref,
@@ -90,11 +96,11 @@ class DriverStatusMonitor extends ConsumerWidget {
         driverId,
         location: null, // No location data
         rideEvent: rideEvent,
-        nextStopInfo: null,
+        nextStopInfo: nextStopInfo,
         isConnected: false,
       );
     }
-    debugPrint('no rideEvent: $rideEvent');
+    debugPrint('no rideEvent: $driverName');
     return _buildScheduledCard(
       context,
       ref,
@@ -115,126 +121,35 @@ class DriverStatusMonitor extends ConsumerWidget {
     String driverId, {
     required Map<String, dynamic>? rideEvent,
     required ParentNextStopInfo? nextStopInfo,
-    required DriverLocation? location,
+    required TrackingViewModel? location,
     required bool isConnected,
   }) {
-    final bool isActive = location?.isOnTrip ?? false;
+    final String badgeText =
+        nextStopInfo?.statusBadge?.replaceAll('_', ' ') ?? 'OFFLINE';
+    final String title = nextStopInfo?.uiTitle ?? 'Scheduled Trip';
+    String subtitle = nextStopInfo?.uiSubtitle ?? 'Driver is offline';
 
-    String title = '';
-    String subtitle = '';
-    String badgeText = '';
     Color badgeColor = Colors.grey;
-
-    // 1. Determine Status from Event (Priority)
-    if (rideEvent != null) {
-      print('rideEvent: $rideEvent');
-      final eventType = rideEvent['event_type'] as String? ?? '';
-      if (eventType == 'approaching') {
-        title = 'Driver Approaching';
-        subtitle = _buildApproachingText(nextStopInfo);
-        badgeColor = Colors.orange;
-        badgeText = 'APPROACHING';
-      } else if (eventType == 'arrived') {
-        title = 'Driver Arrived';
-        subtitle = _getArrivedSubtitle(nextStopInfo);
-        badgeColor = Colors.orange;
-        badgeText = 'ARRIVED';
-      } else if (eventType == 'picked_up') {
-        title = 'Child Picked Up';
-        subtitle = _getOnTripSubtitle(nextStopInfo);
-        badgeColor = Colors.green;
-        badgeText = 'ON TRIP';
-      } else if (eventType == 'dropped_off') {
-        title = 'Child Dropped Off';
-        // Context-aware completion message
-        subtitle = nextStopInfo?.isGoTrip == true
-            ? 'Arrived at school'
-            : (nextStopInfo?.isReturnTrip == true
-                  ? 'Arrived home safely'
-                  : 'Trip completed');
-        badgeColor = Colors.green;
-        badgeText = 'COMPLETED';
-      } else if (eventType == 'trip_started') {
-        title = 'Trip Started';
-        final stops = nextStopInfo?.stopsUntilParent;
-        if (stops != null && stops > 0) {
-          final s = stops == 1 ? 'stop' : 'stops';
-          subtitle = 'View on the map · $stops $s away';
-        } else {
-          subtitle = 'View on the map';
-        }
-        badgeColor = Colors.green;
-        badgeText = 'ON TRIP';
-      } else if (eventType == 'skipped') {
-        title = 'Stop Skipped';
-        subtitle = 'Contact driver for details';
-        badgeColor = Colors.amber;
-        badgeText = 'SKIPPED';
-      }
-    } else if (isActive) {
-      print('isActive: $isActive');
-      // 2. Fallback to Location Status (if no specific event yet)
-
-      // NEW: Check if we are officially ARRIVED at the stop according to DB
-      if (nextStopInfo?.stopStatus == 'arrived') {
-        badgeColor = Colors.orange;
-        badgeText = 'ARRIVED';
-
-        if (nextStopInfo?.isGoTrip == true) {
-          title = "Arrived at School";
-          subtitle = "Waiting for child drop-off";
-        } else {
-          title = "Arrived at Home";
-          subtitle = "Waiting for child drop-off";
-        }
-      } else {
-        // Standard "On the way" logic
-        badgeColor = Colors.green;
-        badgeText = 'LIVE TRIP';
-        // Use trip type for context-aware title
-        if (nextStopInfo?.isGoTrip == true) {
-          title = nextStopInfo?.stopType == 'pickup'
-              ? 'Arriving for Pickup'
-              : 'Heading to School';
-        } else if (nextStopInfo?.isReturnTrip == true) {
-          title = nextStopInfo?.stopType == 'pickup'
-              ? 'Picking Up from School'
-              : 'Heading Home';
-        } else if (location?.tripType == 'pickup') {
-          title = 'Arriving for Pickup';
-        } else if (location?.tripType == 'dropoff') {
-          title = 'Heading to Destination';
-        } else {
-          title = 'Trip in Progress';
-        }
-        subtitle = _buildEtaText(nextStopInfo);
-      }
-    } else if (location?.isOnline == true) {
-      // 3. Online but waiting / scheduled
-      if (location?.tripsStarted == true) {
-        title = 'Trip Started';
-        subtitle = 'Driver on the way';
-        badgeText = 'ON TRIP';
-        badgeColor = Colors.green;
-      } else {
-        title = 'Trip Scheduled';
-        subtitle = 'Driver is online';
-        badgeText = 'SCHEDULED';
-        badgeColor = Colors.blue;
-      }
-    } else {
-      // 4. Explicitly Offline
-      title = 'Scheduled Trip';
-      subtitle = 'Driver is currently offline';
-      badgeText = 'OFFLINE';
-      badgeColor = Colors.grey;
-    }
+    if (badgeText == 'SCHEDULED')
+      badgeColor = Colors.amber; //badgeColor = Colors.blue;
+    else if (badgeText == 'LIVE TRIP' ||
+        badgeText == 'ON TRIP' ||
+        badgeText == 'COMPLETED')
+      badgeColor = Colors.green;
+    else if (badgeText == 'ARRIVED' || badgeText == 'APPROACHING')
+      badgeColor = Colors.orange;
+    else if (badgeText == 'SKIPPED')
+      badgeColor = Colors.amber;
 
     // Offline Override (if not completed)
-    if (!isConnected && badgeText != 'COMPLETED') {
+    if (!isConnected && badgeText != 'COMPLETED' && badgeText != 'SCHEDULED') {
       subtitle = 'Driver signal lost...';
       // Keep the last known status badge
     }
+
+    final bool isActive =
+        (badgeText != 'SCHEDULED' && badgeText != 'OFFLINE') ||
+        (badgeText == 'COMPLETED');
 
     return ActiveBookingCard(
       driverName: driverName,
@@ -243,12 +158,10 @@ class DriverStatusMonitor extends ConsumerWidget {
       subtitle: subtitle,
       badgeText: badgeText,
       badgeColor: badgeColor,
-      isActive: isActive || (badgeText == 'COMPLETED'),
+      isActive: isActive,
       etaMinutes: nextStopInfo?.etaMinutes ?? location?.etaMinutes,
-      stopsUntilParent: nextStopInfo?.stopsUntilParent,
-      nextStopLabel: nextStopInfo?.nextStopIsParent == true
-          ? nextStopInfo?.nextStopLabel
-          : null,
+      stopsUntilParent: nextStopInfo?.stopsUntil,
+      nextStopLabel: null,
       onViewAll: () {
         ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
       },
@@ -271,13 +184,14 @@ class DriverStatusMonitor extends ConsumerWidget {
     String driverId, {
     bool isLoading = false,
   }) {
+    debugPrint('no rideEvent: $driverId');
     return ActiveBookingCard(
       driverName: driverName,
       driverPhoto: driverPhoto,
       title: '$isLoading', //'Scheduled Trip',
       subtitle: isLoading ? 'Checking status...' : 'Driver Offline',
       badgeText: 'SCHEDULED',
-      badgeColor: Colors.blue,
+      badgeColor: Colors.deepOrange,
       isActive: false,
       etaMinutes: null,
       stopsUntilParent: null,
@@ -294,68 +208,5 @@ class DriverStatusMonitor extends ConsumerWidget {
         );
       },
     );
-  }
-
-  /// Builds ETA text with stops remaining
-  String _buildEtaText(ParentNextStopInfo? info) {
-    if (info == null) return 'View on map';
-    final eta = info.etaMinutes;
-    final stops = info.stopsUntilParent;
-    if (eta != null && stops != null && stops > 0) {
-      return '$eta min · $stops stops away';
-    }
-    if (eta != null) {
-      return '$eta min away';
-    }
-    if (stops != null && stops > 0) {
-      return '$stops stops away';
-    }
-    return 'View on map';
-  }
-
-  /// Builds approaching subtitle with ETA context
-  String _buildApproachingText(ParentNextStopInfo? info) {
-    if (info == null) return 'View on map';
-    final eta = info.etaMinutes;
-    if (eta != null) {
-      return 'Arriving in ~$eta min';
-    }
-    return 'Almost there';
-  }
-
-  /// Returns context-aware arrived subtitle
-  String _getArrivedSubtitle(ParentNextStopInfo? info) {
-    if (info == null) return 'At pickup/dropoff location';
-
-    // Go trip (morning): Home pickup → School dropoff
-    if (info.isGoTrip) {
-      if (info.stopType == 'pickup') {
-        return 'Ready for pickup at home';
-      } else {
-        return 'Arrived at school';
-      }
-    }
-
-    // Return trip (afternoon): School pickup → Home dropoff
-    if (info.isReturnTrip) {
-      if (info.stopType == 'pickup') {
-        return 'Picking up from school';
-      } else {
-        return 'Arrived at home';
-      }
-    }
-    debugPrint('info========: $info');
-    return 'At the child location';
-  }
-
-  /// Returns context-aware on-trip subtitle after pickup
-  String _getOnTripSubtitle(ParentNextStopInfo? info) {
-    if (info == null) return 'On the way';
-    final destination = info.destinationLabel;
-    final eta = info.etaMinutes;
-    if (eta != null) {
-      return 'Heading to $destination · $eta min';
-    }
-    return 'Heading to $destination';
   }
 }

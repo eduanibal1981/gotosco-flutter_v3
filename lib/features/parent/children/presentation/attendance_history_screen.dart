@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import '../data/attendance_model.dart';
+import '../domain/models/attendance_model.dart';
 import 'children_controller.dart';
 
 class AttendanceHistoryScreen extends ConsumerStatefulWidget {
@@ -239,3 +239,4 @@ class _AttendanceHistoryScreenState
     }
   }
 }
+

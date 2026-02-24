@@ -215,45 +215,45 @@ $$;
 ALTER FUNCTION "public"."complete_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."complete_trip_with_auto_offline"("trip_id_input" "uuid", "driver_lat" double precision DEFAULT NULL::double precision, "driver_lng" double precision DEFAULT NULL::double precision) RETURNS "void"
+CREATE OR REPLACE FUNCTION "public"."complete_trip_with_auto_offline"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
     AS $$
 DECLARE
-    v_driver_id UUID := auth.uid();
-    v_settings RECORD;
+  v_driver_id UUID := auth.uid();
+  v_auto_offline boolean;
 BEGIN
-    -- 1. Complete the trip
-    UPDATE public.trips
-    SET status = 'completed', end_time = NOW()
-    WHERE id = trip_id_input;
+  -- 1) Mark trip as completed
+  UPDATE public.trips 
+  SET status = 'completed',
+      actual_end_time = NOW(),
+      updated_at = NOW()
+  WHERE id = trip_id_input 
+    AND driver_id = v_driver_id;
 
-    -- 2. Update driver location (Stop tracking)
-    UPDATE public.driver_locations
-    SET is_tracking_active = false,
-        trip_type = 'idle',
-        updated_at = NOW()
-    WHERE driver_id = v_driver_id;
-    
-    -- 3. Check if should auto-offline (Profile/Ads Visibility)
-    SELECT auto_offline_after_trip, availability_mode
-    INTO v_settings
-    FROM public.drivers
-    WHERE user_id = v_driver_id;
-    
-    IF v_settings.availability_mode = 'smart' AND v_settings.auto_offline_after_trip THEN
-        -- Check if there are more scheduled trips today
-        IF NOT EXISTS (
-            SELECT 1 FROM public.trips
-            WHERE driver_id = v_driver_id
-              AND trip_date = CURRENT_DATE
-              AND status = 'scheduled'
-        ) THEN
-            -- No more trips, go Profile Offline (Hide from search)
-            -- FIX: Use set_profile_online_status instead of set_driver_online_status
-            PERFORM public.set_profile_online_status(false);
-        END IF;
-    END IF;
+  -- 2) Check auto-offline setting
+  SELECT auto_offline_after_trip INTO v_auto_offline
+  FROM public.drivers
+  WHERE user_id = v_driver_id;
+
+  -- 3) Update location table
+  UPDATE public.driver_locations
+  SET latitude = COALESCE(driver_lat, latitude),
+      longitude = COALESCE(driver_lng, longitude),
+      trip_type = 'idle',
+      updated_at = NOW(),
+      trips_started = false, -- Reset trips_started flag
+      -- Only disable tracking if auto-offline is enabled
+      is_tracking_active = CASE 
+        WHEN v_auto_offline THEN false 
+        ELSE is_tracking_active 
+      END
+  WHERE driver_id = v_driver_id;
+
+  -- 4) If auto-offline, also update profile status
+  IF v_auto_offline THEN
+    PERFORM public.set_profile_online_status(false);
+  END IF;
+  
 END;
 $$;
 
@@ -357,8 +357,15 @@ DECLARE
   sched_end TIME;
   target_day_name TEXT;
 BEGIN
+  -- 1. Modified Temp Table to include trip_category
   CREATE TEMP TABLE IF NOT EXISTS _temp_go_stops_v7 (
-    booking_id UUID, child_id UUID, pickup_lat FLOAT, pickup_lng FLOAT, school_lat FLOAT, school_lng FLOAT
+    booking_id UUID, 
+    child_id UUID, 
+    pickup_lat FLOAT, 
+    pickup_lng FLOAT, 
+    school_lat FLOAT, 
+    school_lng FLOAT,
+    trip_category TEXT
   ) ON COMMIT DROP;
   
   target_day_name := LOWER(TRIM(to_char(target_date, 'Day')));
@@ -379,31 +386,26 @@ BEGIN
     
     DELETE FROM _temp_go_stops_v7 WHERE TRUE;
     
-    -- INSERT STOPS
-    INSERT INTO _temp_go_stops_v7 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng)
+    -- INSERT STOPS (Now selecting trip_category)
+    INSERT INTO _temp_go_stops_v7 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng, trip_category)
     SELECT 
         b.id, 
         bc.child_id, 
         b.home_lat, 
         b.home_lng,
-        -- Resolve School Lat: Child School > Booking School > Booking Lat
         COALESCE(s_child.latitude, s_booking.latitude, b.school_lat),
-        -- Resolve School Lng: Child School > Booking School > Booking Lng
-        COALESCE(s_child.longitude, s_booking.longitude, b.school_lng)
+        COALESCE(s_child.longitude, s_booking.longitude, b.school_lng),
+        b.trip_category  -- Captured here
       FROM public.bookings b
       JOIN public.booking_children bc ON b.id = bc.booking_id
       JOIN public.children c ON bc.child_id = c.id
-      -- Joins for School Location
       LEFT JOIN public.schools s_child ON c.school_id = s_child.id
       LEFT JOIN public.schools s_booking ON b.school_id = s_booking.id
       WHERE b.driver_id = driver_rec.driver_id
-        -- Status Check
         AND (b.subscription_status = 'active' OR b.status IN ('confirmed', 'accepted'))
         AND b.booking_type IN ('Two Way', 'One Way to School')
-        -- Location Check
         AND b.home_lat IS NOT NULL 
         AND COALESCE(s_child.latitude, s_booking.latitude, b.school_lat) IS NOT NULL
-        -- Absence Check
         AND NOT EXISTS (SELECT 1 FROM public.child_absences ca WHERE ca.child_id = bc.child_id AND ca.date = target_date)
       ORDER BY 
         b.routego_order ASC NULLS LAST,
@@ -416,25 +418,47 @@ BEGIN
         SELECT available_from, available_until INTO sched_start, sched_end
         FROM public.driver_schedules WHERE driver_id = driver_rec.driver_id AND LOWER(day_of_week) = target_day_name AND shift_type = 'Go to School(s)' LIMIT 1;
         
-        INSERT INTO public.trips (driver_id, trip_date, status, trip_type, start_time, end_time)
-        VALUES (driver_rec.driver_id, target_date, 'scheduled', 'Go to School(s)',
+        INSERT INTO public.trips (driver_id, trip_date, status, trip_type, trip_direction, start_time, end_time)
+        VALUES (driver_rec.driver_id, target_date, 'scheduled', 'Go to School(s)', 'go',
             CASE WHEN sched_start IS NOT NULL THEN (target_date + sched_start) ELSE NULL END,
             CASE WHEN sched_end IS NOT NULL THEN (target_date + sched_end) ELSE NULL END)
         RETURNING id INTO new_trip_id;
         
         stop_sequence := 1;
         
-        -- Pickups (Home)
+        -- Pickups (Start at Home)
         FOR child_rec IN SELECT * FROM _temp_go_stops_v7 LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
-            VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'pickup', stop_sequence, child_rec.pickup_lat, child_rec.pickup_lng, 'pending');
+            VALUES (
+                new_trip_id, 
+                child_rec.booking_id, 
+                child_rec.child_id, 
+                'pick up from home', -- Always pickup from home for GO trips
+                stop_sequence, 
+                child_rec.pickup_lat, 
+                child_rec.pickup_lng, 
+                'pending'
+            );
             stop_sequence := stop_sequence + 1;
         END LOOP;
         
-        -- Dropoffs (School) - Clustered
+        -- Dropoffs (School or Destination)
         FOR child_rec IN SELECT * FROM _temp_go_stops_v7 ORDER BY school_lat, school_lng LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
-            VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'dropoff', stop_sequence, child_rec.school_lat, child_rec.school_lng, 'pending');
+            VALUES (
+                new_trip_id, 
+                child_rec.booking_id, 
+                child_rec.child_id, 
+                -- 2. Conditional Logic for Drop-off
+                CASE 
+                    WHEN child_rec.trip_category = 'school' THEN 'Drop off at school'
+                    ELSE 'Drop off at destination'
+                END,
+                stop_sequence, 
+                child_rec.school_lat, 
+                child_rec.school_lng, 
+                'pending'
+            );
             stop_sequence := stop_sequence + 1;
         END LOOP;
     END IF;
@@ -461,8 +485,15 @@ DECLARE
   sched_end TIME;
   target_day_name TEXT;
 BEGIN
+  -- 1. Modified Temp Table to include trip_category
   CREATE TEMP TABLE IF NOT EXISTS _temp_return_stops_v7 (
-    booking_id UUID, child_id UUID, pickup_lat FLOAT, pickup_lng FLOAT, school_lat FLOAT, school_lng FLOAT
+    booking_id UUID, 
+    child_id UUID, 
+    pickup_lat FLOAT, 
+    pickup_lng FLOAT, 
+    school_lat FLOAT, 
+    school_lng FLOAT,
+    trip_category TEXT
   ) ON COMMIT DROP;
   
   target_day_name := LOWER(TRIM(to_char(target_date, 'Day')));
@@ -481,31 +512,26 @@ BEGIN
     
     DELETE FROM _temp_return_stops_v7 WHERE TRUE;
     
-    -- INSERT STOPS
-    INSERT INTO _temp_return_stops_v7 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng)
+    -- INSERT STOPS (Now selecting trip_category)
+    INSERT INTO _temp_return_stops_v7 (booking_id, child_id, pickup_lat, pickup_lng, school_lat, school_lng, trip_category)
     SELECT 
         b.id, 
         bc.child_id, 
         b.home_lat, 
         b.home_lng, 
-        -- Resolve School Lat
         COALESCE(s_child.latitude, s_booking.latitude, b.school_lat),
-        -- Resolve School Lng
-        COALESCE(s_child.longitude, s_booking.longitude, b.school_lng)
+        COALESCE(s_child.longitude, s_booking.longitude, b.school_lng),
+        b.trip_category -- Captured here
       FROM public.bookings b
       JOIN public.booking_children bc ON b.id = bc.booking_id
       JOIN public.children c ON bc.child_id = c.id
-      -- Joins for School Location
       LEFT JOIN public.schools s_child ON c.school_id = s_child.id
       LEFT JOIN public.schools s_booking ON b.school_id = s_booking.id
       WHERE b.driver_id = driver_rec.driver_id
-        -- Status Check
         AND (b.subscription_status = 'active' OR b.status IN ('confirmed', 'accepted'))
         AND b.booking_type IN ('Two Way', 'One Way Back Home') 
-        -- Location Check
         AND b.home_lat IS NOT NULL 
         AND COALESCE(s_child.latitude, s_booking.latitude, b.school_lat) IS NOT NULL
-        -- Absence Check
         AND NOT EXISTS (SELECT 1 FROM public.child_absences ca WHERE ca.child_id = bc.child_id AND ca.date = target_date)
       ORDER BY 
         b.routeret_order ASC NULLS LAST,
@@ -524,25 +550,47 @@ BEGIN
         SELECT available_from, available_until INTO sched_start, sched_end
         FROM public.driver_schedules WHERE driver_id = driver_rec.driver_id AND LOWER(day_of_week) = target_day_name AND shift_type = 'Return from School(s)' LIMIT 1;
         
-        INSERT INTO public.trips (driver_id, trip_date, status, trip_type, start_time, end_time)
-        VALUES (driver_rec.driver_id, target_date, 'scheduled', 'Return from School(s)',
+        INSERT INTO public.trips (driver_id, trip_date, status, trip_type, trip_direction, start_time, end_time)
+        VALUES (driver_rec.driver_id, target_date, 'scheduled', 'Return from School(s)', 'return',
             CASE WHEN sched_start IS NOT NULL THEN (target_date + sched_start) ELSE NULL END,
             CASE WHEN sched_end IS NOT NULL THEN (target_date + sched_end) ELSE NULL END)
         RETURNING id INTO new_trip_id;
         
         stop_sequence := 1;
         
-        -- Pickups (School) - Clustered
+        -- Pickups (School or Destination) - Clustered
         FOR child_rec IN SELECT * FROM _temp_return_stops_v7 ORDER BY school_lat, school_lng LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
-            VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'pickup', stop_sequence, child_rec.school_lat, child_rec.school_lng, 'pending');
+            VALUES (
+                new_trip_id, 
+                child_rec.booking_id, 
+                child_rec.child_id, 
+                -- 2. Conditional Logic for Pickup
+                CASE 
+                    WHEN child_rec.trip_category = 'school' THEN 'pick up from school'
+                    ELSE 'pick up from destination'
+                END,
+                stop_sequence, 
+                child_rec.school_lat, 
+                child_rec.school_lng, 
+                'pending'
+            );
             stop_sequence := stop_sequence + 1;
         END LOOP;
         
         -- Dropoffs (Home) - Sequential
         FOR child_rec IN SELECT * FROM _temp_return_stops_v7 LOOP
             INSERT INTO public.route_stops (trip_id, booking_id, child_id, stop_type, sequence_order, location_lat, location_lng, status)
-            VALUES (new_trip_id, child_rec.booking_id, child_rec.child_id, 'dropoff', stop_sequence, child_rec.pickup_lat, child_rec.pickup_lng, 'pending');
+            VALUES (
+                new_trip_id, 
+                child_rec.booking_id, 
+                child_rec.child_id, 
+                'Drop off at home', -- Always home for Return trips
+                stop_sequence, 
+                child_rec.pickup_lat, 
+                child_rec.pickup_lng, 
+                'pending'
+            );
             stop_sequence := stop_sequence + 1;
         END LOOP;
     END IF;
@@ -583,7 +631,7 @@ $$;
 ALTER FUNCTION "public"."get_asset_public_url"("asset_id" "uuid") OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_driver_availability_settings"() RETURNS TABLE("auto_offline_after_trip" boolean, "auto_online_before_trip" boolean, "auto_online_minutes_before" integer, "availability_mode" "text", "is_profile_online" boolean, "is_tracking_active" boolean)
+CREATE OR REPLACE FUNCTION "public"."get_driver_availability_settings"() RETURNS TABLE("auto_offline_after_trip" boolean, "auto_online_before_trip" boolean, "auto_online_minutes_before" integer, "availability_mode" "text", "is_profile_online" boolean, "is_tracking_active" boolean, "is_app_online" boolean, "is_online_visible" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
 DECLARE
@@ -596,8 +644,11 @@ BEGIN
         d.auto_online_minutes_before,
         d.availability_mode,
         COALESCE(d.is_profile_online, false) as is_profile_online,
-        COALESCE(l.is_tracking_active, false) as is_tracking_active
+        COALESCE(l.is_tracking_active, false) as is_tracking_active,
+        COALESCE(u.is_app_online, false) as is_app_online,
+        COALESCE(u.is_online_visible, true) as is_online_visible
     FROM public.drivers d
+    JOIN public.users u ON u.id = d.user_id
     LEFT JOIN public.driver_locations l ON d.user_id = l.driver_id
     WHERE d.user_id = v_driver_id;
 END;
@@ -607,91 +658,159 @@ $$;
 ALTER FUNCTION "public"."get_driver_availability_settings"() OWNER TO "postgres";
 
 
-CREATE OR REPLACE FUNCTION "public"."get_parent_next_stop_info"("booking_id_input" "uuid") RETURNS TABLE("next_stop_is_parent" boolean, "next_stop_label" "text", "stops_until_parent" integer, "eta_minutes" integer)
+CREATE OR REPLACE FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") RETURNS TABLE("status_badge" "text", "ui_title" "text", "ui_subtitle" "text", "stops_until" integer, "eta_minutes" integer, "is_go_trip" boolean)
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
     AS $$
 DECLARE
-  v_parent_id UUID := auth.uid();
-  v_booking RECORD;
-  v_trip RECORD;
-  v_parent_stop RECORD;
-  v_next_stop_id UUID;
-  v_eta INTEGER;
-  v_stops_until INTEGER := 0;
-  v_parent_stop_label TEXT;
+    v_parent_id UUID := auth.uid();
+    v_booking RECORD;
+    v_driver_online BOOLEAN := false;
+    v_trips_started BOOLEAN := false;
+    v_eta INTEGER := 0;
+    
+    v_trip RECORD;
+    v_pickup_stop RECORD;
+    v_dropoff_stop RECORD;
+    
+    v_stops_away INTEGER := 0;
+    v_is_go BOOLEAN := true;
+    
+    v_badge TEXT;
+    v_title TEXT;
+    v_subtitle TEXT;
 BEGIN
-  SELECT b.id, b.parent_id, b.driver_id
-  INTO v_booking
-  FROM public.bookings b
-  WHERE b.id = booking_id_input;
+    -- 1. Validate Ownership
+    SELECT b.id, b.parent_id, b.driver_id
+    INTO v_booking
+    FROM public.bookings b
+    WHERE b.id = booking_id_input;
 
-  IF v_booking.id IS NULL OR v_booking.parent_id != v_parent_id THEN
-    RETURN;
-  END IF;
+    IF v_booking.id IS NULL OR v_booking.parent_id != v_parent_id THEN
+        RETURN; -- Unauthorized or invalid
+    END IF;
 
-  SELECT dl.next_stop_id, dl.eta_minutes
-  INTO v_next_stop_id, v_eta
-  FROM public.driver_locations dl
-  WHERE dl.driver_id = v_booking.driver_id;
+    -- 2. Check Driver & Global Location Status (Scenario 1 & 2)
+    SELECT d.is_profile_online, COALESCE(dl.trips_started, false), dl.eta_minutes
+    INTO v_driver_online, v_trips_started, v_eta
+    FROM public.drivers d
+    LEFT JOIN public.driver_locations dl ON dl.driver_id = d.user_id
+    WHERE d.user_id = v_booking.driver_id;
 
-  SELECT t.id, t.trip_type
-  INTO v_trip
-  FROM public.trips t
-  JOIN public.route_stops rs ON rs.trip_id = t.id
-  WHERE rs.booking_id = booking_id_input
-    AND t.status IN ('scheduled', 'in_progress')
-  ORDER BY t.trip_date DESC, t.start_time DESC NULLS LAST
-  LIMIT 1;
+    -- Scenario 1: Driver Offline
+    IF v_driver_online IS NULL OR NOT v_driver_online THEN
+        RETURN QUERY SELECT 'OFFLINE'::text, 'Scheduled Trip'::text, 'Driver is currently offline'::text, 0::int, v_eta, true::boolean;
+        RETURN;
+    END IF;
 
-  IF v_trip.id IS NULL THEN
-    RETURN QUERY SELECT false, NULL::text, NULL::int, v_eta;
-    RETURN;
-  END IF;
+    -- 3. Fetch Active Trip
+    SELECT t.id, t.trip_type
+    INTO v_trip
+    FROM public.trips t
+    JOIN public.route_stops rs ON rs.trip_id = t.id
+    WHERE rs.booking_id = booking_id_input
+      AND t.status IN ('scheduled', 'in_progress')
+    ORDER BY t.trip_date DESC, t.start_time DESC NULLS LAST
+    LIMIT 1;
 
-  SELECT rs.id, rs.sequence_order, rs.stop_type
-  INTO v_parent_stop
-  FROM public.route_stops rs
-  WHERE rs.trip_id = v_trip.id
-    AND rs.booking_id = booking_id_input
-    AND rs.status IN ('pending', 'arrived')
-  ORDER BY rs.sequence_order
-  LIMIT 1;
+    -- Scenario 2: Online, but no active trip generated/started
+    IF v_trip.id IS NULL OR NOT v_trips_started THEN
+        RETURN QUERY SELECT 'SCHEDULED'::text, 'Trip Scheduled'::text, 'Driver is online'::text, 0::int, v_eta, true::boolean;
+        RETURN;
+    END IF;
 
-  IF v_parent_stop.id IS NULL THEN
-    RETURN QUERY SELECT false, NULL::text, 0::int, v_eta;
-    RETURN;
-  END IF;
+    v_is_go := (v_trip.trip_type = 'Go to School(s)');
 
-  SELECT COUNT(*)
-  INTO v_stops_until
-  FROM public.route_stops rs
-  WHERE rs.trip_id = v_trip.id
-    AND rs.status IN ('pending', 'arrived')
-    AND rs.sequence_order < v_parent_stop.sequence_order;
+    -- 4. Fetch Exact Stops for this Booking
+    -- Pickup Stop
+    SELECT * INTO v_pickup_stop
+    FROM public.route_stops
+    WHERE trip_id = v_trip.id AND booking_id = booking_id_input
+      AND stop_type IN ('pickup', 'pick up from home', 'pick up from school')
+    LIMIT 1;
 
-  v_parent_stop_label := CASE
-    WHEN v_trip.trip_type = 'Go to School(s)' AND v_parent_stop.stop_type = 'pickup'
-      THEN 'Home Pickup'
-    WHEN v_trip.trip_type = 'Go to School(s)' AND v_parent_stop.stop_type = 'dropoff'
-      THEN 'School Dropoff'
-    WHEN v_trip.trip_type = 'Return from School(s)' AND v_parent_stop.stop_type = 'pickup'
-      THEN 'School Pickup'
-    WHEN v_trip.trip_type = 'Return from School(s)' AND v_parent_stop.stop_type = 'dropoff'
-      THEN 'Home Dropoff'
-    ELSE 'Next Stop'
-  END;
+    -- Dropoff Stop
+    SELECT * INTO v_dropoff_stop
+    FROM public.route_stops
+    WHERE trip_id = v_trip.id AND booking_id = booking_id_input
+      AND stop_type IN ('dropoff', 'Drop off at home', 'Drop off at school', 'Drop off at destination')
+    LIMIT 1;
 
-  RETURN QUERY
-    SELECT (v_next_stop_id = v_parent_stop.id),
-           v_parent_stop_label,
-           v_stops_until,
-           v_eta;
+    -- =========================================================
+    -- 5. STATE MACHINE LOGIC (Scenarios 3 through 9)
+    -- Evaluating in reverse chronological order of the trip
+    -- =========================================================
+
+    -- Scenario 8/9 (Final): Dropped Off safely
+    IF v_dropoff_stop.status = 'completed' THEN
+        v_badge := 'COMPLETED';
+        v_title := 'Child Dropped Off';
+        v_subtitle := CASE WHEN v_is_go THEN 'Arrived at school' ELSE 'Arrived home safely' END;
+        v_stops_away := 0;
+
+    -- Scenario 8/9: Driver Arrived at Dropoff (Waiting to hand over)
+    ELSIF v_dropoff_stop.status = 'arrived' THEN
+        v_badge := 'ARRIVED';
+        v_title := 'Driver Arrived';
+        v_subtitle := CASE WHEN v_is_go THEN 'Arrived at school' ELSE 'Arrived at home (Waiting for you to collect your child)' END;
+        v_stops_away := 0;
+
+    -- Scenario 7/9: Child Picked Up -> En route to Dropoff
+    ELSIF v_pickup_stop.status = 'completed' THEN
+        v_badge := 'ON_TRIP';
+        v_title := 'Child Picked Up';
+        
+        -- Calculate stops until dropoff destination
+        SELECT COUNT(*) INTO v_stops_away
+        FROM public.route_stops rs
+        WHERE rs.trip_id = v_trip.id AND rs.status IN ('pending', 'arrived')
+          AND rs.sequence_order < v_dropoff_stop.sequence_order;
+          
+        v_subtitle := CASE WHEN v_is_go THEN 'Heading to School Dropoff' ELSE 'Heading to Home Dropoff' END;
+        IF v_eta IS NOT NULL THEN
+            v_subtitle := v_subtitle || ' · ' || v_eta || ' min';
+        END IF;
+
+    -- Scenario 6/9: Driver Arrived at Pickup (Ready for child)
+    ELSIF v_pickup_stop.status = 'arrived' THEN
+        v_badge := 'ARRIVED';
+        v_title := 'Driver Arrived';
+        v_subtitle := CASE WHEN v_is_go THEN 'Ready for pickup at home' ELSE 'Picking up from school' END;
+        v_stops_away := 0;
+
+    -- Scenarios 3, 4, 5 & 9 (Start): Live tracking en route to Pickup
+    ELSE
+        v_badge := CASE WHEN v_is_go THEN 'LIVE_TRIP' ELSE 'ON_TRIP' END;
+        v_title := CASE WHEN v_is_go THEN 'Arriving for Pickup' ELSE 'Heading to School' END;
+        
+        -- Calculate stops until pickup location
+        SELECT COUNT(*) INTO v_stops_away
+        FROM public.route_stops rs
+        WHERE rs.trip_id = v_trip.id AND rs.status IN ('pending', 'arrived')
+          AND rs.sequence_order < v_pickup_stop.sequence_order;
+
+        -- Subtitle formatting (drops 'stops away' if it hits 0)
+        IF v_stops_away > 0 THEN
+            v_subtitle := COALESCE(v_eta, 0) || ' min · ' || v_stops_away || ' stops away';
+        ELSE
+            v_subtitle := COALESCE(v_eta, 0) || ' min away';
+        END IF;
+    END IF;
+
+    -- 6. Return Structured Data
+    RETURN QUERY SELECT 
+        v_badge,
+        v_title,
+        v_subtitle,
+        v_stops_away,
+        v_eta,
+        v_is_go;
+
 END;
 $$;
 
 
-ALTER FUNCTION "public"."get_parent_next_stop_info"("booking_id_input" "uuid") OWNER TO "postgres";
+ALTER FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
@@ -754,7 +873,7 @@ BEGIN
   FROM children c
   WHERE c.id = NEW.child_id;
 
-  -- Skip if no FCM token (exit early)
+  -- Skip if no FCM token
   IF parent_fcm_token IS NULL THEN
     RETURN NEW;
   END IF;
@@ -778,7 +897,7 @@ BEGIN
   END CASE;
 
   -- Call Edge Function to send notification
-  -- (Includes safety check to prevent crashes if settings are missing)
+  -- Check for settings existence first to prevent crashes
   IF current_setting('app.settings.supabase_functions_url', true) IS NOT NULL 
      AND current_setting('app.settings.anon_key', true) IS NOT NULL THEN
     
@@ -801,7 +920,7 @@ BEGIN
         )
       );
   ELSE
-    -- Log warning instead of crashing if settings are missing
+    -- Log warning if settings are missing (visible in Supabase logs)
     RAISE WARNING 'Missing app.settings.supabase_functions_url or anon_key. Notification not sent.';
   END IF;
 
@@ -902,6 +1021,54 @@ $$;
 ALTER FUNCTION "public"."refresh_driver_stats"() OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."regenerate_daily_trips"("target_date" "date") RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+DECLARE
+  v_driver_id UUID := auth.uid();
+BEGIN
+  -- 1. Detach bookings from trips
+  UPDATE public.bookings
+  SET daily_trip_id = NULL
+  WHERE daily_trip_id IN (
+    SELECT id FROM public.trips 
+    WHERE driver_id = v_driver_id 
+      AND trip_date = target_date
+  );
+
+  -- 2. Delete trip stops
+  DELETE FROM public.trip_stops
+  WHERE daily_trip_id IN (
+    SELECT id FROM public.trips 
+    WHERE driver_id = v_driver_id 
+      AND trip_date = target_date
+  );
+
+  -- 3. Delete trips
+  DELETE FROM public.trips 
+  WHERE driver_id = v_driver_id 
+    AND trip_date = target_date;
+
+  -- 4. Reset driver state if today
+  IF target_date = CURRENT_DATE THEN
+    UPDATE public.driver_locations
+    SET trip_type = 'idle',
+        is_tracking_active = false,
+        trips_started = false,
+        updated_at = NOW()
+    WHERE driver_id = v_driver_id;
+  END IF;
+  
+  -- 5. Regenerate
+  PERFORM public.generate_go_trips(target_date, v_driver_id);
+  PERFORM public.generate_return_trips(target_date, v_driver_id);
+END;
+$$;
+
+
+ALTER FUNCTION "public"."regenerate_daily_trips"("target_date" "date") OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."save_trip_order_as_default"("trip_id_input" "uuid") RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -937,367 +1104,6 @@ $$;
 
 
 ALTER FUNCTION "public"."save_trip_order_as_default"("trip_id_input" "uuid") OWNER TO "postgres";
-
-SET default_tablespace = '';
-
-SET default_table_access_method = "heap";
-
-
-CREATE TABLE IF NOT EXISTS "public"."driver_covered_schools" (
-    "driver_id" "uuid" NOT NULL,
-    "school_id" "uuid" NOT NULL
-);
-
-
-ALTER TABLE "public"."driver_covered_schools" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."driver_service_areas" (
-    "driver_id" "uuid" NOT NULL,
-    "area_id" "uuid" NOT NULL
-);
-
-
-ALTER TABLE "public"."driver_service_areas" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."drivers" (
-    "user_id" "uuid" NOT NULL,
-    "vehicle_type" "text" NOT NULL,
-    "vehicle_number" "text" NOT NULL,
-    "service_radius_km" integer DEFAULT 10,
-    "rating" numeric(2,1) DEFAULT 0,
-    "is_verified" boolean DEFAULT false,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "license_verified" boolean DEFAULT false,
-    "insurance_verified" boolean DEFAULT false,
-    "background_check_verified" boolean DEFAULT false,
-    "price_base" numeric DEFAULT 10,
-    "price_per_km" numeric DEFAULT 2,
-    "price_monthly_two_way" numeric,
-    "price_monthly_one_way" numeric,
-    "price_daily" numeric,
-    "currency" "text" DEFAULT 'OMR'::"text",
-    "bio" "text",
-    "is_active" boolean DEFAULT true,
-    "experience_years" integer DEFAULT 0,
-    "license_number" "text",
-    "license_expiry" "date",
-    "license_image_url" "text",
-    "vehicle_capacity" integer DEFAULT 0,
-    "mulkia_image_url" "text",
-    "location_text" "text",
-    "location_geo" "public"."geography"(Point,4326),
-    "location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("location_geo")::"public"."geometry")) STORED,
-    "location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("location_geo")::"public"."geometry")) STORED,
-    "start_location_text" "text",
-    "start_location_geo" "public"."geography"(Point,4326),
-    "start_location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("start_location_geo")::"public"."geometry")) STORED,
-    "start_location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("start_location_geo")::"public"."geometry")) STORED,
-    "auto_offline_after_trip" boolean DEFAULT true,
-    "auto_online_before_trip" boolean DEFAULT true,
-    "auto_online_minutes_before" integer DEFAULT 15,
-    "availability_mode" "text" DEFAULT 'smart'::"text",
-    "last_location_update" timestamp with time zone DEFAULT "now"(),
-    "location_accuracy_meters" double precision,
-    "is_location_sharing_enabled" boolean DEFAULT true,
-    "advs_photos" "text"[],
-    "is_profile_online" boolean DEFAULT false,
-    "vehicle_image_urls" "text"[] DEFAULT '{}'::"text"[],
-    CONSTRAINT "check_location_geo_valid" CHECK ((("location_geo" IS NULL) OR "public"."st_isvalid"(("location_geo")::"public"."geometry"))),
-    CONSTRAINT "check_start_location_geo_valid" CHECK ((("start_location_geo" IS NULL) OR "public"."st_isvalid"(("start_location_geo")::"public"."geometry"))),
-    CONSTRAINT "drivers_availability_mode_check" CHECK (("availability_mode" = ANY (ARRAY['smart'::"text", 'manual'::"text"])))
-);
-
-
-ALTER TABLE "public"."drivers" OWNER TO "postgres";
-
-
-COMMENT ON COLUMN "public"."drivers"."location_geo" IS 'Current/active location of driver';
-
-
-
-COMMENT ON COLUMN "public"."drivers"."start_location_geo" IS 'Starting point/home base of driver';
-
-
-
-CREATE TABLE IF NOT EXISTS "public"."reviews" (
-    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
-    "booking_id" "uuid",
-    "parent_id" "uuid",
-    "driver_id" "uuid",
-    "rating" integer,
-    "comment" "text",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    CONSTRAINT "reviews_rating_check" CHECK ((("rating" >= 1) AND ("rating" <= 5)))
-);
-
-
-ALTER TABLE "public"."reviews" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."users" (
-    "id" "uuid" NOT NULL,
-    "role" "text"[],
-    "full_name" "text" NOT NULL,
-    "phone" "text",
-    "photo_url" "text",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "gender" "text",
-    "fcm_token" "text",
-    "email" "text",
-    "auth_provider" "text" DEFAULT 'phone'::"text",
-    "updated_at" timestamp with time zone,
-    "location_text" "text",
-    "location_geo" "public"."geography",
-    "location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("location_geo")::"public"."geometry")) STORED,
-    "location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("location_geo")::"public"."geometry")) STORED,
-    "location_accuracy_meters" double precision,
-    "last_location_update" timestamp with time zone
-);
-
-
-ALTER TABLE "public"."users" OWNER TO "postgres";
-
-
-CREATE OR REPLACE VIEW "public"."verified_driver_ads" AS
- SELECT "d"."user_id" AS "driver_id",
-    "u"."full_name" AS "name",
-    "u"."phone",
-    "u"."photo_url",
-    "u"."gender",
-    "d"."vehicle_type",
-    "d"."price_monthly_two_way",
-    "d"."price_monthly_one_way",
-    "d"."rating",
-    ( SELECT ("count"(*))::integer AS "count"
-           FROM "public"."reviews" "r"
-          WHERE ("r"."driver_id" = "d"."user_id")) AS "total_reviews",
-    "d"."bio",
-    "array_remove"("array_agg"(DISTINCT "dsa"."area_id"), NULL::"uuid") AS "service_area_ids",
-    "array_remove"("array_agg"(DISTINCT "dcs"."school_id"), NULL::"uuid") AS "covered_school_ids"
-   FROM ((("public"."drivers" "d"
-     JOIN "public"."users" "u" ON (("d"."user_id" = "u"."id")))
-     LEFT JOIN "public"."driver_service_areas" "dsa" ON (("d"."user_id" = "dsa"."driver_id")))
-     LEFT JOIN "public"."driver_covered_schools" "dcs" ON (("d"."user_id" = "dcs"."driver_id")))
-  WHERE (("d"."is_verified" = true) AND ("d"."is_active" = true))
-  GROUP BY "d"."user_id", "u"."full_name", "u"."phone", "u"."photo_url", "u"."gender", "d"."vehicle_type", "d"."price_monthly_two_way", "d"."price_monthly_one_way", "d"."rating", "d"."bio";
-
-
-ALTER VIEW "public"."verified_driver_ads" OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."search_drivers"("filter_gender" "text" DEFAULT NULL::"text", "max_price" numeric DEFAULT NULL::numeric, "filter_area_id" "uuid" DEFAULT NULL::"uuid", "filter_school_id" "uuid" DEFAULT NULL::"uuid") RETURNS SETOF "public"."verified_driver_ads"
-    LANGUAGE "sql"
-    AS $$
-  select *
-  from public.verified_driver_ads
-  where
-    -- 1. Gender Filter
-    (filter_gender is null or gender = filter_gender or filter_gender = 'All')
-    
-    -- 2. Price Filter
-    and (max_price is null or price_monthly_two_way <= max_price)
-    
-    -- 3. Area Filter (Check if aggregated array contains the ID)
-    and (filter_area_id is null or service_area_ids @> array[filter_area_id])
-    
-    -- 4. School Filter (Check if aggregated array contains the ID)
-    and (filter_school_id is null or covered_school_ids @> array[filter_school_id]);
-$$;
-
-
-ALTER FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid") OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."search_drivers"("filter_gender" "text" DEFAULT NULL::"text", "max_price" numeric DEFAULT 1000, "filter_area_id" "uuid" DEFAULT NULL::"uuid", "filter_school_id" "uuid" DEFAULT NULL::"uuid", "filter_online_only" boolean DEFAULT false) RETURNS TABLE("driver_id" "uuid", "name" "text", "photo_url" "text", "gender" "text", "vehicle_type" "text", "rating" numeric, "total_reviews" integer, "price_monthly_two_way" numeric, "price_monthly_one_way" numeric, "bio" "text", "phone" "text", "is_online" boolean)
-    LANGUAGE "plpgsql" SECURITY DEFINER
-    AS $$
-BEGIN
-    RETURN QUERY
-    SELECT
-        d.user_id as driver_id,
-        u.full_name as name,
-        u.photo_url,
-        u.gender,
-        d.vehicle_type,
-        d.rating,
-        (SELECT COUNT(*)::INTEGER FROM public.reviews r WHERE r.driver_id = d.user_id) as total_reviews,
-        d.price_monthly_two_way,
-        d.price_monthly_one_way,
-        d.bio,
-        u.phone,
-        COALESCE(d.is_profile_online, false) as is_online
-    FROM public.drivers d
-    JOIN public.users u ON d.user_id = u.id
-    WHERE
-        d.is_active = true
-        AND d.is_verified = true
-        AND (filter_gender IS NULL OR u.gender = filter_gender)
-        AND (max_price IS NULL OR d.price_monthly_two_way <= max_price)
-        AND (
-            filter_area_id IS NULL OR 
-            EXISTS (SELECT 1 FROM public.driver_service_areas dsa WHERE dsa.driver_id = d.user_id AND dsa.area_id = filter_area_id)
-        )
-        AND (
-            filter_school_id IS NULL OR 
-            EXISTS (SELECT 1 FROM public.driver_covered_schools dcs WHERE dcs.driver_id = d.user_id AND dcs.school_id = filter_school_id)
-        )
-        AND COALESCE(d.is_profile_online, false) = TRUE;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "filter_online_only" boolean) OWNER TO "postgres";
-
-
-CREATE OR REPLACE FUNCTION "public"."search_drivers_for_parent_v2"("filter_gender" "text" DEFAULT NULL::"text", "filter_vehicle_type" "text" DEFAULT NULL::"text", "filter_min_rating" numeric DEFAULT NULL::numeric, "max_price_monthly_two_way" numeric DEFAULT NULL::numeric, "filter_area_id" "uuid" DEFAULT NULL::"uuid", "filter_school_id" "uuid" DEFAULT NULL::"uuid", "parent_location_lat" double precision DEFAULT NULL::double precision, "parent_location_lng" double precision DEFAULT NULL::double precision, "max_distance_km" integer DEFAULT NULL::integer, "filter_online_only" boolean DEFAULT false, "require_verified" boolean DEFAULT false, "page_limit" integer DEFAULT 20, "page_offset" integer DEFAULT 0) RETURNS TABLE("driver_id" "uuid", "name" "text", "photo_url" "text", "gender" "text", "bio" "text", "phone" "text", "vehicle_type" "text", "vehicle_capacity" integer, "rating" numeric, "total_reviews" integer, "price_monthly_two_way" numeric, "price_monthly_one_way" numeric, "price_daily" numeric, "currency" "text", "advs_photos" "text"[], "is_online" boolean, "is_verified" boolean, "distance_km" numeric, "covered_schools" "jsonb", "service_areas" "jsonb")
-    LANGUAGE "plpgsql" STABLE SECURITY DEFINER
-    SET "search_path" TO 'public'
-    AS $$
-DECLARE
-    parent_geo geography;
-BEGIN
-    -- 1. Construct parent point once (with safety validation)
-    IF parent_location_lat IS NOT NULL AND parent_location_lng IS NOT NULL THEN
-        IF parent_location_lat BETWEEN -90 AND 90 
-           AND parent_location_lng BETWEEN -180 AND 180 THEN
-            parent_geo := ST_SetSRID(
-                ST_MakePoint(parent_location_lng, parent_location_lat), 
-                4326
-            )::geography;
-        ELSE
-            RAISE WARNING 'Invalid coordinates provided: %, %', parent_location_lat, parent_location_lng;
-        END IF;
-    END IF;
-
-    RETURN QUERY
-    SELECT 
-        d.user_id,
-        u.full_name,
-        u.photo_url,
-        u.gender,
-        d.bio,
-        u.phone,
-        
-        d.vehicle_type,
-        d.vehicle_capacity,
-        d.rating,
-        COALESCE(rs.total_reviews, 0),
-        
-        d.price_monthly_two_way,
-        d.price_monthly_one_way,
-        d.price_daily,
-        d.currency,
-        
-        -- NEW: Return the photos array (handling NULLs)
-        COALESCE(d.advs_photos, '{}'::text[]),
-        
-        COALESCE(l.is_online, false),
-        d.is_verified,
-        
-        -- Distance Calculation
-        CASE 
-            WHEN parent_geo IS NOT NULL AND d.location_geo IS NOT NULL 
-            THEN ROUND((ST_Distance(d.location_geo, parent_geo) / 1000)::numeric, 2)
-            ELSE NULL 
-        END,
-        
-        -- JSON Aggregations
-        COALESCE(schools_data.json_agg, '[]'::jsonb),
-        COALESCE(areas_data.json_agg, '[]'::jsonb)
-
-    FROM public.drivers d
-    INNER JOIN public.users u ON d.user_id = u.id
-    LEFT JOIN public.driver_locations l ON d.user_id = l.driver_id
-    
-    -- Join Materialized View for fast stats
-    LEFT JOIN public.driver_review_stats rs ON d.user_id = rs.driver_id
-    
-    -- LATERAL JOIN: Schools (Includes City Name)
-    LEFT JOIN LATERAL (
-        SELECT jsonb_agg(
-            jsonb_build_object(
-                'id', s.id, 
-                'name', s.name,
-                'address', s.address,
-                'city_name', c.name
-            )
-        ) as json_agg
-        FROM public.driver_covered_schools dcs
-        JOIN public.schools s ON dcs.school_id = s.id
-        LEFT JOIN public.cities c ON s.city_id = c.id
-        WHERE dcs.driver_id = d.user_id
-        LIMIT 50
-    ) schools_data ON TRUE
-    
-    -- LATERAL JOIN: Areas
-    LEFT JOIN LATERAL (
-        SELECT jsonb_agg(
-            jsonb_build_object(
-                'id', a.id, 
-                'name', a.name
-            )
-        ) as json_agg
-        FROM public.driver_service_areas dsa
-        JOIN public.areas a ON dsa.area_id = a.id
-        WHERE dsa.driver_id = d.user_id
-        LIMIT 50
-    ) areas_data ON TRUE
-
-    WHERE d.is_active = TRUE
-      -- Basic Filters
-      AND (require_verified IS FALSE OR d.is_verified = TRUE)
-      AND (filter_min_rating IS NULL OR d.rating >= filter_min_rating)
-      AND (filter_gender IS NULL OR u.gender = filter_gender)
-      AND (filter_vehicle_type IS NULL OR d.vehicle_type = filter_vehicle_type)
-      
-      -- Price Filter (Only on Two Way)
-      AND (max_price_monthly_two_way IS NULL OR d.price_monthly_two_way <= max_price_monthly_two_way)
-      
-      -- Availability
-      AND (filter_online_only IS FALSE OR COALESCE(l.is_online, false) = TRUE)
-      
-      -- Location Filters
-      AND (
-          filter_area_id IS NULL 
-          OR EXISTS (
-              SELECT 1 FROM public.driver_service_areas dsa 
-              WHERE dsa.driver_id = d.user_id 
-              AND dsa.area_id = filter_area_id
-          )
-      )
-      AND (
-          filter_school_id IS NULL 
-          OR EXISTS (
-              SELECT 1 FROM public.driver_covered_schools dcs 
-              WHERE dcs.driver_id = d.user_id 
-              AND dcs.school_id = filter_school_id
-          )
-      )
-      AND (
-          max_distance_km IS NULL 
-          OR parent_geo IS NULL 
-          OR d.location_geo IS NULL
-          OR ST_DWithin(d.location_geo, parent_geo, max_distance_km * 1000)
-      )
-      
-    ORDER BY 
-       COALESCE(l.is_online, false) DESC,
-       CASE 
-           WHEN parent_geo IS NOT NULL AND d.location_geo IS NOT NULL
-           THEN d.location_geo <-> parent_geo 
-           ELSE NULL
-       END ASC NULLS LAST,
-       d.rating DESC,
-       d.created_at DESC
-    
-    LIMIT page_limit OFFSET page_offset;
-END;
-$$;
-
-
-ALTER FUNCTION "public"."search_drivers_for_parent_v2"("filter_gender" "text", "filter_vehicle_type" "text", "filter_min_rating" numeric, "max_price_monthly_two_way" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "parent_location_lat" double precision, "parent_location_lng" double precision, "max_distance_km" integer, "filter_online_only" boolean, "require_verified" boolean, "page_limit" integer, "page_offset" integer) OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."search_drivers_for_parent_v2"("filter_gender" "text" DEFAULT NULL::"text", "filter_vehicle_type" "text" DEFAULT NULL::"text", "filter_min_rating" numeric DEFAULT NULL::numeric, "max_price_monthly_two_way" numeric DEFAULT NULL::numeric, "filter_area_id" "uuid" DEFAULT NULL::"uuid", "filter_school_id" "uuid" DEFAULT NULL::"uuid", "search_term" "text" DEFAULT NULL::"text", "parent_location_lat" double precision DEFAULT NULL::double precision, "parent_location_lng" double precision DEFAULT NULL::double precision, "max_distance_km" integer DEFAULT NULL::integer, "filter_online_only" boolean DEFAULT false, "require_verified" boolean DEFAULT false, "page_limit" integer DEFAULT 20, "page_offset" integer DEFAULT 0) RETURNS TABLE("driver_id" "uuid", "name" "text", "photo_url" "text", "gender" "text", "bio" "text", "phone" "text", "vehicle_type" "text", "vehicle_capacity" integer, "rating" numeric, "total_reviews" integer, "price_monthly_two_way" numeric, "price_monthly_one_way" numeric, "price_daily" numeric, "currency" "text", "advs_photos" "text"[], "is_online" boolean, "is_verified" boolean, "distance_km" numeric, "covered_schools" "jsonb", "service_areas" "jsonb")
@@ -1357,7 +1163,7 @@ BEGIN
         WHERE dsa.driver_id = d.user_id
         LIMIT 50
     ) areas_data ON TRUE
-    WHERE d.is_active = TRUE
+    WHERE d.is_profile_online = TRUE
       AND (require_verified IS FALSE OR d.is_verified = TRUE)
       AND (filter_min_rating IS NULL OR d.rating >= filter_min_rating)
       AND (filter_gender IS NULL OR u.gender = filter_gender)
@@ -1475,6 +1281,21 @@ $$;
 ALTER FUNCTION "public"."set_driver_current_location"("p_user_id" "uuid", "p_latitude" double precision, "p_longitude" double precision, "p_address" "text", "p_accuracy_meters" double precision) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_online_visibility"("p_is_visible" boolean) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  UPDATE public.users
+  SET is_online_visible = p_is_visible,
+  updated_at = NOW()
+  WHERE id = auth.uid();
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_online_visibility"("p_is_visible" boolean) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."set_profile_online_status"("p_is_online" boolean) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
     AS $$
@@ -1508,50 +1329,61 @@ $$;
 ALTER FUNCTION "public"."set_tracking_status"("p_is_tracking" boolean) OWNER TO "postgres";
 
 
+CREATE OR REPLACE FUNCTION "public"."set_user_online_status"("p_is_online" boolean) RETURNS "void"
+    LANGUAGE "plpgsql" SECURITY DEFINER
+    AS $$
+BEGIN
+  UPDATE public.users
+  SET is_app_online = p_is_online,
+      updated_at = NOW()
+  WHERE id = auth.uid();
+END;
+$$;
+
+
+ALTER FUNCTION "public"."set_user_online_status"("p_is_online" boolean) OWNER TO "postgres";
+
+
 CREATE OR REPLACE FUNCTION "public"."start_trip"("trip_id_input" "uuid", "driver_lat" double precision DEFAULT NULL::double precision, "driver_lng" double precision DEFAULT NULL::double precision) RETURNS "void"
     LANGUAGE "plpgsql" SECURITY DEFINER
-    SET "search_path" TO 'public'
     AS $$
 DECLARE
+  v_driver_id UUID := auth.uid();
   v_trip_type_str text;
-  v_driver_id uuid;
   v_mapped_type text;
 BEGIN
-  -- 1. Get trip details
-  SELECT trip_type, driver_id INTO v_trip_type_str, v_driver_id
-  FROM public.trips
+  -- 1. Get trip type for mapping
+  SELECT trip_type INTO v_trip_type_str
+  FROM public.trips 
   WHERE id = trip_id_input;
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Trip not found';
-  END IF;
-
-  -- 2. Map trip_type to driver_locations.trip_type enum/string
-  -- 'Go to School(s)' -> 'pickup'
-  -- 'Return from School(s)' -> 'dropoff'
+  -- 2. Map trip_type to enum/string used in driver_locations
   IF v_trip_type_str = 'Go to School(s)' THEN
     v_mapped_type := 'pickup';
   ELSE
     v_mapped_type := 'dropoff';
   END IF;
 
-  -- 3. Update trips table
-  UPDATE public.trips
+  -- 3. Mark trip as in_progress
+  UPDATE public.trips 
   SET status = 'in_progress',
-      start_time = COALESCE(start_time, NOW())
-  WHERE id = trip_id_input;
+      actual_start_time = NOW(),
+      updated_at = NOW()
+  WHERE id = trip_id_input 
+    AND driver_id = v_driver_id
+    AND status = 'scheduled';
 
-  -- 4. Update driver_locations table
-  -- FIX: Use 'is_tracking_active' instead of 'is_online' which was dropped
+  -- 4. Update driver location and status (UPSERT logic)
   UPDATE public.driver_locations
-  SET trip_type = v_mapped_type,
-      is_tracking_active = true,
+  SET latitude = COALESCE(driver_lat, latitude),
+      longitude = COALESCE(driver_lng, longitude),
+      trip_type = v_mapped_type,
       updated_at = NOW(),
-      -- Update location only if valid coordinates are provided
-      latitude = COALESCE(driver_lat, latitude),
-      longitude = COALESCE(driver_lng, longitude)
+      is_tracking_active = true,
+      trips_started = true
   WHERE driver_id = v_driver_id;
-
+  
+  -- If update failed (no row), insert new row
   IF NOT FOUND THEN
     INSERT INTO public.driver_locations (
       driver_id, 
@@ -1559,6 +1391,7 @@ BEGIN
       longitude, 
       trip_type, 
       is_tracking_active, 
+      trips_started,
       updated_at
     ) VALUES (
       v_driver_id, 
@@ -1566,9 +1399,14 @@ BEGIN
       COALESCE(driver_lng, 0), 
       v_mapped_type, 
       true, 
+      true,
       NOW()
     );
   END IF;
+  
+  -- 5. Log initial location
+  INSERT INTO public.trip_tracking (daily_trip_id, latitude, longitude)
+  VALUES (trip_id_input, COALESCE(driver_lat, 0), COALESCE(driver_lng, 0));
 END;
 $$;
 
@@ -1618,6 +1456,74 @@ $$;
 
 
 ALTER FUNCTION "public"."sync_booking_school_location"() OWNER TO "postgres";
+
+
+CREATE OR REPLACE FUNCTION "public"."sync_route_stop_label_v3"() RETURNS "trigger"
+    LANGUAGE "plpgsql"
+    AS $$
+DECLARE
+  v_dir text;
+BEGIN
+  NEW.stop_kind := COALESCE(NEW.stop_kind, 'student');
+
+  -- If explicitly provided, keep it (only ensure stop_label not null)
+  IF NEW.stop_label_key IS NOT NULL AND NEW.stop_label_key <> '' THEN
+    NEW.stop_label := COALESCE(NEW.stop_label, NEW.stop_label_key);
+    RETURN NEW;
+  END IF;
+
+  -- Waypoint/custom stops: generic key (UI can use stop_context.title)
+  IF NEW.stop_kind = 'waypoint' THEN
+    NEW.stop_label_key := 'waypoint';
+    NEW.stop_label := COALESCE(NEW.stop_label, 'Waypoint');
+    RETURN NEW;
+  END IF;
+
+  IF NEW.stop_kind = 'custom' THEN
+    NEW.stop_label_key := 'custom_stop';
+    NEW.stop_label := COALESCE(NEW.stop_label, 'Stop');
+    RETURN NEW;
+  END IF;
+
+  -- Student stops: label depends on trip_direction + stop_type
+  SELECT trip_direction INTO v_dir
+  FROM public.trips
+  WHERE id = NEW.trip_id;
+
+  -- Fallback if old trip rows missing trip_direction
+  IF v_dir IS NULL THEN
+    SELECT CASE
+      WHEN trip_type = 'Go to School(s)' THEN 'go'
+      WHEN trip_type = 'Return from School(s)' THEN 'return'
+      ELSE 'custom'
+    END INTO v_dir
+    FROM public.trips
+    WHERE id = NEW.trip_id;
+  END IF;
+
+  NEW.stop_label_key := CASE
+    WHEN v_dir = 'go'     AND NEW.stop_type = 'pickup'  THEN 'home_pickup'
+    WHEN v_dir = 'go'     AND NEW.stop_type = 'dropoff' THEN 'school_dropoff'
+    WHEN v_dir = 'return' AND NEW.stop_type = 'pickup'  THEN 'school_pickup'
+    WHEN v_dir = 'return' AND NEW.stop_type = 'dropoff' THEN 'home_dropoff'
+    ELSE 'next_stop'
+  END;
+
+  -- Optional cached default English text
+  NEW.stop_label := CASE NEW.stop_label_key
+    WHEN 'home_pickup'    THEN 'Home Pickup'
+    WHEN 'school_dropoff' THEN 'School Dropoff'
+    WHEN 'school_pickup'  THEN 'School Pickup'
+    WHEN 'home_dropoff'   THEN 'Home Dropoff'
+    ELSE 'Next Stop'
+  END;
+
+  RETURN NEW;
+END;
+$$;
+
+
+ALTER FUNCTION "public"."sync_route_stop_label_v3"() OWNER TO "postgres";
 
 
 CREATE OR REPLACE FUNCTION "public"."sync_stop_latlng_to_geo"() RETURNS "trigger"
@@ -1725,6 +1631,10 @@ $$;
 
 ALTER FUNCTION "public"."update_route_order"("updates" "jsonb") OWNER TO "postgres";
 
+SET default_tablespace = '';
+
+SET default_table_access_method = "heap";
+
 
 CREATE TABLE IF NOT EXISTS "public"."areas" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
@@ -1745,18 +1655,6 @@ CREATE TABLE IF NOT EXISTS "public"."booking_children" (
 
 
 ALTER TABLE "public"."booking_children" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."booking_schools" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "booking_id" "uuid" NOT NULL,
-    "school_id" "uuid" NOT NULL,
-    "sequence_order" integer,
-    "created_at" timestamp with time zone DEFAULT "now"()
-);
-
-
-ALTER TABLE "public"."booking_schools" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."bookings" (
@@ -1831,6 +1729,121 @@ CREATE TABLE IF NOT EXISTS "public"."bookings" (
 ALTER TABLE "public"."bookings" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."drivers" (
+    "user_id" "uuid" NOT NULL,
+    "vehicle_type" "text" NOT NULL,
+    "vehicle_number" "text" NOT NULL,
+    "service_radius_km" integer DEFAULT 10,
+    "rating" numeric(2,1) DEFAULT 0,
+    "is_verified" boolean DEFAULT false,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "license_verified" boolean DEFAULT false,
+    "insurance_verified" boolean DEFAULT false,
+    "background_check_verified" boolean DEFAULT false,
+    "price_base" numeric DEFAULT 10,
+    "price_per_km" numeric DEFAULT 2,
+    "price_monthly_two_way" numeric,
+    "price_monthly_one_way" numeric,
+    "price_daily" numeric,
+    "currency" "text" DEFAULT 'OMR'::"text",
+    "bio" "text",
+    "is_active" boolean DEFAULT true,
+    "experience_years" integer DEFAULT 0,
+    "license_number" "text",
+    "license_expiry" "date",
+    "license_image_url" "text",
+    "vehicle_capacity" integer DEFAULT 0,
+    "mulkia_image_url" "text",
+    "location_text" "text",
+    "location_geo" "public"."geography"(Point,4326),
+    "location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("location_geo")::"public"."geometry")) STORED,
+    "location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("location_geo")::"public"."geometry")) STORED,
+    "start_location_text" "text",
+    "start_location_geo" "public"."geography"(Point,4326),
+    "start_location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("start_location_geo")::"public"."geometry")) STORED,
+    "start_location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("start_location_geo")::"public"."geometry")) STORED,
+    "auto_offline_after_trip" boolean DEFAULT true,
+    "auto_online_before_trip" boolean DEFAULT true,
+    "auto_online_minutes_before" integer DEFAULT 15,
+    "availability_mode" "text" DEFAULT 'smart'::"text",
+    "last_location_update" timestamp with time zone DEFAULT "now"(),
+    "location_accuracy_meters" double precision,
+    "is_location_sharing_enabled" boolean DEFAULT true,
+    "advs_photos" "text"[],
+    "is_profile_online" boolean DEFAULT false,
+    "vehicle_image_urls" "text"[] DEFAULT '{}'::"text"[],
+    CONSTRAINT "check_location_geo_valid" CHECK ((("location_geo" IS NULL) OR "public"."st_isvalid"(("location_geo")::"public"."geometry"))),
+    CONSTRAINT "check_start_location_geo_valid" CHECK ((("start_location_geo" IS NULL) OR "public"."st_isvalid"(("start_location_geo")::"public"."geometry"))),
+    CONSTRAINT "drivers_availability_mode_check" CHECK (("availability_mode" = ANY (ARRAY['smart'::"text", 'manual'::"text"])))
+);
+
+
+ALTER TABLE "public"."drivers" OWNER TO "postgres";
+
+
+COMMENT ON COLUMN "public"."drivers"."location_geo" IS 'Current/active location of driver';
+
+
+
+COMMENT ON COLUMN "public"."drivers"."start_location_geo" IS 'Starting point/home base of driver';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."users" (
+    "id" "uuid" NOT NULL,
+    "role" "text"[],
+    "full_name" "text" NOT NULL,
+    "phone" "text",
+    "photo_url" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "gender" "text",
+    "fcm_token" "text",
+    "email" "text",
+    "auth_provider" "text" DEFAULT 'phone'::"text",
+    "updated_at" timestamp with time zone,
+    "location_text" "text",
+    "location_geo" "public"."geography",
+    "location_lat" double precision GENERATED ALWAYS AS ("public"."st_y"(("location_geo")::"public"."geometry")) STORED,
+    "location_lng" double precision GENERATED ALWAYS AS ("public"."st_x"(("location_geo")::"public"."geometry")) STORED,
+    "location_accuracy_meters" double precision,
+    "last_location_update" timestamp with time zone,
+    "is_app_online" boolean DEFAULT false,
+    "is_online_visible" boolean DEFAULT true
+);
+
+
+ALTER TABLE "public"."users" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."booking_locations_view" WITH ("security_invoker"='true') AS
+ SELECT "b"."id" AS "booking_id",
+    "b"."home_lat",
+    "b"."home_lng",
+    "b"."school_lat",
+    "b"."school_lng",
+    "b"."driver_id",
+    "u"."full_name" AS "driver_name",
+    "u"."phone" AS "driver_phone"
+   FROM (("public"."bookings" "b"
+     LEFT JOIN "public"."drivers" "d" ON (("b"."driver_id" = "d"."user_id")))
+     LEFT JOIN "public"."users" "u" ON (("d"."user_id" = "u"."id")));
+
+
+ALTER VIEW "public"."booking_locations_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."booking_schools" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "booking_id" "uuid" NOT NULL,
+    "school_id" "uuid" NOT NULL,
+    "sequence_order" integer,
+    "created_at" timestamp with time zone DEFAULT "now"()
+);
+
+
+ALTER TABLE "public"."booking_schools" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."child_absences" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "child_id" "uuid" NOT NULL,
@@ -1890,6 +1903,15 @@ CREATE TABLE IF NOT EXISTS "public"."driver_availability" (
 ALTER TABLE "public"."driver_availability" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."driver_covered_schools" (
+    "driver_id" "uuid" NOT NULL,
+    "school_id" "uuid" NOT NULL
+);
+
+
+ALTER TABLE "public"."driver_covered_schools" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."driver_documents" (
     "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
     "driver_id" "uuid",
@@ -1916,11 +1938,138 @@ CREATE TABLE IF NOT EXISTS "public"."driver_locations" (
     "next_stop_id" "uuid",
     "eta_minutes" integer,
     "students_onboard" integer DEFAULT 0,
+    "trips_started" boolean DEFAULT false,
     CONSTRAINT "driver_locations_trip_type_check" CHECK (("trip_type" = ANY (ARRAY['pickup'::"text", 'dropoff'::"text", 'idle'::"text"])))
 );
 
 
 ALTER TABLE "public"."driver_locations" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."driver_service_areas" (
+    "driver_id" "uuid" NOT NULL,
+    "area_id" "uuid" NOT NULL
+);
+
+
+ALTER TABLE "public"."driver_service_areas" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."schools" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "name" "text" NOT NULL,
+    "address" "text",
+    "location" "public"."geography"(Point,4326),
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
+    "city_id" "uuid",
+    "latitude" double precision,
+    "longitude" double precision,
+    "createdby" "uuid"
+);
+
+
+ALTER TABLE "public"."schools" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."driver_profile_view" AS
+ SELECT "d"."user_id",
+    "d"."user_id" AS "id",
+    "d"."experience_years",
+    "d"."license_number",
+    "d"."license_image_url",
+    "d"."license_expiry",
+    "d"."vehicle_type",
+    "d"."vehicle_number",
+    "d"."vehicle_capacity",
+    "d"."mulkia_image_url",
+    "d"."vehicle_image_urls",
+    "d"."price_monthly_two_way",
+    "d"."price_monthly_one_way",
+    "d"."price_daily",
+    "d"."bio",
+    "d"."rating",
+    "d"."is_verified",
+    "d"."license_verified",
+    "d"."insurance_verified",
+    "d"."background_check_verified",
+    "d"."start_location_text",
+    "d"."start_location_geo",
+    "public"."st_x"(("d"."start_location_geo")::"public"."geometry") AS "start_location_lat",
+    "public"."st_y"(("d"."start_location_geo")::"public"."geometry") AS "start_location_lng",
+    "u"."full_name" AS "name",
+    "u"."photo_url",
+    "u"."phone",
+    "u"."email",
+    "u"."location_text",
+    "public"."st_x"(("u"."location_geo")::"public"."geometry") AS "location_lat",
+    "public"."st_y"(("u"."location_geo")::"public"."geometry") AS "location_lng",
+    COALESCE(( SELECT "array_agg"("a"."name") AS "array_agg"
+           FROM ("public"."driver_service_areas" "dsa"
+             JOIN "public"."areas" "a" ON (("dsa"."area_id" = "a"."id")))
+          WHERE ("dsa"."driver_id" = "d"."user_id")), ARRAY[]::"text"[]) AS "service_areas",
+    COALESCE(( SELECT "array_agg"("s"."name") AS "array_agg"
+           FROM ("public"."driver_covered_schools" "dcs"
+             JOIN "public"."schools" "s" ON (("dcs"."school_id" = "s"."id")))
+          WHERE ("dcs"."driver_id" = "d"."user_id")), ARRAY[]::"text"[]) AS "schools"
+   FROM ("public"."drivers" "d"
+     JOIN "public"."users" "u" ON (("d"."user_id" = "u"."id")));
+
+
+ALTER VIEW "public"."driver_profile_view" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."driver_requests_view" WITH ("security_invoker"='true') AS
+ SELECT "b"."id",
+    "b"."created_at",
+    "b"."parent_id",
+    "b"."driver_id",
+    "b"."booking_type",
+    "b"."status",
+    "b"."notes",
+    "b"."hometxt_location",
+    "b"."schooltxt_location",
+    "public"."st_astext"("b"."homegeo_location") AS "homegeo_location",
+    "public"."st_astext"("b"."schoolgeo_location") AS "schoolgeo_location",
+    "b"."start_date",
+    "b"."end_date",
+    "b"."home_pickup_time",
+    "b"."recurring_days",
+    "b"."proposal_price",
+    "b"."is_monthly_subscription",
+    "b"."is_recurring",
+    "b"."is_multi_school",
+    "b"."school_name",
+    "u"."full_name" AS "parent_name",
+    "u"."photo_url" AS "parent_photo",
+    "u"."phone" AS "parent_phone",
+    COALESCE(( SELECT "jsonb_agg"("jsonb_build_object"('id', "c"."id", 'name', "c"."name", 'gender', "c"."gender", 'grade', "c"."grade", 'age', "c"."age")) AS "jsonb_agg"
+           FROM ("public"."booking_children" "bc"
+             JOIN "public"."children" "c" ON (("bc"."child_id" = "c"."id")))
+          WHERE ("bc"."booking_id" = "b"."id")), '[]'::"jsonb") AS "students_info",
+    COALESCE(( SELECT "jsonb_agg"("jsonb_build_object"('id', "s"."id", 'name', "s"."name", 'address', "s"."address", 'latitude', "s"."latitude", 'longitude', "s"."longitude")) AS "jsonb_agg"
+           FROM ("public"."booking_schools" "bs"
+             JOIN "public"."schools" "s" ON (("bs"."school_id" = "s"."id")))
+          WHERE ("bs"."booking_id" = "b"."id")), '[]'::"jsonb") AS "schools_info"
+   FROM ("public"."bookings" "b"
+     LEFT JOIN "public"."users" "u" ON (("b"."parent_id" = "u"."id")));
+
+
+ALTER VIEW "public"."driver_requests_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."reviews" (
+    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "booking_id" "uuid",
+    "parent_id" "uuid",
+    "driver_id" "uuid",
+    "rating" integer,
+    "comment" "text",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    CONSTRAINT "reviews_rating_check" CHECK ((("rating" >= 1) AND ("rating" <= 5)))
+);
+
+
+ALTER TABLE "public"."reviews" OWNER TO "postgres";
 
 
 CREATE MATERIALIZED VIEW "public"."driver_review_stats" AS
@@ -1944,7 +2093,7 @@ CREATE TABLE IF NOT EXISTS "public"."driver_schedules" (
     "available_from" time without time zone NOT NULL,
     "available_until" time without time zone NOT NULL,
     "max_capacity" integer DEFAULT 8,
-    "is_active" boolean DEFAULT true,
+    "is_schedactive" boolean DEFAULT true,
     CONSTRAINT "driver_schedules_day_check" CHECK (("day_of_week" = ANY (ARRAY['saturday'::"text", 'sunday'::"text", 'monday'::"text", 'tuesday'::"text", 'wednesday'::"text", 'thursday'::"text", 'friday'::"text"]))),
     CONSTRAINT "driver_schedules_shift_check" CHECK (("shift_type" = ANY (ARRAY['Go to School(s)'::"text", 'Return from School(s)'::"text", 'custom'::"text"]))),
     CONSTRAINT "driver_schedules_shift_type_check" CHECK (("shift_type" = ANY (ARRAY['Go to School(s)'::"text", 'Return from School(s)'::"text", 'custom'::"text"])))
@@ -1952,6 +2101,114 @@ CREATE TABLE IF NOT EXISTS "public"."driver_schedules" (
 
 
 ALTER TABLE "public"."driver_schedules" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."driver_stats_view" WITH ("security_invoker"='true') AS
+ SELECT "user_id" AS "driver_id",
+    ( SELECT "count"(DISTINCT "bc"."child_id") AS "count"
+           FROM ("public"."bookings" "b"
+             JOIN "public"."booking_children" "bc" ON (("b"."id" = "bc"."booking_id")))
+          WHERE (("b"."driver_id" = "d"."user_id") AND ("b"."status" = ANY (ARRAY['accepted'::"text", 'confirmed'::"text", 'active'::"text"])))) AS "active_students",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."bookings" "b"
+          WHERE (("b"."driver_id" = "d"."user_id") AND ("b"."status" = 'pending'::"text"))) AS "pending_requests",
+    ( SELECT "count"(*) AS "count"
+           FROM "public"."bookings" "b"
+          WHERE (("b"."driver_id" = "d"."user_id") AND ("b"."status" = ANY (ARRAY['accepted'::"text", 'confirmed'::"text", 'active'::"text"])))) AS "active_bookings",
+    ( SELECT COALESCE("sum"("b"."price"), (0)::numeric) AS "coalesce"
+           FROM "public"."bookings" "b"
+          WHERE (("b"."driver_id" = "d"."user_id") AND ("b"."status" = ANY (ARRAY['accepted'::"text", 'confirmed'::"text", 'active'::"text"])))) AS "monthly_earnings"
+   FROM "public"."drivers" "d";
+
+
+ALTER VIEW "public"."driver_stats_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."route_stops" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "trip_id" "uuid" NOT NULL,
+    "booking_id" "uuid" NOT NULL,
+    "child_id" "uuid" NOT NULL,
+    "stop_type" "text",
+    "sequence_order" integer NOT NULL,
+    "status" "text" DEFAULT 'pending'::"text",
+    "arrived_at" timestamp with time zone,
+    "completed_at" timestamp with time zone,
+    "location_lat" double precision,
+    "location_lng" double precision,
+    "location_geo" "public"."geography"(Point,4326),
+    "stop_kind" "text" DEFAULT 'student'::"text",
+    "stop_label_key" "text",
+    "stop_label" "text",
+    "stop_context" "jsonb",
+    CONSTRAINT "route_stops_label_key_not_empty" CHECK ((("stop_label_key" IS NULL) OR ("stop_label_key" <> ''::"text"))),
+    CONSTRAINT "route_stops_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'arrived'::"text", 'completed'::"text", 'skipped'::"text"]))),
+    CONSTRAINT "route_stops_stop_kind_check" CHECK (("stop_kind" = ANY (ARRAY['student'::"text", 'waypoint'::"text", 'custom'::"text"]))),
+    CONSTRAINT "route_stops_stop_type_check" CHECK (("stop_type" = ANY (ARRAY['pickup'::"text", 'dropoff'::"text", 'pick up from home'::"text", 'pick up from school'::"text", 'Drop off at home'::"text", 'Drop off at school'::"text", 'Drop off at destination'::"text"])))
+);
+
+
+ALTER TABLE "public"."route_stops" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."trips" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "driver_id" "uuid" NOT NULL,
+    "trip_type" "text",
+    "trip_date" "date" DEFAULT CURRENT_DATE NOT NULL,
+    "status" "text" DEFAULT 'scheduled'::"text",
+    "start_time" timestamp with time zone,
+    "end_time" timestamp with time zone,
+    "updated_at" timestamp with time zone DEFAULT "now"(),
+    "current_location" "public"."geography"(Point,4326),
+    "total_distance_km" numeric,
+    "estimated_duration_minutes" integer,
+    "route_polyline" "text",
+    "actual_start_time" timestamp with time zone,
+    "actual_end_time" timestamp with time zone,
+    "trip_direction" "text",
+    CONSTRAINT "trips_status_check" CHECK (("status" = ANY (ARRAY['scheduled'::"text", 'in_progress'::"text", 'completed'::"text", 'cancelled'::"text"]))),
+    CONSTRAINT "trips_trip_direction_check" CHECK ((("trip_direction" IS NULL) OR ("trip_direction" = ANY (ARRAY['go'::"text", 'return'::"text", 'custom'::"text"])))),
+    CONSTRAINT "trips_trip_type_check" CHECK (("trip_type" = ANY (ARRAY['Go to School(s)'::"text", 'Return from School(s)'::"text", 'custom'::"text"])))
+);
+
+
+ALTER TABLE "public"."trips" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."driver_trips_view" WITH ("security_invoker"='true') AS
+ SELECT "id",
+    "driver_id",
+    "trip_date",
+    "trip_type",
+    "status",
+    "start_time" AS "planned_start_time",
+    "actual_start_time",
+    "actual_end_time",
+    "total_distance_km",
+    COALESCE(( SELECT "jsonb_agg"("jsonb_build_object"('id', "rs"."id", 'stop_type', "rs"."stop_type", 'latitude', "rs"."location_lat", 'longitude', "rs"."location_lng", 'sequence_order', "rs"."sequence_order", 'actual_arrival_time', "rs"."arrived_at", 'status', "rs"."status", 'child_name', ( SELECT "c"."name"
+                   FROM "public"."children" "c"
+                  WHERE ("c"."id" = "rs"."child_id")), 'student_id', "rs"."child_id", 'booking_id', "rs"."booking_id", 'home_location', ( SELECT "b"."hometxt_location"
+                   FROM "public"."bookings" "b"
+                  WHERE ("b"."id" = "rs"."booking_id")), 'school_location', ( SELECT "b"."schooltxt_location"
+                   FROM "public"."bookings" "b"
+                  WHERE ("b"."id" = "rs"."booking_id"))) ORDER BY "rs"."sequence_order") AS "jsonb_agg"
+           FROM "public"."route_stops" "rs"
+          WHERE ("rs"."trip_id" = "t"."id")), '[]'::"jsonb") AS "route_stops"
+   FROM "public"."trips" "t";
+
+
+ALTER VIEW "public"."driver_trips_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."i18n_strings" (
+    "key" "text" NOT NULL,
+    "locale" "text" NOT NULL,
+    "value" "text" NOT NULL
+);
+
+
+ALTER TABLE "public"."i18n_strings" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."media_assets" (
@@ -2013,6 +2270,132 @@ CREATE TABLE IF NOT EXISTS "public"."messages" (
 ALTER TABLE "public"."messages" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."notes" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "text" "text" NOT NULL,
+    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL
+);
+
+
+ALTER TABLE "public"."notes" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."parent_bookings_view" AS
+ SELECT "b"."id",
+    "b"."parent_id",
+    "b"."driver_id",
+    "b"."booking_type",
+    "b"."status",
+    "b"."hometxt_location",
+    "b"."schooltxt_location",
+    "b"."home_pickup_time",
+    "b"."school_pickup_time",
+    "b"."price",
+    "b"."notes",
+    "b"."created_at",
+    "b"."is_recurring",
+    "b"."recurrence_pattern",
+    "b"."subscription_status",
+    "b"."start_date",
+    "b"."end_date",
+    ("b"."homegeo_location")::"text" AS "homegeo_location_text",
+    ("b"."schoolgeo_location")::"text" AS "schoolgeo_location_text",
+    "b"."home_lat",
+    "b"."home_lng",
+    "b"."school_lat",
+    "b"."school_lng",
+    "b"."routego_order",
+    "b"."routeret_order",
+    "b"."is_monthly_subscription",
+    "b"."student_id",
+    "b"."school_id",
+    "b"."recurring_days",
+    "b"."payment_status",
+    "b"."cancellation_reason",
+    "b"."cancelled_at",
+    "b"."contract_start_date",
+    "b"."contract_end_date",
+    "b"."school_name",
+    "b"."cancellation_type",
+    "b"."cancellation_fee",
+    "b"."cancel_requested_at",
+    "b"."pause_start_date",
+    "b"."pause_end_date",
+    "b"."trip_category",
+    "b"."is_one_time",
+    "b"."scheduled_pickup_datetime",
+    "b"."scheduled_dropoff_datetime",
+    "b"."custom_pickup_location_text",
+    ("b"."custom_pickup_geo")::"text" AS "custom_pickup_geo_text",
+    "b"."custom_dropoff_location_text",
+    ("b"."custom_dropoff_geo")::"text" AS "custom_dropoff_geo_text",
+    "b"."booking_flow_step",
+    "b"."total_estimated_distance_km",
+    "b"."total_estimated_duration_minutes",
+    "b"."custom_pickup_lat",
+    "b"."custom_pickup_lng",
+    "b"."custom_dropoff_lat",
+    "b"."custom_dropoff_lng",
+    "b"."is_multi_school",
+    "b"."proposal_price",
+    "b"."is_for_parent",
+    "b"."school_ids",
+    "u"."full_name" AS "driver_name",
+    "u"."photo_url" AS "driver_photo",
+    "u"."phone" AS "driver_phone",
+    "s"."name" AS "school_name_lookup",
+    "s"."address" AS "school_address"
+   FROM (("public"."bookings" "b"
+     LEFT JOIN "public"."users" "u" ON (("b"."driver_id" = "u"."id")))
+     LEFT JOIN "public"."schools" "s" ON (("b"."school_id" = "s"."id")));
+
+
+ALTER VIEW "public"."parent_bookings_view" OWNER TO "postgres";
+
+
+COMMENT ON VIEW "public"."parent_bookings_view" IS 'Denormalized view for parent bookings with driver and school info';
+
+
+
+CREATE TABLE IF NOT EXISTS "public"."ride_events" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "booking_id" "uuid",
+    "child_id" "uuid",
+    "driver_id" "uuid",
+    "parent_id" "uuid",
+    "event_type" "text" NOT NULL,
+    "event_data" "jsonb" DEFAULT '{}'::"jsonb",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "read_at" timestamp with time zone,
+    "daily_trip_id" "uuid",
+    CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'arrived'::"text", 'picked_up'::"text", 'dropped_off'::"text", 'trip_started'::"text", 'skipped'::"text"])))
+);
+
+
+ALTER TABLE "public"."ride_events" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."parent_notifications_view" WITH ("security_invoker"='true') AS
+ SELECT "re"."id",
+    "re"."booking_id",
+    "re"."child_id",
+    "re"."driver_id",
+    "re"."parent_id",
+    "re"."event_type",
+    "re"."event_data",
+    "re"."created_at",
+    "re"."read_at",
+    "c"."name" AS "child_name",
+    "u"."full_name" AS "driver_name",
+    "u"."photo_url" AS "driver_photo"
+   FROM (("public"."ride_events" "re"
+     LEFT JOIN "public"."children" "c" ON (("re"."child_id" = "c"."id")))
+     LEFT JOIN "public"."users" "u" ON (("re"."driver_id" = "u"."id")));
+
+
+ALTER VIEW "public"."parent_notifications_view" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."payments" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "booking_id" "uuid",
@@ -2031,44 +2414,6 @@ CREATE TABLE IF NOT EXISTS "public"."payments" (
 ALTER TABLE "public"."payments" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."ride_events" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "booking_id" "uuid",
-    "child_id" "uuid",
-    "driver_id" "uuid",
-    "parent_id" "uuid",
-    "event_type" "text" NOT NULL,
-    "event_data" "jsonb" DEFAULT '{}'::"jsonb",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "read_at" timestamp with time zone,
-    CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'arrived'::"text", 'picked_up'::"text", 'dropped_off'::"text"])))
-);
-
-
-ALTER TABLE "public"."ride_events" OWNER TO "postgres";
-
-
-CREATE TABLE IF NOT EXISTS "public"."route_stops" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "trip_id" "uuid" NOT NULL,
-    "booking_id" "uuid" NOT NULL,
-    "child_id" "uuid" NOT NULL,
-    "stop_type" "text",
-    "sequence_order" integer NOT NULL,
-    "status" "text" DEFAULT 'pending'::"text",
-    "arrived_at" timestamp with time zone,
-    "completed_at" timestamp with time zone,
-    "location_lat" double precision,
-    "location_lng" double precision,
-    "location_geo" "public"."geography"(Point,4326),
-    CONSTRAINT "route_stops_status_check" CHECK (("status" = ANY (ARRAY['pending'::"text", 'arrived'::"text", 'completed'::"text", 'skipped'::"text"]))),
-    CONSTRAINT "route_stops_stop_type_check" CHECK (("stop_type" = ANY (ARRAY['pickup'::"text", 'dropoff'::"text"])))
-);
-
-
-ALTER TABLE "public"."route_stops" OWNER TO "postgres";
-
-
 CREATE TABLE IF NOT EXISTS "public"."saved_drivers" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "parent_id" "uuid",
@@ -2080,41 +2425,70 @@ CREATE TABLE IF NOT EXISTS "public"."saved_drivers" (
 ALTER TABLE "public"."saved_drivers" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."schools" (
+CREATE OR REPLACE VIEW "public"."tracking_view" AS
+ SELECT "dl"."driver_id",
+    "dl"."latitude",
+    "dl"."longitude",
+    "dl"."heading",
+    "dl"."speed",
+    "dl"."trip_type",
+    "dl"."updated_at",
+    "dl"."current_trip_id",
+    "dl"."is_tracking_active",
+    "dl"."next_stop_id",
+    "dl"."eta_minutes",
+    "dl"."students_onboard",
+    "dl"."trips_started",
+    "u"."is_app_online",
+    "u"."is_online_visible" AS "is_profile_online",
+    (COALESCE("u"."is_app_online", false) AND COALESCE("u"."is_online_visible", true)) AS "is_online"
+   FROM ("public"."driver_locations" "dl"
+     JOIN "public"."users" "u" ON (("dl"."driver_id" = "u"."id")));
+
+
+ALTER VIEW "public"."tracking_view" OWNER TO "postgres";
+
+
+CREATE TABLE IF NOT EXISTS "public"."trip_tracking" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "name" "text" NOT NULL,
-    "address" "text",
-    "location" "public"."geography"(Point,4326),
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()) NOT NULL,
-    "city_id" "uuid",
-    "latitude" double precision,
-    "longitude" double precision,
-    "createdby" "uuid"
+    "daily_trip_id" "uuid",
+    "latitude" double precision NOT NULL,
+    "longitude" double precision NOT NULL,
+    "heading" double precision,
+    "speed" double precision,
+    "recorded_at" timestamp with time zone DEFAULT "now"(),
+    "created_at" timestamp with time zone DEFAULT "now"()
 );
 
 
-ALTER TABLE "public"."schools" OWNER TO "postgres";
+ALTER TABLE "public"."trip_tracking" OWNER TO "postgres";
 
 
-CREATE TABLE IF NOT EXISTS "public"."trips" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "driver_id" "uuid" NOT NULL,
-    "trip_type" "text",
-    "trip_date" "date" DEFAULT CURRENT_DATE NOT NULL,
-    "status" "text" DEFAULT 'scheduled'::"text",
-    "start_time" timestamp with time zone,
-    "end_time" timestamp with time zone,
-    "updated_at" timestamp with time zone DEFAULT "now"(),
-    "current_location" "public"."geography"(Point,4326),
-    "total_distance_km" numeric,
-    "estimated_duration_minutes" integer,
-    "route_polyline" "text",
-    CONSTRAINT "trips_status_check" CHECK (("status" = ANY (ARRAY['scheduled'::"text", 'in_progress'::"text", 'completed'::"text", 'cancelled'::"text"]))),
-    CONSTRAINT "trips_trip_type_check" CHECK (("trip_type" = ANY (ARRAY['Go to School(s)'::"text", 'Return from School(s)'::"text", 'custom'::"text"])))
-);
+CREATE OR REPLACE VIEW "public"."verified_driver_ads" AS
+ SELECT "d"."user_id" AS "driver_id",
+    "u"."full_name" AS "name",
+    "u"."phone",
+    "u"."photo_url",
+    "u"."gender",
+    "d"."vehicle_type",
+    "d"."price_monthly_two_way",
+    "d"."price_monthly_one_way",
+    "d"."rating",
+    ( SELECT ("count"(*))::integer AS "count"
+           FROM "public"."reviews" "r"
+          WHERE ("r"."driver_id" = "d"."user_id")) AS "total_reviews",
+    "d"."bio",
+    "array_remove"("array_agg"(DISTINCT "dsa"."area_id"), NULL::"uuid") AS "service_area_ids",
+    "array_remove"("array_agg"(DISTINCT "dcs"."school_id"), NULL::"uuid") AS "covered_school_ids"
+   FROM ((("public"."drivers" "d"
+     JOIN "public"."users" "u" ON (("d"."user_id" = "u"."id")))
+     LEFT JOIN "public"."driver_service_areas" "dsa" ON (("d"."user_id" = "dsa"."driver_id")))
+     LEFT JOIN "public"."driver_covered_schools" "dcs" ON (("d"."user_id" = "dcs"."driver_id")))
+  WHERE (("d"."is_verified" = true) AND ("d"."is_active" = true))
+  GROUP BY "d"."user_id", "u"."full_name", "u"."phone", "u"."photo_url", "u"."gender", "d"."vehicle_type", "d"."price_monthly_two_way", "d"."price_monthly_one_way", "d"."rating", "d"."bio";
 
 
-ALTER TABLE "public"."trips" OWNER TO "postgres";
+ALTER VIEW "public"."verified_driver_ads" OWNER TO "postgres";
 
 
 ALTER TABLE ONLY "public"."areas"
@@ -2197,6 +2571,11 @@ ALTER TABLE ONLY "public"."drivers"
 
 
 
+ALTER TABLE ONLY "public"."i18n_strings"
+    ADD CONSTRAINT "i18n_strings_pkey" PRIMARY KEY ("key", "locale");
+
+
+
 ALTER TABLE ONLY "public"."media_assets"
     ADD CONSTRAINT "media_assets_pkey" PRIMARY KEY ("id");
 
@@ -2209,6 +2588,11 @@ ALTER TABLE ONLY "public"."media_assets"
 
 ALTER TABLE ONLY "public"."messages"
     ADD CONSTRAINT "messages_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."notes"
+    ADD CONSTRAINT "notes_pkey" PRIMARY KEY ("id");
 
 
 
@@ -2249,6 +2633,11 @@ ALTER TABLE ONLY "public"."saved_drivers"
 
 ALTER TABLE ONLY "public"."schools"
     ADD CONSTRAINT "schools_pkey" PRIMARY KEY ("id");
+
+
+
+ALTER TABLE ONLY "public"."trip_tracking"
+    ADD CONSTRAINT "trip_tracking_pkey" PRIMARY KEY ("id");
 
 
 
@@ -2352,7 +2741,7 @@ CREATE UNIQUE INDEX "idx_driver_review_stats_id" ON "public"."driver_review_stat
 
 
 
-CREATE INDEX "idx_driver_schedules_lookup" ON "public"."driver_schedules" USING "btree" ("driver_id", "day_of_week", "is_active");
+CREATE INDEX "idx_driver_schedules_lookup" ON "public"."driver_schedules" USING "btree" ("driver_id", "day_of_week", "is_schedactive");
 
 
 
@@ -2416,7 +2805,15 @@ CREATE INDEX "idx_ride_events_read_at" ON "public"."ride_events" USING "btree" (
 
 
 
+CREATE INDEX "idx_route_stops_booking_trip" ON "public"."route_stops" USING "btree" ("booking_id", "trip_id");
+
+
+
 CREATE INDEX "idx_route_stops_geo" ON "public"."route_stops" USING "gist" ("location_geo");
+
+
+
+CREATE INDEX "idx_route_stops_trip_booking_status_seq" ON "public"."route_stops" USING "btree" ("trip_id", "booking_id", "status", "sequence_order");
 
 
 
@@ -2424,11 +2821,27 @@ CREATE INDEX "idx_route_stops_trip_id" ON "public"."route_stops" USING "btree" (
 
 
 
+CREATE INDEX "idx_route_stops_trip_status_seq" ON "public"."route_stops" USING "btree" ("trip_id", "status", "sequence_order");
+
+
+
+CREATE INDEX "idx_route_stops_trip_status_sequence" ON "public"."route_stops" USING "btree" ("trip_id", "status", "sequence_order");
+
+
+
 CREATE INDEX "idx_schools_city_id" ON "public"."schools" USING "btree" ("city_id");
 
 
 
+CREATE INDEX "idx_trip_tracking_trip_date" ON "public"."trip_tracking" USING "btree" ("daily_trip_id", "recorded_at" DESC);
+
+
+
 CREATE INDEX "idx_trips_driver_date" ON "public"."trips" USING "btree" ("driver_id", "trip_date");
+
+
+
+CREATE INDEX "idx_trips_status_date_time" ON "public"."trips" USING "btree" ("status", "trip_date" DESC, "start_time" DESC);
 
 
 
@@ -2453,6 +2866,10 @@ CREATE OR REPLACE TRIGGER "on_ride_event_notify" AFTER INSERT ON "public"."ride_
 
 
 CREATE OR REPLACE TRIGGER "trg_check_duplicate_child_booking" BEFORE INSERT OR UPDATE ON "public"."booking_children" FOR EACH ROW EXECUTE FUNCTION "public"."check_duplicate_child_booking"();
+
+
+
+CREATE OR REPLACE TRIGGER "trigger_route_stop_label_sync" BEFORE INSERT OR UPDATE OF "trip_id", "stop_type", "stop_kind", "stop_label_key", "stop_context" ON "public"."route_stops" FOR EACH ROW EXECUTE FUNCTION "public"."sync_route_stop_label_v3"();
 
 
 
@@ -2563,6 +2980,11 @@ ALTER TABLE ONLY "public"."drivers"
 
 
 
+ALTER TABLE ONLY "public"."trip_tracking"
+    ADD CONSTRAINT "fk_trip_tracking_trip" FOREIGN KEY ("daily_trip_id") REFERENCES "public"."trips"("id") ON DELETE CASCADE;
+
+
+
 ALTER TABLE ONLY "public"."media_assets"
     ADD CONSTRAINT "media_assets_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
@@ -2590,6 +3012,11 @@ ALTER TABLE ONLY "public"."reviews"
 
 ALTER TABLE ONLY "public"."reviews"
     ADD CONSTRAINT "reviews_parent_id_fkey" FOREIGN KEY ("parent_id") REFERENCES "public"."users"("id");
+
+
+
+ALTER TABLE ONLY "public"."ride_events"
+    ADD CONSTRAINT "ride_events_daily_trip_id_fkey" FOREIGN KEY ("daily_trip_id") REFERENCES "public"."trips"("id") ON DELETE CASCADE;
 
 
 
@@ -2630,6 +3057,11 @@ ALTER TABLE ONLY "public"."saved_drivers"
 
 ALTER TABLE ONLY "public"."schools"
     ADD CONSTRAINT "schools_city_id_fkey" FOREIGN KEY ("city_id") REFERENCES "public"."cities"("id") ON DELETE CASCADE;
+
+
+
+ALTER TABLE ONLY "public"."trip_tracking"
+    ADD CONSTRAINT "trip_tracking_daily_trip_id_fkey" FOREIGN KEY ("daily_trip_id") REFERENCES "public"."trips"("id") ON DELETE CASCADE;
 
 
 
@@ -2683,9 +3115,7 @@ CREATE POLICY "Drivers can add their own service areas" ON "public"."driver_serv
 
 
 
-CREATE POLICY "Drivers can insert ride events" ON "public"."ride_events" FOR INSERT TO "authenticated" WITH CHECK (("driver_id" IN ( SELECT "ride_events"."id"
-   FROM "public"."drivers"
-  WHERE ("drivers"."user_id" = "auth"."uid"()))));
+CREATE POLICY "Drivers can insert ride events" ON "public"."ride_events" FOR INSERT TO "authenticated" WITH CHECK (("auth"."uid"() = "driver_id"));
 
 
 
@@ -2749,6 +3179,10 @@ CREATE POLICY "Drivers can view booking links" ON "public"."booking_children" FO
 
 
 CREATE POLICY "Drivers can view open bookings" ON "public"."bookings" FOR SELECT TO "authenticated" USING ((("driver_id" IS NULL) AND ("status" = ANY (ARRAY['posted'::"text", 'pending'::"text", 'open'::"text"]))));
+
+
+
+CREATE POLICY "Drivers can view their ride events" ON "public"."ride_events" FOR SELECT TO "authenticated" USING (("auth"."uid"() = "driver_id"));
 
 
 
@@ -2925,6 +3359,9 @@ ALTER TABLE "public"."saved_drivers" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."schools" ENABLE ROW LEVEL SECURITY;
 
 
+ALTER TABLE "public"."trip_tracking" ENABLE ROW LEVEL SECURITY;
+
+
 ALTER TABLE "public"."trips" ENABLE ROW LEVEL SECURITY;
 
 
@@ -2998,9 +3435,9 @@ GRANT ALL ON FUNCTION "public"."get_driver_availability_settings"() TO "service_
 
 
 
-GRANT ALL ON FUNCTION "public"."get_parent_next_stop_info"("booking_id_input" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."get_parent_next_stop_info"("booking_id_input" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."get_parent_next_stop_info"("booking_id_input" "uuid") TO "service_role";
+GRANT ALL ON FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") TO "anon";
+GRANT ALL ON FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") TO "service_role";
 
 
 
@@ -3028,63 +3465,15 @@ GRANT ALL ON FUNCTION "public"."refresh_driver_stats"() TO "service_role";
 
 
 
+GRANT ALL ON FUNCTION "public"."regenerate_daily_trips"("target_date" "date") TO "anon";
+GRANT ALL ON FUNCTION "public"."regenerate_daily_trips"("target_date" "date") TO "authenticated";
+GRANT ALL ON FUNCTION "public"."regenerate_daily_trips"("target_date" "date") TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."save_trip_order_as_default"("trip_id_input" "uuid") TO "anon";
 GRANT ALL ON FUNCTION "public"."save_trip_order_as_default"("trip_id_input" "uuid") TO "authenticated";
 GRANT ALL ON FUNCTION "public"."save_trip_order_as_default"("trip_id_input" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."driver_covered_schools" TO "anon";
-GRANT ALL ON TABLE "public"."driver_covered_schools" TO "authenticated";
-GRANT ALL ON TABLE "public"."driver_covered_schools" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."driver_service_areas" TO "anon";
-GRANT ALL ON TABLE "public"."driver_service_areas" TO "authenticated";
-GRANT ALL ON TABLE "public"."driver_service_areas" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."drivers" TO "anon";
-GRANT ALL ON TABLE "public"."drivers" TO "authenticated";
-GRANT ALL ON TABLE "public"."drivers" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."reviews" TO "anon";
-GRANT ALL ON TABLE "public"."reviews" TO "authenticated";
-GRANT ALL ON TABLE "public"."reviews" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."users" TO "anon";
-GRANT ALL ON TABLE "public"."users" TO "authenticated";
-GRANT ALL ON TABLE "public"."users" TO "service_role";
-
-
-
-GRANT ALL ON TABLE "public"."verified_driver_ads" TO "anon";
-GRANT ALL ON TABLE "public"."verified_driver_ads" TO "authenticated";
-GRANT ALL ON TABLE "public"."verified_driver_ads" TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid") TO "anon";
-GRANT ALL ON FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid") TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "filter_online_only" boolean) TO "anon";
-GRANT ALL ON FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "filter_online_only" boolean) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."search_drivers"("filter_gender" "text", "max_price" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "filter_online_only" boolean) TO "service_role";
-
-
-
-GRANT ALL ON FUNCTION "public"."search_drivers_for_parent_v2"("filter_gender" "text", "filter_vehicle_type" "text", "filter_min_rating" numeric, "max_price_monthly_two_way" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "parent_location_lat" double precision, "parent_location_lng" double precision, "max_distance_km" integer, "filter_online_only" boolean, "require_verified" boolean, "page_limit" integer, "page_offset" integer) TO "anon";
-GRANT ALL ON FUNCTION "public"."search_drivers_for_parent_v2"("filter_gender" "text", "filter_vehicle_type" "text", "filter_min_rating" numeric, "max_price_monthly_two_way" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "parent_location_lat" double precision, "parent_location_lng" double precision, "max_distance_km" integer, "filter_online_only" boolean, "require_verified" boolean, "page_limit" integer, "page_offset" integer) TO "authenticated";
-GRANT ALL ON FUNCTION "public"."search_drivers_for_parent_v2"("filter_gender" "text", "filter_vehicle_type" "text", "filter_min_rating" numeric, "max_price_monthly_two_way" numeric, "filter_area_id" "uuid", "filter_school_id" "uuid", "parent_location_lat" double precision, "parent_location_lng" double precision, "max_distance_km" integer, "filter_online_only" boolean, "require_verified" boolean, "page_limit" integer, "page_offset" integer) TO "service_role";
 
 
 
@@ -3106,6 +3495,12 @@ GRANT ALL ON FUNCTION "public"."set_driver_current_location"("p_user_id" "uuid",
 
 
 
+GRANT ALL ON FUNCTION "public"."set_online_visibility"("p_is_visible" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."set_online_visibility"("p_is_visible" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_online_visibility"("p_is_visible" boolean) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."set_profile_online_status"("p_is_online" boolean) TO "anon";
 GRANT ALL ON FUNCTION "public"."set_profile_online_status"("p_is_online" boolean) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."set_profile_online_status"("p_is_online" boolean) TO "service_role";
@@ -3118,6 +3513,12 @@ GRANT ALL ON FUNCTION "public"."set_tracking_status"("p_is_tracking" boolean) TO
 
 
 
+GRANT ALL ON FUNCTION "public"."set_user_online_status"("p_is_online" boolean) TO "anon";
+GRANT ALL ON FUNCTION "public"."set_user_online_status"("p_is_online" boolean) TO "authenticated";
+GRANT ALL ON FUNCTION "public"."set_user_online_status"("p_is_online" boolean) TO "service_role";
+
+
+
 GRANT ALL ON FUNCTION "public"."start_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) TO "anon";
 GRANT ALL ON FUNCTION "public"."start_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) TO "authenticated";
 GRANT ALL ON FUNCTION "public"."start_trip"("trip_id_input" "uuid", "driver_lat" double precision, "driver_lng" double precision) TO "service_role";
@@ -3127,6 +3528,12 @@ GRANT ALL ON FUNCTION "public"."start_trip"("trip_id_input" "uuid", "driver_lat"
 GRANT ALL ON FUNCTION "public"."sync_booking_school_location"() TO "anon";
 GRANT ALL ON FUNCTION "public"."sync_booking_school_location"() TO "authenticated";
 GRANT ALL ON FUNCTION "public"."sync_booking_school_location"() TO "service_role";
+
+
+
+GRANT ALL ON FUNCTION "public"."sync_route_stop_label_v3"() TO "anon";
+GRANT ALL ON FUNCTION "public"."sync_route_stop_label_v3"() TO "authenticated";
+GRANT ALL ON FUNCTION "public"."sync_route_stop_label_v3"() TO "service_role";
 
 
 
@@ -3166,15 +3573,33 @@ GRANT ALL ON TABLE "public"."booking_children" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."booking_schools" TO "anon";
-GRANT ALL ON TABLE "public"."booking_schools" TO "authenticated";
-GRANT ALL ON TABLE "public"."booking_schools" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."bookings" TO "anon";
 GRANT ALL ON TABLE "public"."bookings" TO "authenticated";
 GRANT ALL ON TABLE "public"."bookings" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."drivers" TO "anon";
+GRANT ALL ON TABLE "public"."drivers" TO "authenticated";
+GRANT ALL ON TABLE "public"."drivers" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."users" TO "anon";
+GRANT ALL ON TABLE "public"."users" TO "authenticated";
+GRANT ALL ON TABLE "public"."users" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."booking_locations_view" TO "anon";
+GRANT ALL ON TABLE "public"."booking_locations_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."booking_locations_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."booking_schools" TO "anon";
+GRANT ALL ON TABLE "public"."booking_schools" TO "authenticated";
+GRANT ALL ON TABLE "public"."booking_schools" TO "service_role";
 
 
 
@@ -3202,6 +3627,12 @@ GRANT ALL ON TABLE "public"."driver_availability" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."driver_covered_schools" TO "anon";
+GRANT ALL ON TABLE "public"."driver_covered_schools" TO "authenticated";
+GRANT ALL ON TABLE "public"."driver_covered_schools" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."driver_documents" TO "anon";
 GRANT ALL ON TABLE "public"."driver_documents" TO "authenticated";
 GRANT ALL ON TABLE "public"."driver_documents" TO "service_role";
@@ -3211,6 +3642,36 @@ GRANT ALL ON TABLE "public"."driver_documents" TO "service_role";
 GRANT ALL ON TABLE "public"."driver_locations" TO "anon";
 GRANT ALL ON TABLE "public"."driver_locations" TO "authenticated";
 GRANT ALL ON TABLE "public"."driver_locations" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."driver_service_areas" TO "anon";
+GRANT ALL ON TABLE "public"."driver_service_areas" TO "authenticated";
+GRANT ALL ON TABLE "public"."driver_service_areas" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."schools" TO "anon";
+GRANT ALL ON TABLE "public"."schools" TO "authenticated";
+GRANT ALL ON TABLE "public"."schools" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."driver_profile_view" TO "anon";
+GRANT ALL ON TABLE "public"."driver_profile_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."driver_profile_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."driver_requests_view" TO "anon";
+GRANT ALL ON TABLE "public"."driver_requests_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."driver_requests_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."reviews" TO "anon";
+GRANT ALL ON TABLE "public"."reviews" TO "authenticated";
+GRANT ALL ON TABLE "public"."reviews" TO "service_role";
 
 
 
@@ -3226,6 +3687,36 @@ GRANT ALL ON TABLE "public"."driver_schedules" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."driver_stats_view" TO "anon";
+GRANT ALL ON TABLE "public"."driver_stats_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."driver_stats_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."route_stops" TO "anon";
+GRANT ALL ON TABLE "public"."route_stops" TO "authenticated";
+GRANT ALL ON TABLE "public"."route_stops" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."trips" TO "anon";
+GRANT ALL ON TABLE "public"."trips" TO "authenticated";
+GRANT ALL ON TABLE "public"."trips" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."driver_trips_view" TO "anon";
+GRANT ALL ON TABLE "public"."driver_trips_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."driver_trips_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."i18n_strings" TO "anon";
+GRANT ALL ON TABLE "public"."i18n_strings" TO "authenticated";
+GRANT ALL ON TABLE "public"."i18n_strings" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."media_assets" TO "anon";
 GRANT ALL ON TABLE "public"."media_assets" TO "authenticated";
 GRANT ALL ON TABLE "public"."media_assets" TO "service_role";
@@ -3238,9 +3729,15 @@ GRANT ALL ON TABLE "public"."messages" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."payments" TO "anon";
-GRANT ALL ON TABLE "public"."payments" TO "authenticated";
-GRANT ALL ON TABLE "public"."payments" TO "service_role";
+GRANT ALL ON TABLE "public"."notes" TO "anon";
+GRANT ALL ON TABLE "public"."notes" TO "authenticated";
+GRANT ALL ON TABLE "public"."notes" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."parent_bookings_view" TO "anon";
+GRANT ALL ON TABLE "public"."parent_bookings_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."parent_bookings_view" TO "service_role";
 
 
 
@@ -3250,9 +3747,15 @@ GRANT ALL ON TABLE "public"."ride_events" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."route_stops" TO "anon";
-GRANT ALL ON TABLE "public"."route_stops" TO "authenticated";
-GRANT ALL ON TABLE "public"."route_stops" TO "service_role";
+GRANT ALL ON TABLE "public"."parent_notifications_view" TO "anon";
+GRANT ALL ON TABLE "public"."parent_notifications_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."parent_notifications_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."payments" TO "anon";
+GRANT ALL ON TABLE "public"."payments" TO "authenticated";
+GRANT ALL ON TABLE "public"."payments" TO "service_role";
 
 
 
@@ -3262,15 +3765,21 @@ GRANT ALL ON TABLE "public"."saved_drivers" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."schools" TO "anon";
-GRANT ALL ON TABLE "public"."schools" TO "authenticated";
-GRANT ALL ON TABLE "public"."schools" TO "service_role";
+GRANT ALL ON TABLE "public"."tracking_view" TO "anon";
+GRANT ALL ON TABLE "public"."tracking_view" TO "authenticated";
+GRANT ALL ON TABLE "public"."tracking_view" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."trips" TO "anon";
-GRANT ALL ON TABLE "public"."trips" TO "authenticated";
-GRANT ALL ON TABLE "public"."trips" TO "service_role";
+GRANT ALL ON TABLE "public"."trip_tracking" TO "anon";
+GRANT ALL ON TABLE "public"."trip_tracking" TO "authenticated";
+GRANT ALL ON TABLE "public"."trip_tracking" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."verified_driver_ads" TO "anon";
+GRANT ALL ON TABLE "public"."verified_driver_ads" TO "authenticated";
+GRANT ALL ON TABLE "public"."verified_driver_ads" TO "service_role";
 
 
 

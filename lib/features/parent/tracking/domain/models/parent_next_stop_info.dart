@@ -1,44 +1,30 @@
 class ParentNextStopInfo {
-  final bool nextStopIsParent;
-  final String? nextStopLabel;
-  final int? stopsUntilParent;
+  final String? statusBadge;
+  final String? uiTitle;
+  final String? uiSubtitle;
+  final int? stopsUntil;
   final int? etaMinutes;
-  final String? tripType; // 'Go to School(s)' | 'Return from School(s)'
-  final String? stopType; // 'pickup' | 'dropoff'
-  final String? stopStatus; // 'pending' | 'arrived'
+  final bool isGoTrip;
 
   ParentNextStopInfo({
-    required this.nextStopIsParent,
-    this.nextStopLabel,
-    this.stopsUntilParent,
+    this.statusBadge,
+    this.uiTitle,
+    this.uiSubtitle,
+    this.stopsUntil,
     this.etaMinutes,
-    this.tripType,
-    this.stopType,
-    this.stopStatus,
+    this.isGoTrip = true,
   });
 
-  /// Returns true for morning Go trips, false for afternoon Return trips
-  bool get isGoTrip => tripType?.contains('Go') ?? false;
-
-  /// Returns true for afternoon Return trips
-  bool get isReturnTrip => tripType?.contains('Return') ?? false;
-
-  /// Returns a user-friendly destination description
-  String get destinationLabel {
-    if (isGoTrip) return 'school';
-    if (isReturnTrip) return 'home';
-    return 'destination';
-  }
+  bool get isReturnTrip => !isGoTrip;
 
   factory ParentNextStopInfo.fromMap(Map<String, dynamic> map) {
     return ParentNextStopInfo(
-      nextStopIsParent: map['next_stop_is_parent'] as bool? ?? false,
-      nextStopLabel: map['next_stop_label'] as String?,
-      stopsUntilParent: map['stops_until_parent'] as int?,
+      statusBadge: map['status_badge'] as String?,
+      uiTitle: map['ui_title'] as String?,
+      uiSubtitle: map['ui_subtitle'] as String?,
+      stopsUntil: map['stops_until'] as int?,
       etaMinutes: map['eta_minutes'] as int?,
-      tripType: map['trip_type'] as String?,
-      stopType: map['stop_type'] as String?,
-      stopStatus: map['stop_status'] as String?,
+      isGoTrip: map['is_go_trip'] as bool? ?? true,
     );
   }
 }

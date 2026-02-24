@@ -1,7 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../data/city_model.dart';
-import '../data/area_model.dart';
+import '../domain/models/city_model.dart';
+import '../domain/models/area_model.dart';
+import '../application/driver_coverage_controller.dart';
 import '../data/driver_coverage_repository.dart';
 
 // Helper model for UI state
@@ -510,3 +511,4 @@ class _AreasCoverageScreenState extends ConsumerState<AreasCoverageScreen> {
     );
   }
 }
+

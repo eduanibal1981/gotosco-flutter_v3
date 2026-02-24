@@ -1,9 +1,9 @@
-// lib/features/driver/dashboard/presentation/widgets/booking_requests_card.dart
+﻿// lib/features/driver/dashboard/presentation/widgets/booking_requests_card.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../application/driver_dashboard_providers.dart';
-import '../../../transport_requests/data/models/driver_request_model.dart';
+import '../../../transport_requests/domain/models/driver_request_model.dart';
 import '../driver_dashboard_screen.dart';
 
 class BookingRequestsCard extends ConsumerWidget {
@@ -173,7 +173,7 @@ class BookingRequestsCard extends ConsumerWidget {
                   ),
                 ),
                 Text(
-                  '${children.length} Children • ${request.homeLocation ?? "Address"}',
+                  '${children.length} Children â€¢ ${request.homeLocation ?? "Address"}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -202,3 +202,4 @@ class BookingRequestsCard extends ConsumerWidget {
     );
   }
 }
+

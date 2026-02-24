@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../controllers/booking_flow_controller.dart';
+import '../../application/booking_flow_controller.dart';
+import '../../application/booking_flow_data_providers.dart';
+import '../../domain/models/booking_flow_child_model.dart';
 import '../../../shared/widgets/booking_details_view.dart';
-import '../../../parent/children/data/children_repository.dart';
-import '../../../parent/children/data/child_model.dart';
 
 /// Step 6: Review booking details before submission
 class Step6Review extends ConsumerWidget {
@@ -13,7 +13,7 @@ class Step6Review extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final bookingDraft = ref.watch(bookingFlowControllerProvider);
-    final childrenAsync = ref.watch(myChildrenProvider);
+    final childrenAsync = ref.watch(bookingFlowChildrenProvider);
 
     // Resolve Child Name
     final childDisplay = _resolveChildName(bookingDraft, childrenAsync);
@@ -57,7 +57,7 @@ class Step6Review extends ConsumerWidget {
 
   String _resolveChildName(
     dynamic bookingDraft,
-    AsyncValue<List<dynamic>> childrenAsync,
+    AsyncValue<List<BookingFlowChildModel>> childrenAsync,
   ) {
     // Check if booking is for parent themselves
     if (bookingDraft.isForParent) {
@@ -66,10 +66,13 @@ class Step6Review extends ConsumerWidget {
 
     if (bookingDraft.studentIds.isNotEmpty && childrenAsync.hasValue) {
       final names = bookingDraft.studentIds.map((id) {
-        final child = childrenAsync.value!.cast<ChildModel?>().firstWhere(
-          (c) => c?.id == id,
-          orElse: () => null,
-        );
+        BookingFlowChildModel? child;
+        for (final item in childrenAsync.value!) {
+          if (item.id == id) {
+            child = item;
+            break;
+          }
+        }
         return child?.name ?? 'Unknown';
       }).toList();
       return names.join(', ');
@@ -79,15 +82,18 @@ class Step6Review extends ConsumerWidget {
 
   Map<String, dynamic> _resolveChildDetails(
     dynamic bookingDraft,
-    AsyncValue<dynamic> childrenAsync,
+    AsyncValue<List<BookingFlowChildModel>> childrenAsync,
   ) {
     if (bookingDraft.studentIds.isNotEmpty && childrenAsync.hasValue) {
       // Just take first child for gender/age representative if multiple
       final childId = bookingDraft.studentIds.first;
-      final child = childrenAsync.value!.cast<ChildModel?>().firstWhere(
-        (c) => c?.id == childId,
-        orElse: () => null,
-      );
+      BookingFlowChildModel? child;
+      for (final item in childrenAsync.value!) {
+        if (item.id == childId) {
+          child = item;
+          break;
+        }
+      }
       if (child != null) {
         return {'gender': child.gender, 'grade': child.grade};
       }

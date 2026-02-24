@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:gotosco_v3/features/shared/schools/data/school_model.dart';
+import 'package:gotosco_v3/features/shared/schools/domain/models/school_model.dart';
 import 'package:gotosco_v3/features/shared/schools/presentation/school_selection_field.dart';
-import 'package:gotosco_v3/features/driver/profile/data/city_model.dart';
+import 'package:gotosco_v3/features/driver/profile/domain/models/city_model.dart';
 import 'package:gotosco_v3/features/shared/schools/data/schools_repository.dart';
 import 'children_controller.dart';
 
@@ -484,3 +484,4 @@ class _AddChildScreenState extends ConsumerState<AddChildScreen> {
     );
   }
 }
+

@@ -1,7 +1,7 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gotosco_v3/features/shared/schools/data/school_model.dart';
+import 'package:gotosco_v3/features/shared/schools/domain/models/school_model.dart';
 import 'package:gotosco_v3/features/shared/schools/data/schools_repository.dart';
 import 'package:gotosco_v3/features/shared/schools/presentation/add_school_screen.dart';
 
@@ -195,3 +195,4 @@ class _SchoolSelectionFieldState extends ConsumerState<SchoolSelectionField> {
     );
   }
 }
+

@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../controllers/booking_flow_controller.dart';
-import '../../../parent/children/data/children_repository.dart';
+import '../../application/booking_flow_controller.dart';
+import '../../application/booking_flow_data_providers.dart';
 
 /// Step 1: Select child for booking
 class Step1SelectChild extends ConsumerWidget {
@@ -10,7 +9,7 @@ class Step1SelectChild extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final childrenAsync = ref.watch(myChildrenProvider);
+    final childrenAsync = ref.watch(bookingFlowChildrenProvider);
     final bookingDraft = ref.watch(bookingFlowControllerProvider);
     final selectedIds = bookingDraft.studentIds;
     final isForParent = bookingDraft.isForParent;
@@ -232,10 +231,9 @@ class Step1SelectChild extends ConsumerWidget {
                               .toggleChildSelection(child.id);
 
                           // Auto-populate locations from user profile and school(s)
-                          await _autoPopulateLocationsForMultiple(
-                            ref,
-                            children,
-                          );
+                          await ref
+                              .read(bookingFlowControllerProvider.notifier)
+                              .autoPopulateLocationsForSelectedChildren();
                         },
                         borderRadius: BorderRadius.circular(16),
                         child: Container(
@@ -325,7 +323,7 @@ class Step1SelectChild extends ConsumerWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '${_calculateAge(child.dob)} years • Grade ${child.grade}',
+                                      '${_calculateAge(child.dob)} years - Grade ${child.grade}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: Colors.grey.shade600,
@@ -411,115 +409,5 @@ class Step1SelectChild extends ConsumerWidget {
       age--;
     }
     return age;
-  }
-
-  /// Auto-populate locations for multiple children selection
-  Future<void> _autoPopulateLocationsForMultiple(
-    WidgetRef ref,
-    List<dynamic> allChildren,
-  ) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final bookingDraft = ref.read(bookingFlowControllerProvider);
-      final selectedIds = bookingDraft.studentIds;
-
-      if (selectedIds.isEmpty) {
-        // Clear locations if no children selected
-        ref
-            .read(bookingFlowControllerProvider.notifier)
-            .autoPopulateLocations(
-              homeLocationText: null,
-              homeLat: null,
-              homeLng: null,
-              schoolLocationText: null,
-              schoolLat: null,
-              schoolLng: null,
-            );
-        return;
-      }
-
-      // Always fetch user's home location
-      final userResponse = await supabase
-          .from('users')
-          .select('location_text, location_lat, location_lng')
-          .eq('id', userId)
-          .maybeSingle();
-
-      String? homeLocationText = userResponse?['location_text'];
-      double? homeLat = userResponse?['location_lat'];
-      double? homeLng = userResponse?['location_lng'];
-
-      // Get selected children
-      final selectedChildren = allChildren
-          .where((c) => selectedIds.contains(c.id))
-          .toList();
-
-      // Check if all selected children go to the same school
-      String? schoolLocationText;
-      double? schoolLat;
-      double? schoolLng;
-      bool requiresManualSelection = false;
-
-      if (selectedChildren.isNotEmpty) {
-        // Get unique school IDs
-        final schoolIds = selectedChildren
-            .where((c) => c.schoolId != null && c.schoolId.isNotEmpty)
-            .map((c) => c.schoolId as String)
-            .toSet();
-
-        if (schoolIds.isEmpty) {
-          // No schools linked - require manual selection
-          requiresManualSelection = true;
-        } else if (schoolIds.length == 1) {
-          // All children go to the same school - auto-populate
-          final schoolId = schoolIds.first;
-          final schoolResponse = await supabase
-              .from('schools')
-              .select('name, address, latitude, longitude')
-              .eq('id', schoolId)
-              .maybeSingle();
-
-          if (schoolResponse != null) {
-            schoolLocationText =
-                schoolResponse['address'] ??
-                schoolResponse['name'] ??
-                selectedChildren.first.schoolName;
-            schoolLat = schoolResponse['latitude'];
-            schoolLng = schoolResponse['longitude'];
-          } else {
-            // School not found - use name only
-            schoolLocationText = selectedChildren.first.schoolName;
-          }
-        } else {
-          // Children go to different schools - require manual selection
-          requiresManualSelection = true;
-        }
-      }
-
-      // Auto-populate the locations
-      ref
-          .read(bookingFlowControllerProvider.notifier)
-          .autoPopulateLocations(
-            homeLocationText: homeLocationText,
-            homeLat: homeLat,
-            homeLng: homeLng,
-            schoolLocationText: schoolLocationText,
-            schoolLat: schoolLat,
-            schoolLng: schoolLng,
-            requiresManualSelection: requiresManualSelection,
-          );
-
-      // Populate school locations structure for multi-school support
-      // This will set isMultiSchool=true if multiple schools are detected
-      await ref
-          .read(bookingFlowControllerProvider.notifier)
-          .buildSchoolLocationsFromChildren();
-    } catch (e) {
-      debugPrint('Error auto-populating locations for multiple children: $e');
-      // Continue without auto-population if there's an error
-    }
   }
 }

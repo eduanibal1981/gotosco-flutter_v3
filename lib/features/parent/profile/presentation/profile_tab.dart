@@ -2,20 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:gotosco_v3/features/auth/application/user_provider.dart';
-import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
-import 'package:gotosco_v3/features/parent/bookings/data/bookings_repository.dart';
-import 'package:gotosco_v3/features/auth/application/user_session_provider.dart';
+import '../application/parent_profile_controller.dart';
+import '../application/parent_profile_providers.dart';
 
 class ProfileTab extends ConsumerWidget {
   const ProfileTab({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userAsync = ref.watch(currentUserProfileProvider);
-    final childrenAsync = ref.watch(myChildrenProvider);
-    final bookingsAsync = ref.watch(myBookingsProvider);
+    final userAsync = ref.watch(parentProfileUserProvider);
+    final childrenAsync = ref.watch(parentProfileChildrenProvider);
+    final bookingsAsync = ref.watch(parentProfileBookingsProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
@@ -253,7 +250,9 @@ class ProfileTab extends ConsumerWidget {
                       // Role Switcher for dual-role users
                       Consumer(
                         builder: (context, ref, child) {
-                          final sessionAsync = ref.watch(userSessionProvider);
+                          final sessionAsync = ref.watch(
+                            parentProfileSessionProvider,
+                          );
                           return sessionAsync.when(
                             data: (session) {
                               if (session == null || !session.isDualRole) {
@@ -277,7 +276,7 @@ class ProfileTab extends ConsumerWidget {
                                 trailing: const Icon(Icons.chevron_right),
                                 onTap: () async {
                                   await ref
-                                      .read(userSessionProvider.notifier)
+                                      .read(parentProfileControllerProvider.notifier)
                                       .switchRole(otherRole);
                                   if (context.mounted) {
                                     context.go(
@@ -529,7 +528,7 @@ class ProfileTab extends ConsumerWidget {
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await ref.read(authRepositoryProvider).signOut();
+              await ref.read(parentProfileControllerProvider.notifier).signOut();
               if (context.mounted) {
                 context.go('/login');
               }

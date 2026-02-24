@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import '../controllers/booking_flow_controller.dart';
+import '../../application/booking_flow_controller.dart';
 
 /// Step 5: Choose schedule type and set times
 class Step5Schedule extends ConsumerStatefulWidget {
@@ -17,19 +17,19 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
       'id': 'one_time',
       'label': 'One-Time Trip',
       'desc': 'Single journey on a specific date',
-      'icon': '📅',
+      'icon': 'ðŸ“…',
     },
     {
       'id': 'recurring',
       'label': 'Recurring Trip',
       'desc': 'Repeat on selected days of the week',
-      'icon': '🔄',
+      'icon': 'ðŸ”„',
     },
     {
       'id': 'monthly',
       'label': 'Monthly Subscription',
       'desc': 'Contract with driver for the month',
-      'icon': '📆',
+      'icon': 'ðŸ“†',
     },
   ];
 
@@ -180,7 +180,7 @@ class _Step5ScheduleState extends ConsumerState<Step5Schedule> {
                       ),
                     ),
                   );
-                }).toList(),
+                }),
 
                 // Schedule Details based on selection
                 if (selectedScheduleType != null) ...[

@@ -1,10 +1,10 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/driver_coverage_repository.dart';
-import '../../data/city_model.dart';
-import '../../data/area_model.dart';
-import '../../data/school_model.dart';
+import '../../domain/models/city_model.dart';
+import '../../domain/models/area_model.dart';
+import '../../domain/models/school_model.dart';
 
 class CoverageSummaryContent extends ConsumerWidget {
   const CoverageSummaryContent({super.key});
@@ -231,3 +231,4 @@ class CoverageSummaryContent extends ConsumerWidget {
     country: '',
   );
 }
+

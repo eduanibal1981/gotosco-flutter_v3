@@ -1,18 +1,18 @@
+import 'package:gotosco_v3/features/parent/tracking/domain/models/booking_location_model.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/models/parent_next_stop_info.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../../tracking/domain/models/driver_location_model.dart';
-import '../../tracking/domain/models/booking_location_model.dart';
-import '../../tracking/domain/models/parent_next_stop_info.dart';
 import '../data/repositories/tracking_repository_impl.dart';
+import '../domain/models/tracking_view_model.dart';
+
 export '../data/repositories/tracking_repository_impl.dart';
 
 part 'tracking_providers.g.dart';
 
 /// StreamProvider that listens to real-time driver location updates.
 @riverpod
-Stream<DriverLocation?> driverLocation(Ref ref, String driverId) {
-  return ref
-      .watch(trackingRepositoryProvider)
-      .getDriverLocationStream(driverId);
+Stream<TrackingViewModel?> driverLocation(Ref ref, String driverId) {
+  final repository = ref.watch(trackingRepositoryProvider);
+  return repository.getDriverLocationStream(driverId);
 }
 
 /// Provider to fetch booking locations (home and school coordinates).
@@ -27,6 +27,14 @@ Stream<Map<String, dynamic>?> latestRideEvent(Ref ref, String bookingId) {
 }
 
 @riverpod
-Future<ParentNextStopInfo?> parentNextStopInfo(Ref ref, String bookingId) {
+Future<ParentNextStopInfo?> parentNextStopInfo(
+  Ref ref,
+  String bookingId,
+  String driverId,
+) async {
+  // Watch streams so that this provider refetches automatically on every real-time update
+  ref.watch(latestRideEventProvider(bookingId));
+  ref.watch(driverLocationProvider(driverId));
+
   return ref.watch(trackingRepositoryProvider).getParentNextStopInfo(bookingId);
 }

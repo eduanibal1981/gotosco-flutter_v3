@@ -1,11 +1,11 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+﻿import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:geolocator/geolocator.dart'; // Add for distance calculation
 import '../../data/repositories/driver_dashboard_repository_impl.dart';
-import '../../data/models/driver_trip_model.dart';
+import '../../domain/models/driver_trip_model.dart';
 
 import '../../application/driver_dashboard_providers.dart';
 import '../../../availability/data/driver_availability_repository.dart';
-import '../../../availability/presentation/driver_availability_controller.dart';
+import '../../../availability/application/driver_availability_controller.dart';
 
 part 'active_trip_controller.g.dart';
 
@@ -17,12 +17,23 @@ class ActiveTripController extends _$ActiveTripController {
   }
 
   /// Start a trip
-  Future<void> startTrip(String tripId, {double? lat, double? lng}) async {
+  Future<void> startTrip(DriverTrip trip, {double? lat, double? lng}) async {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
+      final bookingIds = trip.routeStops
+          .map((s) => s.bookingId)
+          .where((id) => id != null)
+          .cast<String>()
+          .toSet()
+          .toList();
+
       await ref
           .read(driverDashboardRepositoryProvider)
-          .startTrip(tripId, lat: lat, lng: lng);
+          .broadcastTripStarted(trip.id, bookingIds);
+
+      await ref
+          .read(driverDashboardRepositoryProvider)
+          .startTrip(trip.id, lat: lat, lng: lng);
 
       // Refresh to get the updated status
       ref.invalidate(todaysTripsProvider);

@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/dashboard_controller.dart';
 import 'package:gotosco_v3/features/parent/dashboard/presentation/widgets/driver_status_monitor.dart';
 import 'package:gotosco_v3/features/parent/tracking/application/tracking_providers.dart';
-import 'package:gotosco_v3/features/parent/tracking/domain/models/driver_location_model.dart';
+import 'package:gotosco_v3/features/parent/tracking/domain/models/tracking_view_model.dart';
 
 void main() {
   testWidgets(
@@ -20,8 +20,8 @@ void main() {
         'driver_photo': null,
       };
 
-      // 2. Create a mock driver location for immediate data
-      final mockLocation = DriverLocation(
+      // 2. Create a mock tracking view model for immediate data
+      final mockLocation = TrackingViewModel(
         driverId: 'driver_1',
         latitude: 23.5,
         longitude: 58.3,
@@ -40,8 +40,17 @@ void main() {
           latestRideEventProvider(
             '123',
           ).overrideWith((ref) => Stream.value(null)),
-          parentNextStopInfoProvider('123').overrideWith((ref) async => null),
+          parentNextStopInfoProvider(
+            '123',
+            'driver_1',
+          ).overrideWith((ref) async => null),
         ],
+      );
+
+      // Keep the index provider alive so it doesn't dispose and reset
+      final subscription = container.listen(
+        parentDashboardIndexProvider,
+        (prev, next) {},
       );
 
       // 4. Create a GoRouter for test context
@@ -85,12 +94,13 @@ void main() {
 
       // 9. Tap the parent button (the ancestor of View All that is tappable)
       await tester.tap(viewAllFinder);
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       // 10. Verify the provider state changed from 2 (Home) to 3 (Bookings)
       expect(container.read(parentDashboardIndexProvider), 3);
 
       // Cleanup
+      subscription.close();
       router.dispose();
       container.dispose();
     },

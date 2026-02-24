@@ -1,9 +1,9 @@
-// lib/features/parent/children/presentation/children_tab.dart
+﻿// lib/features/parent/children/presentation/children_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../data/children_repository.dart';
-import '../data/child_model.dart';
+import '../domain/models/child_model.dart';
 import 'children_controller.dart';
 import 'set_absence_screen.dart';
 
@@ -482,3 +482,4 @@ class _ChildCard extends StatelessWidget {
     );
   }
 }
+

@@ -1,10 +1,10 @@
-// lib/features/parent/bookings/presentation/my_bookings_tab.dart
+﻿// lib/features/parent/bookings/presentation/my_bookings_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/bookings_repository.dart';
-import '../data/models/parent_booking_model.dart';
+import '../domain/models/parent_booking_model.dart';
 import '../../dashboard/presentation/dashboard_controller.dart';
 
 class MyBookingsTab extends ConsumerStatefulWidget {
@@ -1291,3 +1291,4 @@ class _MyBookingsTabState extends ConsumerState<MyBookingsTab> {
     }
   }
 }
+

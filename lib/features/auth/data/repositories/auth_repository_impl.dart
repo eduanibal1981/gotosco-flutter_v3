@@ -3,8 +3,8 @@ import 'package:gotosco_v3/core/constants/enums.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'package:gotosco_v3/core/services/media_service.dart';
 import 'package:gotosco_v3/features/auth/domain/models/auth_user.dart';
-import 'package:gotosco_v3/features/auth/domain/repositories/auth_repository.dart';
-export 'package:gotosco_v3/features/auth/domain/repositories/auth_repository.dart';
+import 'package:gotosco_v3/features/auth/domain/contracts/auth_contract.dart';
+export 'package:gotosco_v3/features/auth/domain/contracts/auth_contract.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
 import 'package:image_picker/image_picker.dart';
@@ -14,14 +14,14 @@ import 'package:flutter/foundation.dart';
 part 'auth_repository_impl.g.dart';
 
 @riverpod
-AuthRepository authRepository(Ref ref) {
+AuthContract authRepository(Ref ref) {
   return AuthRepositoryImpl(
     sb.Supabase.instance.client,
     ref.read(mediaServiceProvider),
   );
 }
 
-class AuthRepositoryImpl implements AuthRepository {
+class AuthRepositoryImpl implements AuthContract {
   final sb.SupabaseClient _supabase;
   final MediaService _mediaService;
 

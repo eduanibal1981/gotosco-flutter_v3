@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:gotosco_v3/features/shared/schools/data/schools_repository.dart';
-import 'package:gotosco_v3/features/driver/profile/data/city_model.dart';
+import 'package:gotosco_v3/features/driver/profile/domain/models/city_model.dart';
 import 'package:gotosco_v3/features/shared/location/presentation/location_picker_screen.dart';
 
 class AddSchoolScreen extends ConsumerStatefulWidget {
@@ -247,3 +247,4 @@ class _AddSchoolScreenState extends ConsumerState<AddSchoolScreen> {
     );
   }
 }
+

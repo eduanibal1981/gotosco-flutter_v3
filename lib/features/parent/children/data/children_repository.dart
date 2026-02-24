@@ -1,8 +1,8 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
-import 'child_model.dart';
-import 'attendance_model.dart';
+import '../domain/models/child_model.dart';
+import '../domain/models/attendance_model.dart';
 part 'children_repository.g.dart';
 
 @riverpod

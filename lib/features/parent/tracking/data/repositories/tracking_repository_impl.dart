@@ -2,58 +2,37 @@ import 'dart:async';
 import 'package:latlong2/latlong.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/repositories/tracking_repository.dart';
-import '../../domain/models/driver_location_model.dart';
+import '../../domain/contracts/tracking_contract.dart';
+import '../../domain/models/tracking_view_model.dart';
 import '../../domain/models/booking_location_model.dart';
 import '../../domain/models/parent_next_stop_info.dart';
 
 part 'tracking_repository_impl.g.dart';
 
 @riverpod
-TrackingRepository trackingRepository(Ref ref) {
+TrackingContract trackingRepository(Ref ref) {
   return TrackingRepositoryImpl(Supabase.instance.client);
 }
 
-class TrackingRepositoryImpl implements TrackingRepository {
+class TrackingRepositoryImpl implements TrackingContract {
   final SupabaseClient _supabase;
 
   TrackingRepositoryImpl(this._supabase);
 
   @override
-  Stream<DriverLocation?> getDriverLocationStream(String driverId) {
-    late StreamController<DriverLocation?> controller;
-    StreamSubscription? sub;
-
-    controller = StreamController<DriverLocation?>(
-      onListen: () {
-        // Initial Fetch
-        getDriverLocation(driverId).then((loc) {
-          if (!controller.isClosed) controller.add(loc);
+  Stream<TrackingViewModel?> getDriverLocationStream(String driverId) {
+    return _supabase
+        .from('tracking_view')
+        .stream(primaryKey: ['driver_id'])
+        .eq('driver_id', driverId)
+        .map((events) {
+          if (events.isEmpty) return null;
+          return TrackingViewModel.fromJson(events.first);
         });
-
-        // Listen to changes on base table 'driver_locations'
-        sub = _supabase
-            .from('driver_locations')
-            .stream(primaryKey: ['driver_id'])
-            .eq('driver_id', driverId)
-            .listen((_) async {
-              // Re-fetch from view to get joined status (is_profile_online etc.)
-              final loc = await getDriverLocation(driverId);
-              if (!controller.isClosed) {
-                controller.add(loc);
-              }
-            });
-      },
-      onCancel: () {
-        sub?.cancel();
-      },
-    );
-
-    return controller.stream;
   }
 
   @override
-  Future<DriverLocation?> getDriverLocation(String driverId) async {
+  Future<TrackingViewModel?> getDriverLocation(String driverId) async {
     final data = await _supabase
         .from('tracking_view')
         .select()
@@ -61,7 +40,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
         .maybeSingle();
 
     if (data == null) return null;
-    return DriverLocation.fromJson(data);
+    return TrackingViewModel.fromJson(data);
   }
 
   @override
@@ -118,7 +97,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
   Future<ParentNextStopInfo?> getParentNextStopInfo(String bookingId) async {
     try {
       final response = await _supabase.rpc(
-        'get_parent_next_stop_info',
+        'get_parent_tracking_ui_state',
         params: {'booking_id_input': bookingId},
       );
 
@@ -134,7 +113,7 @@ class TrackingRepositoryImpl implements TrackingRepository {
   }
 
   @override
-  double? calculateEtaMinutes(DriverLocation driver, LatLng destination) {
+  double? calculateEtaMinutes(TrackingViewModel driver, LatLng destination) {
     if (driver.speed <= 0) return null;
 
     const distance = Distance();

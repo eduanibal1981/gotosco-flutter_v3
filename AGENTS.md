@@ -16,11 +16,11 @@ Before writing code or answering architectural questions, you **MUST** follow th
 ## 🏗️ ARCHITECTURE: GOTOSCO LAYER CONTRACT (STRICT)
 
 ### 1. STRICT FLOW (Unidirectional)
-`UI (View)` → `application (Logic)` → `domain (Interface)` ← `data (Implementation)`
+`UI (View)` → `application (Logic)` → `domain (contacts)` ← `data (Implementation)`
 *   **UI:** `presentation/` folder. Only renders state.
 *   **Logic:** `application/` folder. State management (Riverpod).
-*   **Interface:** `domain/` folder. Pure Dart models & repository contracts.
 *   **Implementation:** `data/` folder. Supabase calls & repository implementations.
+*   **contract(Interface):** `domain/` folder. Pure Dart models &  contracts // I like to call contract instead of repository at this level
 
 ### 2. LAYER RULES
 #### 🎨 PRESENTATION (UI)
@@ -34,17 +34,17 @@ Before writing code or answering architectural questions, you **MUST** follow th
 *   **Rule:** Providers distinct logic but live **adjacent** to implementation (e.g., `run_controller.dart`).
 *   **Async Rule:** Expose `AsyncValue<T>` for all async operations.
 
+#### 💾 DATA (Implementation)
+*   **Location:** `features/<feature>/data/`
+*   **Repositories:** `data/repositories/` (Implement contracts from domain).
+*   **DataSources:** `data/datasources/` (Direct Supabase calls).
+*   **Rule:** Only Repositories call DataSources. Supabase types never leak up.
+
 #### 📦 DOMAIN (Contracts & Models)
 *   **Location:** `features/<feature>/domain/`
 *   **Models:** `domain/models/` (Freezed + fromJson). One model per entity.
-*   **Repositories:** `domain/repositories/` (Abstract Interfaces only).
+*   **Contracts:** `domain/contracts/` (Abstract contracts(interfaces) only).
 *   **Rule:** Pure Dart. No Flutter dependencies if possible.
-
-#### 💾 DATA (Implementation)
-*   **Location:** `features/<feature>/data/`
-*   **Repositories:** `data/repositories/` (Implement interfaces from domain).
-*   **DataSources:** `data/datasources/` (Direct Supabase calls).
-*   **Rule:** Only Repositories call DataSources. Supabase types never leak up.
 
 ### 3. CODING STANDARDS (SUMMARY)
 1.  **Null Safety:** Strict Dart 3. No `!` unless guaranteed.

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/booking_flow_controller.dart';
+import '../../application/booking_flow_controller.dart';
 import '../widgets/progress_indicator_widget.dart';
 import '../widgets/step_1_select_child.dart';
 import '../widgets/step_2_trip_category.dart';
@@ -8,10 +8,8 @@ import '../widgets/step_3_direction.dart';
 import '../widgets/step_4_locations.dart';
 import '../widgets/step_5_schedule.dart';
 import '../widgets/step_6_review.dart';
-import '../../../parent/bookings/data/bookings_repository.dart';
-
-import '../../../parent/children/data/children_repository.dart';
-import '../../../parent/children/data/child_model.dart';
+import '../../application/booking_flow_bookings_provider.dart';
+import '../../application/booking_flow_data_providers.dart';
 
 /// Main booking flow screen with 6-step wizard
 class BookingFlowScreen extends ConsumerStatefulWidget {
@@ -285,12 +283,12 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
         return;
       }
 
-      final childrenAsync = ref.read(myChildrenProvider);
+      final childrenAsync = ref.read(bookingFlowChildrenProvider);
       if (!childrenAsync.hasValue) {
         return;
       }
 
-      final allChildren = childrenAsync.value!.cast<ChildModel>();
+      final allChildren = childrenAsync.value!;
       final selectedChildren = allChildren
           .where((c) => bookingDraft.studentIds.contains(c.id))
           .toList();
@@ -374,7 +372,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
               const Center(child: CircularProgressIndicator()),
         );
 
-        final bookingsRepo = ref.read(bookingsRepositoryProvider);
+        final bookingsRepo = ref.read(bookingFlowBookingsRepositoryProvider);
 
         // Prepare Multi-School Data for Booking Repo (needs 'school_id', 'sequence_order')
         List<Map<String, dynamic>>? multiSchoolForBooking;
@@ -452,7 +450,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
               backgroundColor: Colors.green,
             ),
           );
-          ref.invalidate(myBookingsProvider); // Refresh bookings list
+          ref.invalidate(bookingFlowMyBookingsProvider); // Refresh bookings list
           ref.read(bookingFlowControllerProvider.notifier).reset();
           Navigator.of(context).pop();
         }
@@ -471,7 +469,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
     }
 
     // 2. REGULAR BOOKING SUBMISSION
-    final repo = ref.read(bookingsRepositoryProvider);
+    final repo = ref.read(bookingFlowBookingsRepositoryProvider);
 
     // Basic Validation
     if (bookingDraft.driverId == null) {
@@ -539,9 +537,9 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
       // Resolve School ID for Single School Booking (Critical for DB Trigger)
       String? resolvedSchoolId;
       if (!bookingDraft.isMultiSchool && bookingDraft.studentIds.isNotEmpty) {
-        final childrenAsync = ref.read(myChildrenProvider);
+        final childrenAsync = ref.read(bookingFlowChildrenProvider);
         if (childrenAsync.hasValue) {
-          final allChildren = childrenAsync.value!.cast<ChildModel>();
+          final allChildren = childrenAsync.value!;
           final matchingChildren = allChildren.where(
             (c) => bookingDraft.studentIds.contains(c.id),
           );
@@ -596,7 +594,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        ref.invalidate(myBookingsProvider); // Refresh bookings list
+        ref.invalidate(bookingFlowMyBookingsProvider); // Refresh bookings list
         ref.read(bookingFlowControllerProvider.notifier).reset();
         Navigator.of(context).pop(); // Close booking flow screen
       }
@@ -639,7 +637,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
   /// Handle saving edits to an existing pending booking
   Future<void> _handleEditSubmit(BuildContext context, WidgetRef ref) async {
     final bookingDraft = ref.read(bookingFlowControllerProvider);
-    final repo = ref.read(bookingsRepositoryProvider);
+    final repo = ref.read(bookingFlowBookingsRepositoryProvider);
 
     if (widget.editBookingId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -679,9 +677,9 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
       // Resolve School ID for Single School Booking
       String? resolvedSchoolId;
       if (!bookingDraft.isMultiSchool && bookingDraft.studentIds.isNotEmpty) {
-        final childrenAsync = ref.read(myChildrenProvider);
+        final childrenAsync = ref.read(bookingFlowChildrenProvider);
         if (childrenAsync.hasValue) {
-          final allChildren = childrenAsync.value!.cast<ChildModel>();
+          final allChildren = childrenAsync.value!;
           final matchingChildren = allChildren.where(
             (c) => bookingDraft.studentIds.contains(c.id),
           );
@@ -731,7 +729,7 @@ class _BookingFlowScreenState extends ConsumerState<BookingFlowScreen> {
             backgroundColor: Colors.green,
           ),
         );
-        ref.invalidate(myBookingsProvider); // Refresh bookings list
+        ref.invalidate(bookingFlowMyBookingsProvider); // Refresh bookings list
         ref.read(bookingFlowControllerProvider.notifier).resetBookingFlow();
         Navigator.of(context).pop(); // Go back to bookings list
       }

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/geo_parsing.dart';
-import 'models/parent_booking_model.dart';
+import '../domain/models/parent_booking_model.dart';
 
 part 'bookings_repository.g.dart';
 

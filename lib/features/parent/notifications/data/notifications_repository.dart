@@ -1,6 +1,6 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'models/parent_notification_model.dart';
+import '../domain/models/parent_notification_model.dart';
 
 part 'notifications_repository.g.dart';
 

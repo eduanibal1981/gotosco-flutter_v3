@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart'; // Add Geolocator
 import 'dart:async'; // Add async
-import '../../data/models/driver_trip_model.dart';
+import '../../domain/models/driver_trip_model.dart';
 import '../controllers/active_trip_controller.dart';
 import 'trip_stop_reorder_screen.dart';
 
@@ -508,3 +508,4 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     return lower.contains('drop');
   }
 }
+

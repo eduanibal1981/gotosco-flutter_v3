@@ -1,11 +1,11 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
-import '../domain/repositories/driver_dashboard_repository.dart';
+﻿import 'package:riverpod_annotation/riverpod_annotation.dart';
+import '../domain/contracts/driver_dashboard_contract.dart';
 import '../data/repositories/driver_dashboard_repository_impl.dart';
 export '../data/repositories/driver_dashboard_repository_impl.dart';
-import '../data/models/driver_stats_model.dart';
-import '../data/models/driver_trip_model.dart';
-import '../../profile/data/driver_profile_model.dart';
-import '../../transport_requests/data/models/driver_request_model.dart';
+import '../domain/models/driver_stats_model.dart';
+import '../domain/models/driver_trip_model.dart';
+import '../../profile/domain/models/driver_profile_model.dart';
+import '../../transport_requests/domain/models/driver_request_model.dart';
 
 import '../../profile/data/driver_profile_repository.dart';
 
@@ -99,3 +99,4 @@ Future<DriverTrip?> nextScheduledTrip(Ref ref) async {
 
   return scheduledTrips.first;
 }
+

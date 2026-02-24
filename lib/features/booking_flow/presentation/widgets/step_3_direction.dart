@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/booking_flow_controller.dart';
+import '../../application/booking_flow_controller.dart';
 
 /// Step 3: Select direction (two-way, one-way, etc.)
 class Step3Direction extends ConsumerWidget {
@@ -11,19 +11,19 @@ class Step3Direction extends ConsumerWidget {
       'id': 'Two Way',
       'label': 'Go & Return',
       'desc': 'Pickup and dropoff service',
-      'icon': '🔄',
+      'icon': 'ðŸ”„',
     },
     {
       'id': 'One Way to School',
       'label': 'Go Only',
       'desc': 'One way to destination',
-      'icon': '➡️',
+      'icon': 'âž¡ï¸',
     },
     {
       'id': 'One Way Back Home',
       'label': 'Return Only',
       'desc': 'One way back home',
-      'icon': '⬅️',
+      'icon': 'â¬…ï¸',
     },
   ];
 

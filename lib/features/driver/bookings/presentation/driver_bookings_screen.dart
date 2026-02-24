@@ -1,7 +1,7 @@
-// lib/features/driver/bookings/presentation/driver_bookings_screen.dart
+﻿// lib/features/driver/bookings/presentation/driver_bookings_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
+import 'package:gotosco_v3/features/driver/bookings/domain/models/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_card.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/widgets/booking_detail_sheet.dart';
@@ -443,3 +443,4 @@ class _DriverBookingsScreenState extends ConsumerState<DriverBookingsScreen> {
     );
   }
 }
+

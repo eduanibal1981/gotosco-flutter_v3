@@ -5,8 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:gotosco_v3/core/services/media_service.dart';
-import 'driver_profile_model.dart';
-import 'driver_schedule_model.dart';
+import '../domain/models/driver_profile_model.dart';
+import '../domain/models/driver_schedule_model.dart';
 import 'package:gotosco_v3/features/auth/application/user_provider.dart';
 
 part 'driver_profile_repository.g.dart';
@@ -403,7 +403,7 @@ class DriverProfileRepository {
           .from('driver_schedules')
           .select()
           .eq('driver_id', driverId)
-          .eq('is_active', true)
+          .eq('is_schedactive', true)
           .order('day_of_week');
 
       return (response as List)
@@ -422,7 +422,7 @@ class DriverProfileRepository {
           .from('driver_schedules')
           .select('id')
           .eq('driver_id', driverId)
-          .eq('is_active', true)
+          .eq('is_schedactive', true)
           .limit(1);
 
       return (response as List).isNotEmpty;
@@ -473,12 +473,12 @@ class DriverProfileRepository {
     }
   }
 
-  /// Delete a schedule (soft delete by setting is_active to false)
+  /// Delete a schedule (soft delete by setting is_schedactive to false)
   Future<bool> deleteSchedule(String scheduleId) async {
     try {
       await _supabase
           .from('driver_schedules')
-          .update({'is_active': false})
+          .update({'is_schedactive': false})
           .eq('id', scheduleId);
       return true;
     } catch (e) {

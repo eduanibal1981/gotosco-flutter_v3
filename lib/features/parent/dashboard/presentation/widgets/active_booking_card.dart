@@ -78,7 +78,7 @@ class ActiveBookingCard extends StatelessWidget {
                     child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors: [Colors.blue.shade50, Colors.white],
+                          colors: [Colors.blue.shade50, Colors.white], // full background color of the card
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
@@ -121,9 +121,10 @@ class ActiveBookingCard extends StatelessWidget {
                       ),
                       const Spacer(),
                       Text(
-                        title,
+                        title, // for example Trip Scheduled
                         style: const TextStyle(
-                          color: Colors.grey,
+                          // color: Colors.grey,
+                          color: Colors.purple,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -223,13 +224,13 @@ class ActiveBookingCard extends StatelessWidget {
             width: 8,
             height: 8,
             decoration: BoxDecoration(
-              color: badgeColor,
+              color: badgeColor, // pre to word "Scheduled"
               shape: BoxShape.circle,
             ),
           ),
           const SizedBox(width: 8),
           Text(
-            badgeText,
+            badgeText, // Line 1 'for example Scheduled'
             style: TextStyle(
               color: badgeColor,
               fontWeight: FontWeight.bold,
@@ -255,7 +256,8 @@ class ActiveBookingCard extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: Colors.grey.shade700,
+              // color: Colors.grey.shade700,
+              color: Colors.black,
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),

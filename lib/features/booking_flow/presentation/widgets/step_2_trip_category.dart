@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../controllers/booking_flow_controller.dart';
-import '../../data/models/trip_categories.dart';
+import '../../application/booking_flow_controller.dart';
+import '../../domain/models/trip_categories.dart';
 
 /// Step 2: Select trip category
 class Step2TripCategory extends ConsumerWidget {

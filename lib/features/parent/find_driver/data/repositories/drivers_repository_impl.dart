@@ -1,17 +1,17 @@
 import 'package:flutter/foundation.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/repositories/drivers_repository.dart';
+import '../../domain/contracts/drivers_contract.dart';
 import '../../domain/models/driver_ad_model.dart';
 
 part 'drivers_repository_impl.g.dart';
 
 @riverpod
-DriversRepository driversRepository(Ref ref) {
+DriversContract driversRepository(Ref ref) {
   return DriversRepositoryImpl(Supabase.instance.client);
 }
 
-class DriversRepositoryImpl implements DriversRepository {
+class DriversRepositoryImpl implements DriversContract {
   final SupabaseClient _supabase;
   DriversRepositoryImpl(this._supabase);
 

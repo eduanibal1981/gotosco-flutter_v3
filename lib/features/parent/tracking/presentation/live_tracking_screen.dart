@@ -7,7 +7,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../domain/models/driver_location_model.dart';
+import '../domain/models/tracking_view_model.dart';
 import '../domain/models/booking_location_model.dart';
 import '../domain/models/parent_next_stop_info.dart';
 import '../application/tracking_providers.dart';
@@ -80,7 +80,7 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
     );
     final rideEventAsync = ref.watch(latestRideEventProvider(widget.bookingId));
     final nextStopAsync = ref.watch(
-      parentNextStopInfoProvider(widget.bookingId),
+      parentNextStopInfoProvider(widget.bookingId, widget.driverId),
     );
 
     return Scaffold(
@@ -150,111 +150,31 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
   }
 
   Widget _buildInfoCard({
-    required AsyncValue<DriverLocation?> locationAsync,
+    required AsyncValue<TrackingViewModel?> locationAsync,
     required BookingLocation bookingLocations,
     Map<String, dynamic>? rideEvent,
     ParentNextStopInfo? nextStopInfo,
   }) {
     final driverName = bookingLocations.driverName ?? 'Driver';
 
-    String statusText = 'Connecting...';
+    String statusText = nextStopInfo?.uiTitle ?? 'Connecting...';
     String? etaText;
 
-    // Use logic similar to DriverStatusMonitor for consistency
-    if (locationAsync.hasValue) {
+    if (nextStopInfo != null) {
+      if (nextStopInfo.etaMinutes != null) {
+        etaText = '${nextStopInfo.etaMinutes} min';
+      } else if (nextStopInfo.stopsUntil != null &&
+          nextStopInfo.stopsUntil! == 0 &&
+          nextStopInfo.statusBadge == 'ARRIVED') {
+        etaText = 'Here';
+      }
+    } else if (locationAsync.hasValue) {
       final location = locationAsync.value;
-      final bool isOnline = location?.isOnline ?? false;
-      final bool isActive = location?.isOnTrip ?? false;
-
-      // 1. Determine Status from Event (Priority)
-      if (rideEvent != null) {
-        final eventType = rideEvent['event_type'] as String? ?? '';
-        switch (eventType) {
-          case 'approaching':
-            statusText = 'Driver Approaching';
-            etaText = nextStopInfo?.etaMinutes != null
-                ? '${nextStopInfo!.etaMinutes} min'
-                : 'Soon';
-            break;
-          case 'arrived':
-            statusText = 'Driver Arrived';
-            etaText = 'Here';
-            break;
-          case 'picked_up':
-            statusText = 'Child Picked Up';
-            etaText = nextStopInfo?.etaMinutes != null
-                ? '${nextStopInfo!.etaMinutes} min'
-                : null;
-            break;
-          case 'dropped_off':
-            statusText = 'Child Dropped Off';
-            // Context-aware completion message
-            if (nextStopInfo?.isGoTrip == true) {
-              statusText = 'Arrived at school';
-            } else if (nextStopInfo?.isReturnTrip == true) {
-              statusText = 'Arrived home safely';
-            } else {
-              statusText = 'Trip completed';
-            }
-            break;
-          case 'skipped':
-            statusText = 'Stop Skipped';
-            break;
-        }
-      } else if (isActive) {
-        // 2. Fallback to Location/NextStop Status
-        if (nextStopInfo?.stopStatus == 'arrived') {
-          if (nextStopInfo?.isGoTrip == true) {
-            statusText = "Arrived at School";
-          } else {
-            statusText = "Arrived at Home";
-          }
-          etaText = 'Here';
-        } else {
-          // Standard "On the way" logic
-          if (nextStopInfo?.isGoTrip == true) {
-            statusText = nextStopInfo?.stopType == 'pickup'
-                ? 'Arriving for Pickup'
-                : 'Heading to School';
-          } else if (nextStopInfo?.isReturnTrip == true) {
-            statusText = nextStopInfo?.stopType == 'pickup'
-                ? 'Picking Up from School'
-                : 'Heading Home';
-          } else if (location?.tripType == 'pickup') {
-            statusText = 'Arriving for Pickup';
-          } else if (location?.tripType == 'dropoff') {
-            statusText = 'Heading to Destination';
-          } else {
-            statusText = 'Trip in Progress';
-          }
-
-          // Set ETA
-          if (nextStopInfo?.etaMinutes != null) {
-            etaText = '${nextStopInfo!.etaMinutes} min';
-          } else if (location != null) {
-            // Fallback manual calculation if needed/possible
-            final destination = _getDestination(location, bookingLocations);
-            if (destination != null) {
-              final repo = ref.read(trackingRepositoryProvider);
-              final etaMinutes = repo.calculateEtaMinutes(
-                location,
-                destination,
-              );
-              if (etaMinutes != null) {
-                etaText = '${etaMinutes.round()} min';
-              }
-            }
-          }
-        }
-      } else if (isOnline) {
-        // 3. Online but waiting / scheduled
-        if (location?.tripsStarted == true) {
-          statusText = 'Trip Started';
-        } else {
-          statusText = 'Trip Scheduled';
-        }
+      if (location?.isOnline == true) {
+        statusText = location?.tripsStarted == true
+            ? 'Trip Started'
+            : 'Trip Scheduled';
       } else {
-        // 4. Offline
         statusText = 'Driver Offline';
       }
     } else if (locationAsync.hasError) {
@@ -295,25 +215,8 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
     );
   }
 
-  /// Determines the destination based on trip type.
-  /// - pickup: Driver is going to home location
-  /// - dropoff: Driver is going to school location
-  LatLng? _getDestination(DriverLocation location, BookingLocation booking) {
-    // If we have precise next stop info, use that (not available here directly without passing it)
-    // Fallback to basic trip type logic
-    switch (location.tripType) {
-      case 'pickup':
-        return booking.home;
-      case 'dropoff':
-        return booking.school;
-      default:
-        // If idle or unknown, assume closest destination
-        return booking.home ?? booking.school;
-    }
-  }
-
   Widget _buildMap(
-    DriverLocation? driverLocation,
+    TrackingViewModel? driverLocation,
     BookingLocation bookingLocations,
   ) {
     final driverPosition = driverLocation?.position;

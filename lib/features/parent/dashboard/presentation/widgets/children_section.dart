@@ -1,7 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
+import 'package:gotosco_v3/features/parent/children/domain/models/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/data/children_repository.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/set_absence_screen.dart';
 
@@ -284,3 +284,4 @@ class ChildrenSection extends ConsumerWidget {
     );
   }
 }
+

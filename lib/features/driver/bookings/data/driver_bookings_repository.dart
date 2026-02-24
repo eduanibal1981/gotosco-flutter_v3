@@ -1,10 +1,10 @@
 // lib/features/driver/bookings/data/driver_bookings_repository.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'models/driver_booking_model.dart';
+import '../domain/models/driver_booking_model.dart';
 
 // Keep old import for backward compatibility during migration
-import 'booking_model.dart';
+import '../domain/models/booking_model.dart';
 
 part 'driver_bookings_repository.g.dart';
 

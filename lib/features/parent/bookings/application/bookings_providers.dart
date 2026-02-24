@@ -1,2 +1,3 @@
-export '../data/bookings_repository.dart';
-export '../data/models/parent_booking_model.dart';
+﻿export '../data/bookings_repository.dart';
+export '../domain/models/parent_booking_model.dart';
+

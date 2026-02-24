@@ -1,15 +1,15 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../domain/repositories/location_repository.dart';
+import '../../domain/contracts/location_contract.dart';
 
 part 'location_repository_impl.g.dart';
 
 @riverpod
-LocationRepository locationRepository(Ref ref) {
+LocationContract locationRepository(Ref ref) {
   return LocationRepositoryImpl(Supabase.instance.client);
 }
 
-class LocationRepositoryImpl implements LocationRepository {
+class LocationRepositoryImpl implements LocationContract {
   final SupabaseClient _supabase;
   LocationRepositoryImpl(this._supabase);
 

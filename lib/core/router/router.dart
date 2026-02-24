@@ -1,8 +1,8 @@
-// lib/core/router/router.dart
+﻿// lib/core/router/router.dart
 
 import 'package:go_router/go_router.dart';
 import 'package:gotosco_v3/features/parent/bookings/presentation/booking_screen.dart';
-import 'package:gotosco_v3/features/parent/children/data/child_model.dart';
+import 'package:gotosco_v3/features/parent/children/domain/models/child_model.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/add_child_screen.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/edit_child_screen.dart';
 import 'package:gotosco_v3/features/parent/children/presentation/attendance_history_screen.dart';
@@ -23,7 +23,7 @@ import 'package:gotosco_v3/features/driver/transport_requests/presentation/drive
 import 'package:gotosco_v3/features/driver/profile/presentation/driver_profile_tab.dart';
 import 'package:gotosco_v3/features/driver/profile/presentation/driver_coverage_screen.dart';
 import 'package:gotosco_v3/features/driver/profile/presentation/vehicle_details_screen.dart';
-import 'package:gotosco_v3/features/driver/profile/data/driver_profile_model.dart';
+import 'package:gotosco_v3/features/driver/profile/domain/models/driver_profile_model.dart';
 import 'package:gotosco_v3/features/parent/messages/presentation/parent_messages_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/find_drivers_screen.dart';
 import 'package:gotosco_v3/features/parent/find_driver/presentation/driver_detail_screen.dart';
@@ -286,3 +286,4 @@ GoRouter router(Ref ref) {
     },
   );
 }
+

@@ -1,8 +1,8 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:gotosco_v3/core/widgets/secure_image.dart';
 import 'package:image_picker/image_picker.dart';
-import '../data/driver_profile_model.dart';
+import '../domain/models/driver_profile_model.dart';
 import '../data/driver_profile_repository.dart';
 
 class VehicleDetailsScreen extends ConsumerStatefulWidget {
@@ -441,3 +441,4 @@ class _VehicleDetailsScreenState extends ConsumerState<VehicleDetailsScreen> {
     }
   }
 }
+

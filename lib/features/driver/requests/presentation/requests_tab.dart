@@ -1,8 +1,8 @@
-// lib/features/driver/requests/presentation/requests_tab.dart
+﻿// lib/features/driver/requests/presentation/requests_tab.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../dashboard/application/driver_dashboard_providers.dart';
-import '../../transport_requests/data/models/driver_request_model.dart';
+import '../../transport_requests/domain/models/driver_request_model.dart';
 
 class RequestsTab extends ConsumerWidget {
   const RequestsTab({super.key});
@@ -255,7 +255,7 @@ class RequestsTab extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        '$bookingType • ${children.length} child${children.length != 1 ? 'ren' : ''}',
+                        '$bookingType â€¢ ${children.length} child${children.length != 1 ? 'ren' : ''}',
                         style: TextStyle(
                           color: Colors.grey.shade600,
                           fontSize: 13,
@@ -475,3 +475,4 @@ class RequestsTab extends ConsumerWidget {
     }
   }
 }
+

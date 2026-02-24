@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' as riverpod;
-import '../data/city_model.dart';
-import '../data/school_model.dart';
+import '../application/driver_coverage_controller.dart';
+import '../domain/models/city_model.dart';
+import '../domain/models/school_model.dart';
 import '../data/driver_coverage_repository.dart';
 
 class CityWithSchools {
@@ -553,3 +554,4 @@ class _SchoolsCoverageScreenState extends ConsumerState<SchoolsCoverageScreen> {
     );
   }
 }
+

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart'; // Add intl to pubspec.yaml for time formatting
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/chat_repository.dart';
-import '../data/message_model.dart';
+import '../domain/models/message_model.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String otherUserId;
@@ -82,7 +82,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             child: messagesAsync.when(
               data: (messages) {
                 if (messages.isEmpty) {
-                  return const Center(child: Text("Say Hello! 👋"));
+                  return const Center(child: Text("Say Hello! ðŸ‘‹"));
                 }
 
                 // Auto-scroll to bottom on first load
@@ -218,3 +218,4 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 }
+

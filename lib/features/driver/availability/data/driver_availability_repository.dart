@@ -1,7 +1,7 @@
 // lib/features/driver/availability/data/driver_availability_repository.dart
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'driver_availability_model.dart';
+import '../domain/models/driver_availability_model.dart';
 
 part 'driver_availability_repository.g.dart';
 

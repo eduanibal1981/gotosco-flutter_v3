@@ -18,11 +18,13 @@ final driverLocationProvider = DriverLocationFamily._();
 final class DriverLocationProvider
     extends
         $FunctionalProvider<
-          AsyncValue<DriverLocation?>,
-          DriverLocation?,
-          Stream<DriverLocation?>
+          AsyncValue<TrackingViewModel?>,
+          TrackingViewModel?,
+          Stream<TrackingViewModel?>
         >
-    with $FutureModifier<DriverLocation?>, $StreamProvider<DriverLocation?> {
+    with
+        $FutureModifier<TrackingViewModel?>,
+        $StreamProvider<TrackingViewModel?> {
   /// StreamProvider that listens to real-time driver location updates.
   DriverLocationProvider._({
     required DriverLocationFamily super.from,
@@ -47,12 +49,12 @@ final class DriverLocationProvider
 
   @$internal
   @override
-  $StreamProviderElement<DriverLocation?> $createElement(
+  $StreamProviderElement<TrackingViewModel?> $createElement(
     $ProviderPointer pointer,
   ) => $StreamProviderElement(pointer);
 
   @override
-  Stream<DriverLocation?> create(Ref ref) {
+  Stream<TrackingViewModel?> create(Ref ref) {
     final argument = this.argument as String;
     return driverLocation(ref, argument);
   }
@@ -68,12 +70,12 @@ final class DriverLocationProvider
   }
 }
 
-String _$driverLocationHash() => r'9408eaccffce022eb9343a6ea570dfd7306876d4';
+String _$driverLocationHash() => r'8b508e36bc616495cd4de0f4bbe96f17c285f27b';
 
 /// StreamProvider that listens to real-time driver location updates.
 
 final class DriverLocationFamily extends $Family
-    with $FunctionalFamilyOverride<Stream<DriverLocation?>, String> {
+    with $FunctionalFamilyOverride<Stream<TrackingViewModel?>, String> {
   DriverLocationFamily._()
     : super(
         retry: null,
@@ -268,7 +270,7 @@ final class ParentNextStopInfoProvider
         $FutureProvider<ParentNextStopInfo?> {
   ParentNextStopInfoProvider._({
     required ParentNextStopInfoFamily super.from,
-    required String super.argument,
+    required (String, String) super.argument,
   }) : super(
          retry: null,
          name: r'parentNextStopInfoProvider',
@@ -284,7 +286,7 @@ final class ParentNextStopInfoProvider
   String toString() {
     return r'parentNextStopInfoProvider'
         ''
-        '($argument)';
+        '$argument';
   }
 
   @$internal
@@ -295,8 +297,8 @@ final class ParentNextStopInfoProvider
 
   @override
   FutureOr<ParentNextStopInfo?> create(Ref ref) {
-    final argument = this.argument as String;
-    return parentNextStopInfo(ref, argument);
+    final argument = this.argument as (String, String);
+    return parentNextStopInfo(ref, argument.$1, argument.$2);
   }
 
   @override
@@ -311,10 +313,14 @@ final class ParentNextStopInfoProvider
 }
 
 String _$parentNextStopInfoHash() =>
-    r'de28e6a7b2179cc04a33d539c12ebb6fc29ea72c';
+    r'9191a356fe4abb1ccb852983d15bd9e1b8a2e32f';
 
 final class ParentNextStopInfoFamily extends $Family
-    with $FunctionalFamilyOverride<FutureOr<ParentNextStopInfo?>, String> {
+    with
+        $FunctionalFamilyOverride<
+          FutureOr<ParentNextStopInfo?>,
+          (String, String)
+        > {
   ParentNextStopInfoFamily._()
     : super(
         retry: null,
@@ -324,8 +330,8 @@ final class ParentNextStopInfoFamily extends $Family
         isAutoDispose: true,
       );
 
-  ParentNextStopInfoProvider call(String bookingId) =>
-      ParentNextStopInfoProvider._(argument: bookingId, from: this);
+  ParentNextStopInfoProvider call(String bookingId, String driverId) =>
+      ParentNextStopInfoProvider._(argument: (bookingId, driverId), from: this);
 
   @override
   String toString() => r'parentNextStopInfoProvider';

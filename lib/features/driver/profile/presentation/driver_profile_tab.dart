@@ -17,7 +17,7 @@ import 'widgets/coverage_summary_content.dart';
 
 import '../../dashboard/application/driver_dashboard_providers.dart';
 import 'controllers/driver_profile_scroll_controller.dart';
-import '../../availability/presentation/driver_availability_controller.dart';
+import '../../availability/application/driver_availability_controller.dart';
 
 class DriverProfileTab extends ConsumerStatefulWidget {
   const DriverProfileTab({super.key});
@@ -469,7 +469,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                             _buildRoleSwitcher(context, ref, session),
                             const SizedBox(height: 16),
                           ],
-                          _buildSettingsSection(),
+                          _buildSettingsSection(), // onnnnnnnn
                         ],
                       );
                     },
@@ -514,7 +514,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
                             _buildRoleSwitcher(context, ref, session),
                             const SizedBox(height: 16),
                           ],
-                          _buildSettingsSection(),
+                          // _buildSettingsSection(), // ttttwwwooooo
                           const SizedBox(height: 16),
                         ],
                       );
@@ -794,7 +794,7 @@ class _DriverProfileTabState extends ConsumerState<DriverProfileTab> {
           data: (settings) => SwitchListTile.adaptive(
             title: const Text('Visible While Online'),
             subtitle: const Text(
-              'Show "Online" status to parents when app is open',
+              'Show "Online" status to parents when app --- is open',
             ),
             value: settings.isOnlineVisible,
             onChanged: (val) {

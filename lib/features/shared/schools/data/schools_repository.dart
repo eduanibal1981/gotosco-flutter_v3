@@ -1,7 +1,7 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+﻿import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'school_model.dart';
-import 'package:gotosco_v3/features/driver/profile/data/city_model.dart';
+import '../domain/models/school_model.dart';
+import 'package:gotosco_v3/features/driver/profile/domain/models/city_model.dart';
 
 part 'schools_repository.g.dart';
 
@@ -105,3 +105,4 @@ class SchoolsRepository {
     }
   }
 }
+

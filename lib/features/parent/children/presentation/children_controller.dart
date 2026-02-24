@@ -1,6 +1,6 @@
-import 'package:riverpod_annotation/riverpod_annotation.dart';
+﻿import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/children_repository.dart';
-import '../data/attendance_model.dart';
+import '../domain/models/attendance_model.dart';
 
 part 'children_controller.g.dart';
 
@@ -119,3 +119,4 @@ class ChildrenController extends _$ChildrenController {
     return !state.hasError;
   }
 }
+

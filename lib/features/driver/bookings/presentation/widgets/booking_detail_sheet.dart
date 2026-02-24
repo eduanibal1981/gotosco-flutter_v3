@@ -1,7 +1,7 @@
-// lib/features/driver/bookings/presentation/widgets/booking_detail_sheet.dart
+﻿// lib/features/driver/bookings/presentation/widgets/booking_detail_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:gotosco_v3/features/driver/bookings/data/booking_model.dart';
+import 'package:gotosco_v3/features/driver/bookings/domain/models/booking_model.dart';
 import 'package:gotosco_v3/features/driver/bookings/data/driver_bookings_repository.dart';
 import 'package:gotosco_v3/features/driver/dashboard/presentation/driver_dashboard_screen.dart';
 import 'package:go_router/go_router.dart';
@@ -203,7 +203,7 @@ class BookingDetailSheet extends ConsumerWidget {
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           Text(
-                            '${child.schoolName} • ${child.grade}',
+                            '${child.schoolName} â€¢ ${child.grade}',
                             style: TextStyle(
                               color: Colors.grey.shade600,
                               fontSize: 13,
@@ -484,3 +484,4 @@ class BookingDetailSheet extends ConsumerWidget {
     }
   }
 }
+

@@ -1,16 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/models/booking_draft_model.dart';
-import '../../data/models/school_location_model.dart';
-import '../../../shared/schools/data/schools_repository.dart';
-import '../../../shared/schools/data/school_model.dart';
+import '../../domain/models/booking_draft_model.dart';
+import '../../domain/models/booking_flow_school_model.dart';
+import '../../domain/models/school_location_model.dart';
 import 'dart:async';
-import 'dart:convert';
-import 'package:http/http.dart' as http;
 import 'package:geocoding/geocoding.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/widgets/map_picker_screen.dart';
-import '../controllers/booking_flow_controller.dart';
+import '../../application/booking_flow_controller.dart';
 import '../../../auth/application/user_provider.dart';
 
 /// Step 4: Set pickup and dropoff locations
@@ -414,22 +411,8 @@ class _Step4LocationsState extends ConsumerState<Step4Locations> {
         if (addressParts.isNotEmpty) {
           address = addressParts.join(', ');
         }
-      } else {
-        // Fallback to OSM
-        final osmAddress = await _fetchAddressFromOSM(
-          result.latitude,
-          result.longitude,
-        );
-        if (osmAddress != null) address = osmAddress;
       }
-    } catch (e) {
-      // Native failed, try OSM
-      final osmAddress = await _fetchAddressFromOSM(
-        result.latitude,
-        result.longitude,
-      );
-      if (osmAddress != null) address = osmAddress;
-    }
+    } catch (_) {}
 
     // Update Controller
     if (isPickup) {
@@ -445,39 +428,6 @@ class _Step4LocationsState extends ConsumerState<Step4Locations> {
         lng: result.longitude,
       );
     }
-  }
-
-  Future<String?> _fetchAddressFromOSM(double lat, double lng) async {
-    try {
-      final url = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1',
-      );
-
-      final response = await http.get(
-        url,
-        headers: {'User-Agent': 'GotoscoApp/1.0'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        final address = data['address'] as Map<String, dynamic>?;
-
-        if (address != null) {
-          final parts = [
-            address['amenity'] ?? address['building'],
-            address['road'] ?? address['pedestrian'],
-            address['neighbourhood'] ?? address['suburb'],
-            address['city'] ?? address['town'] ?? address['village'],
-            address['state'] ?? address['region'],
-          ].where((e) => e != null && e.toString().isNotEmpty).toSet().toList();
-          return parts.join(', ');
-        }
-        return data['display_name'] as String?;
-      }
-    } catch (_) {
-      return null;
-    }
-    return null;
   }
 
   Widget _buildMultiSchoolSelector(
@@ -521,7 +471,7 @@ class _Step4LocationsState extends ConsumerState<Step4Locations> {
             padding: const EdgeInsets.only(bottom: 12),
             child: _buildSchoolCard(context, ref, school, index + 1),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -652,7 +602,7 @@ class _Step4LocationsState extends ConsumerState<Step4Locations> {
 
 class _SchoolPickerDialog extends ConsumerStatefulWidget {
   final SchoolLocationModel currentLocation;
-  final Function(SchoolModel) onSchoolSelected;
+  final Function(BookingFlowSchoolModel) onSchoolSelected;
 
   const _SchoolPickerDialog({
     required this.currentLocation,
@@ -666,7 +616,7 @@ class _SchoolPickerDialog extends ConsumerStatefulWidget {
 
 class _SchoolPickerDialogState extends ConsumerState<_SchoolPickerDialog> {
   final _searchController = TextEditingController();
-  List<SchoolModel> _searchResults = [];
+  List<BookingFlowSchoolModel> _searchResults = [];
   bool _isLoading = false;
   Timer? _debounce;
 
@@ -689,11 +639,9 @@ class _SchoolPickerDialogState extends ConsumerState<_SchoolPickerDialog> {
     setState(() => _isLoading = true);
 
     try {
-      final repo = ref.read(schoolsRepositoryProvider);
-      // We don't filter by city here yet as we don't have city context easily available
-      // unless we check user's location or existing booking data.
-      // For now, global search or we can improve later.
-      final results = await repo.searchSchools(query);
+      final results = await ref
+          .read(bookingFlowControllerProvider.notifier)
+          .searchSchools(query);
 
       if (mounted) {
         setState(() {

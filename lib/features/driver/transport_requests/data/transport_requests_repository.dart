@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/geo_parsing.dart';
-import 'models/driver_request_model.dart';
+import '../domain/models/driver_request_model.dart';
 
 part 'transport_requests_repository.g.dart';
 
