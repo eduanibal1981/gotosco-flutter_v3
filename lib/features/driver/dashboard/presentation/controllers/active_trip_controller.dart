@@ -13,11 +13,12 @@ part 'active_trip_controller.g.dart';
 class ActiveTripController extends _$ActiveTripController {
   @override
   FutureOr<DriverTrip?> build() {
-    return ref.watch(activeTripProvider.future);
+    return ref.watch(driverDashboardRepositoryProvider).getActiveTrip();
   }
 
   /// Start a trip
   Future<void> startTrip(DriverTrip trip, {double? lat, double? lng}) async {
+    final repo = ref.read(driverDashboardRepositoryProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       final bookingIds = trip.routeStops
@@ -27,35 +28,27 @@ class ActiveTripController extends _$ActiveTripController {
           .toSet()
           .toList();
 
-      await ref
-          .read(driverDashboardRepositoryProvider)
-          .broadcastTripStarted(trip.id, bookingIds);
+      await repo.broadcastTripStarted(trip.id, bookingIds);
+      await repo.startTrip(trip.id, lat: lat, lng: lng);
 
-      await ref
-          .read(driverDashboardRepositoryProvider)
-          .startTrip(trip.id, lat: lat, lng: lng);
-
-      // Refresh to get the updated status
+      // Invalidate related providers but NOT ourselves, we just return the new value!
       ref.invalidate(todaysTripsProvider);
       ref.invalidate(
         driverDashboardStateProvider,
       ); // Force dashboard state update
-      return ref.refresh(activeTripProvider.future);
+
+      return await repo.getActiveTrip();
     });
   }
 
   /// Mark arrival at a stop
   Future<void> arriveAtStop(String stopId, {double? lat, double? lng}) async {
+    final repo = ref.read(driverDashboardRepositoryProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      // 1. Perform action
-      await ref
-          .read(driverDashboardRepositoryProvider)
-          .markStopArrived(stopId, lat: lat, lng: lng);
+      await repo.markStopArrived(stopId, lat: lat, lng: lng);
 
-      // 2. Refresh state
-      ref.invalidate(activeTripProvider);
-      return ref.refresh(activeTripProvider.future);
+      return await repo.getActiveTrip();
     });
   }
 
@@ -66,51 +59,47 @@ class ActiveTripController extends _$ActiveTripController {
     double? lat,
     double? lng,
   }) async {
+    final repo = ref.read(driverDashboardRepositoryProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
-      await ref
-          .read(driverDashboardRepositoryProvider)
-          .processStop(stopId, action, lat: lat, lng: lng);
+      await repo.processStop(stopId, action, lat: lat, lng: lng);
 
-      ref.invalidate(activeTripProvider);
-      return ref.refresh(activeTripProvider.future);
+      return await repo.getActiveTrip();
     });
   }
 
   /// Reorder stops
   Future<void> reorderStops(List<Map<String, dynamic>> newStops) async {
-    await ref
-        .read(driverDashboardRepositoryProvider)
-        .updateStopSequences(newStops);
+    final repo = ref.read(driverDashboardRepositoryProvider);
+    await repo.updateStopSequences(newStops);
 
-    ref.invalidate(activeTripProvider);
+    // We can just invalidate ourselves to force a reload
+    ref.invalidateSelf();
   }
 
   /// Save current trip order as default for future trips
   Future<void> saveTripOrderAsDefault(String tripId) async {
-    await ref
-        .read(driverDashboardRepositoryProvider)
-        .saveTripOrderAsDefault(tripId);
+    final repo = ref.read(driverDashboardRepositoryProvider);
+    await repo.saveTripOrderAsDefault(tripId);
   }
 
   /// End the trip (with smart auto-offline support)
   Future<void> endTrip(String tripId, {double? lat, double? lng}) async {
+    final availRepo = ref.read(driverAvailabilityRepositoryProvider);
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       // Use availability repository for smart auto-offline
-      await ref
-          .read(driverAvailabilityRepositoryProvider)
-          .completeTripWithAutoOffline(tripId, lat: lat, lng: lng);
+      await availRepo.completeTripWithAutoOffline(tripId, lat: lat, lng: lng);
 
       // Invalidate relevant providers
       ref.invalidate(todaysTripsProvider);
-      ref.invalidate(activeTripProvider); // Should become null
       ref.invalidate(
         driverDashboardStateProvider,
       ); // Force dashboard state update
       ref.invalidate(
         driverAvailabilityControllerProvider,
       ); // Refresh online status
+
       return null;
     });
   }

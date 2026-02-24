@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 class ParentNextStopInfo {
   final String? statusBadge;
   final String? uiTitle;
@@ -18,6 +19,7 @@ class ParentNextStopInfo {
   bool get isReturnTrip => !isGoTrip;
 
   factory ParentNextStopInfo.fromMap(Map<String, dynamic> map) {
+    //debugPrint('map: $map');
     return ParentNextStopInfo(
       statusBadge: map['status_badge'] as String?,
       uiTitle: map['ui_title'] as String?,

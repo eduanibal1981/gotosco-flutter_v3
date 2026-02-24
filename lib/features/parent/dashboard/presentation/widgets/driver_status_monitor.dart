@@ -34,9 +34,7 @@ class DriverStatusMonitor extends ConsumerWidget {
 
     return driverLocationAsync.when(
       data: (location) {
-        //check the driver location table if has row or not
         return _buildActiveCard(
-          // if has row show active card
           context,
           ref,
           driverName,
@@ -47,68 +45,35 @@ class DriverStatusMonitor extends ConsumerWidget {
           rideEvent: rideEventAsync.asData?.value,
           nextStopInfo: nextStopAsync.asData?.value,
           isConnected: true,
+          isLoading: false,
         );
       },
-      error: (_, __) => _handleOfflineState(
+      error: (_, __) => _buildActiveCard(
         context,
         ref,
         driverName,
         driverPhoto,
         bookingId,
         driverId,
-        rideEventAsync.asData?.value,
-        nextStopAsync.asData?.value,
+        location: null,
+        rideEvent: rideEventAsync.asData?.value,
+        nextStopInfo: nextStopAsync.asData?.value,
+        isConnected: false,
+        isLoading: false,
       ),
-      loading: () => _handleOfflineState(
+      loading: () => _buildActiveCard(
         context,
         ref,
         driverName,
         driverPhoto,
         bookingId,
         driverId,
-        rideEventAsync.asData?.value,
-        nextStopAsync.asData?.value,
+        location: null,
+        rideEvent: rideEventAsync.asData?.value,
+        nextStopInfo: nextStopAsync.asData?.value,
+        isConnected: false,
         isLoading: true,
       ),
-    );
-  }
-
-  Widget _handleOfflineState(
-    BuildContext context,
-    WidgetRef ref,
-    String driverName,
-    String? driverPhoto,
-    String bookingId,
-    String driverId,
-    Map<String, dynamic>? rideEvent,
-    ParentNextStopInfo? nextStopInfo, {
-    bool isLoading = false,
-  }) {
-    // If we have a ride event or nextStopInfo has data, show it even if driver location stream is offline
-    if (rideEvent != null || nextStopInfo != null) {
-      debugPrint('has rideEvent: $driverName');
-      return _buildActiveCard(
-        context,
-        ref,
-        driverName,
-        driverPhoto,
-        bookingId,
-        driverId,
-        location: null, // No location data
-        rideEvent: rideEvent,
-        nextStopInfo: nextStopInfo,
-        isConnected: false,
-      );
-    }
-    debugPrint('no rideEvent: $driverName');
-    return _buildScheduledCard(
-      context,
-      ref,
-      driverName,
-      driverPhoto,
-      bookingId,
-      driverId,
-      isLoading: isLoading,
     );
   }
 
@@ -123,15 +88,24 @@ class DriverStatusMonitor extends ConsumerWidget {
     required ParentNextStopInfo? nextStopInfo,
     required TrackingViewModel? location,
     required bool isConnected,
+    required bool isLoading,
   }) {
-    final String badgeText =
+    String badgeText =
         nextStopInfo?.statusBadge?.replaceAll('_', ' ') ?? 'OFFLINE';
-    final String title = nextStopInfo?.uiTitle ?? 'Scheduled Trip';
+    debugPrint('nextstopinfo: $nextStopInfo');
+    String title = nextStopInfo?.uiTitle ?? 'Scheduled Trip';
     String subtitle = nextStopInfo?.uiSubtitle ?? 'Driver is offline';
-
     Color badgeColor = Colors.grey;
+    
+    if (isLoading && nextStopInfo == null) {
+      badgeText = 'SCHEDULED';
+      title = 'Loading...';
+      subtitle = 'Checking status...';
+    }
+
+
     if (badgeText == 'SCHEDULED')
-      badgeColor = Colors.amber; //badgeColor = Colors.blue;
+      badgeColor = Colors.blue;
     else if (badgeText == 'LIVE TRIP' ||
         badgeText == 'ON TRIP' ||
         badgeText == 'COMPLETED')
@@ -142,9 +116,11 @@ class DriverStatusMonitor extends ConsumerWidget {
       badgeColor = Colors.amber;
 
     // Offline Override (if not completed)
-    if (!isConnected && badgeText != 'COMPLETED' && badgeText != 'SCHEDULED') {
+    if (!isConnected &&
+        badgeText != 'COMPLETED' &&
+        badgeText != 'SCHEDULED' &&
+        badgeText != 'OFFLINE') {
       subtitle = 'Driver signal lost...';
-      // Keep the last known status badge
     }
 
     final bool isActive =
@@ -166,42 +142,6 @@ class DriverStatusMonitor extends ConsumerWidget {
         ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
       },
       onTrack: () {
-        context.push(
-          '/tracking',
-          extra: {'bookingId': bookingId, 'driverId': driverId},
-        );
-      },
-    );
-  }
-
-  /// Builds the Blue "Scheduled" card when driver is offline or stream is initializing
-  Widget _buildScheduledCard(
-    BuildContext context,
-    WidgetRef ref,
-    String driverName,
-    String? driverPhoto,
-    String bookingId,
-    String driverId, {
-    bool isLoading = false,
-  }) {
-    debugPrint('no rideEvent: $driverId');
-    return ActiveBookingCard(
-      driverName: driverName,
-      driverPhoto: driverPhoto,
-      title: '$isLoading', //'Scheduled Trip',
-      subtitle: isLoading ? 'Checking status...' : 'Driver Offline',
-      badgeText: 'SCHEDULED',
-      badgeColor: Colors.deepOrange,
-      isActive: false,
-      etaMinutes: null,
-      stopsUntilParent: null,
-      nextStopLabel: null,
-      onViewAll: () {
-        // Navigate to My Bookings tab
-        ref.read(parentDashboardIndexProvider.notifier).setIndex(3);
-      },
-      onTrack: () {
-        // Allow opening map even if offline to show status
         context.push(
           '/tracking',
           extra: {'bookingId': bookingId, 'driverId': driverId},

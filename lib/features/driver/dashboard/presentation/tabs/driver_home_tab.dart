@@ -41,7 +41,7 @@ class _DriverHomeTabState extends ConsumerState<DriverHomeTab> {
     ref.invalidate(driverProfileProvider);
     ref.invalidate(driverStatsProvider);
     ref.invalidate(todaysTripsProvider);
-    ref.invalidate(activeTripProvider);
+    ref.invalidate(activeTripControllerProvider);
 
     // Wait for the state to reload
     await ref.read(driverDashboardStateProvider.future);

@@ -34,7 +34,7 @@ final class ActiveTripControllerProvider
 }
 
 String _$activeTripControllerHash() =>
-    r'e22ce41ed63065c216c13704e3f2b57b47b4a41b';
+    r'871212ab524355cbf42b3a47ed6585947fceb143';
 
 abstract class _$ActiveTripController extends $AsyncNotifier<DriverTrip?> {
   FutureOr<DriverTrip?> build();

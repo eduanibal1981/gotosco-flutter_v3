@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'package:latlong2/latlong.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/contracts/tracking_contract.dart';
@@ -29,18 +27,6 @@ class TrackingRepositoryImpl implements TrackingContract {
           if (events.isEmpty) return null;
           return TrackingViewModel.fromJson(events.first);
         });
-  }
-
-  @override
-  Future<TrackingViewModel?> getDriverLocation(String driverId) async {
-    final data = await _supabase
-        .from('tracking_view')
-        .select()
-        .eq('driver_id', driverId)
-        .maybeSingle();
-
-    if (data == null) return null;
-    return TrackingViewModel.fromJson(data);
   }
 
   @override
@@ -110,21 +96,5 @@ class TrackingRepositoryImpl implements TrackingContract {
     } catch (_) {
       return null;
     }
-  }
-
-  @override
-  double? calculateEtaMinutes(TrackingViewModel driver, LatLng destination) {
-    if (driver.speed <= 0) return null;
-
-    const distance = Distance();
-    final distanceKm = distance.as(
-      LengthUnit.Kilometer,
-      driver.position,
-      destination,
-    );
-
-    // ETA = time = distance / speed
-    final etaHours = distanceKm / driver.speed;
-    return etaHours * 60;
   }
 }

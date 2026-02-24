@@ -6,6 +6,7 @@ import '../application/driver_dashboard_providers.dart';
 import '../../earnings/presentation/earnings_tab.dart';
 import '../../profile/presentation/driver_profile_tab.dart';
 import '../../availability/application/driver_availability_controller.dart';
+import 'controllers/active_trip_controller.dart';
 import 'package:gotosco_v3/features/driver/bookings/presentation/driver_bookings_screen.dart';
 import 'package:gotosco_v3/features/driver/transport_requests/data/transport_requests_repository.dart';
 import 'tabs/driver_home_tab.dart';
@@ -86,7 +87,7 @@ class _DriverDashboardScreenState extends ConsumerState<DriverDashboardScreen> {
           ref.invalidate(driverStatsProvider);
           ref.invalidate(todaysTripsProvider);
           ref.invalidate(nextScheduledTripProvider);
-          ref.invalidate(activeTripProvider);
+          ref.invalidate(activeTripControllerProvider);
           break;
         case 3: // Trips Tab
           ref.invalidate(todaysTripsProvider);
