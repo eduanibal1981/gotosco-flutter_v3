@@ -1,5 +1,4 @@
 import 'package:gotosco_v3/features/auth/data/repositories/auth_repository_impl.dart';
-import 'package:gotosco_v3/features/auth/domain/models/auth_user.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:gotosco_v3/core/models/user_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../data/bookings_repository.dart';
-import '../../children/data/children_repository.dart';
 
 part 'bookings_controller.g.dart';
 
