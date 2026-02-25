@@ -85,5 +85,13 @@ abstract class DriverDashboardContract {
 
   /// Broadcast trip started event for associated bookings
   Future<void> broadcastTripStarted(String tripId, List<String> bookingIds);
-}
 
+  /// Update driver's location periodically
+  Future<void> updateDriverLocation({
+    required String tripId,
+    required double lat,
+    required double lng,
+    double? heading,
+    double? speed,
+  });
+}

@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$ParentNotification {
 
-@JsonKey(name: 'id') String get id;@JsonKey(name: 'title') String? get title;@JsonKey(name: 'body') String? get body;@JsonKey(name: 'event_type') String? get eventType;@JsonKey(name: 'child_id') String? get childId;@JsonKey(name: 'driver_id') String? get driverId;@JsonKey(name: 'trip_id') String? get tripId;@JsonKey(name: 'created_at') DateTime? get createdAt;@JsonKey(name: 'read_at') DateTime? get readAt;@JsonKey(name: 'child_name') String get childName;@JsonKey(name: 'driver_name') String get driverName;@JsonKey(name: 'driver_photo') String? get driverPhoto;@JsonKey(name: 'latitude') double? get latitude;@JsonKey(name: 'longitude') double? get longitude;
+@JsonKey(name: 'id') String get id;@JsonKey(name: 'title') String? get title;@JsonKey(name: 'body') String? get body;@JsonKey(name: 'event_type') String? get eventType;@JsonKey(name: 'driver_id') String? get driverId;@JsonKey(name: 'trip_id') String? get tripId;@JsonKey(name: 'created_at') DateTime? get createdAt;@JsonKey(name: 'read_at') DateTime? get readAt;@JsonKey(name: 'child_name') String get childName;@JsonKey(name: 'driver_name') String get driverName;@JsonKey(name: 'driver_photo') String? get driverPhoto;@JsonKey(name: 'latitude') double? get latitude;@JsonKey(name: 'longitude') double? get longitude;
 /// Create a copy of ParentNotification
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -28,16 +28,16 @@ $ParentNotificationCopyWith<ParentNotification> get copyWith => _$ParentNotifica
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParentNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.childId, childId) || other.childId == childId)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.tripId, tripId) || other.tripId == tripId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.readAt, readAt) || other.readAt == readAt)&&(identical(other.childName, childName) || other.childName == childName)&&(identical(other.driverName, driverName) || other.driverName == driverName)&&(identical(other.driverPhoto, driverPhoto) || other.driverPhoto == driverPhoto)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ParentNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.tripId, tripId) || other.tripId == tripId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.readAt, readAt) || other.readAt == readAt)&&(identical(other.childName, childName) || other.childName == childName)&&(identical(other.driverName, driverName) || other.driverName == driverName)&&(identical(other.driverPhoto, driverPhoto) || other.driverPhoto == driverPhoto)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,body,eventType,childId,driverId,tripId,createdAt,readAt,childName,driverName,driverPhoto,latitude,longitude);
+int get hashCode => Object.hash(runtimeType,id,title,body,eventType,driverId,tripId,createdAt,readAt,childName,driverName,driverPhoto,latitude,longitude);
 
 @override
 String toString() {
-  return 'ParentNotification(id: $id, title: $title, body: $body, eventType: $eventType, childId: $childId, driverId: $driverId, tripId: $tripId, createdAt: $createdAt, readAt: $readAt, childName: $childName, driverName: $driverName, driverPhoto: $driverPhoto, latitude: $latitude, longitude: $longitude)';
+  return 'ParentNotification(id: $id, title: $title, body: $body, eventType: $eventType, driverId: $driverId, tripId: $tripId, createdAt: $createdAt, readAt: $readAt, childName: $childName, driverName: $driverName, driverPhoto: $driverPhoto, latitude: $latitude, longitude: $longitude)';
 }
 
 
@@ -48,7 +48,7 @@ abstract mixin class $ParentNotificationCopyWith<$Res>  {
   factory $ParentNotificationCopyWith(ParentNotification value, $Res Function(ParentNotification) _then) = _$ParentNotificationCopyWithImpl;
 @useResult
 $Res call({
-@JsonKey(name: 'id') String id,@JsonKey(name: 'title') String? title,@JsonKey(name: 'body') String? body,@JsonKey(name: 'event_type') String? eventType,@JsonKey(name: 'child_id') String? childId,@JsonKey(name: 'driver_id') String? driverId,@JsonKey(name: 'trip_id') String? tripId,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'read_at') DateTime? readAt,@JsonKey(name: 'child_name') String childName,@JsonKey(name: 'driver_name') String driverName,@JsonKey(name: 'driver_photo') String? driverPhoto,@JsonKey(name: 'latitude') double? latitude,@JsonKey(name: 'longitude') double? longitude
+@JsonKey(name: 'id') String id,@JsonKey(name: 'title') String? title,@JsonKey(name: 'body') String? body,@JsonKey(name: 'event_type') String? eventType,@JsonKey(name: 'driver_id') String? driverId,@JsonKey(name: 'trip_id') String? tripId,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'read_at') DateTime? readAt,@JsonKey(name: 'child_name') String childName,@JsonKey(name: 'driver_name') String driverName,@JsonKey(name: 'driver_photo') String? driverPhoto,@JsonKey(name: 'latitude') double? latitude,@JsonKey(name: 'longitude') double? longitude
 });
 
 
@@ -65,13 +65,12 @@ class _$ParentNotificationCopyWithImpl<$Res>
 
 /// Create a copy of ParentNotification
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = freezed,Object? body = freezed,Object? eventType = freezed,Object? childId = freezed,Object? driverId = freezed,Object? tripId = freezed,Object? createdAt = freezed,Object? readAt = freezed,Object? childName = null,Object? driverName = null,Object? driverPhoto = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? id = null,Object? title = freezed,Object? body = freezed,Object? eventType = freezed,Object? driverId = freezed,Object? tripId = freezed,Object? createdAt = freezed,Object? readAt = freezed,Object? childName = null,Object? driverName = null,Object? driverPhoto = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
   return _then(_self.copyWith(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,body: freezed == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
 as String?,eventType: freezed == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as String?,childId: freezed == childId ? _self.childId : childId // ignore: cast_nullable_to_non_nullable
 as String?,driverId: freezed == driverId ? _self.driverId : driverId // ignore: cast_nullable_to_non_nullable
 as String?,tripId: freezed == tripId ? _self.tripId : tripId // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable
@@ -166,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'title')  String? title, @JsonKey(name: 'body')  String? body, @JsonKey(name: 'event_type')  String? eventType, @JsonKey(name: 'child_id')  String? childId, @JsonKey(name: 'driver_id')  String? driverId, @JsonKey(name: 'trip_id')  String? tripId, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'read_at')  DateTime? readAt, @JsonKey(name: 'child_name')  String childName, @JsonKey(name: 'driver_name')  String driverName, @JsonKey(name: 'driver_photo')  String? driverPhoto, @JsonKey(name: 'latitude')  double? latitude, @JsonKey(name: 'longitude')  double? longitude)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'title')  String? title, @JsonKey(name: 'body')  String? body, @JsonKey(name: 'event_type')  String? eventType, @JsonKey(name: 'driver_id')  String? driverId, @JsonKey(name: 'trip_id')  String? tripId, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'read_at')  DateTime? readAt, @JsonKey(name: 'child_name')  String childName, @JsonKey(name: 'driver_name')  String driverName, @JsonKey(name: 'driver_photo')  String? driverPhoto, @JsonKey(name: 'latitude')  double? latitude, @JsonKey(name: 'longitude')  double? longitude)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ParentNotification() when $default != null:
-return $default(_that.id,_that.title,_that.body,_that.eventType,_that.childId,_that.driverId,_that.tripId,_that.createdAt,_that.readAt,_that.childName,_that.driverName,_that.driverPhoto,_that.latitude,_that.longitude);case _:
+return $default(_that.id,_that.title,_that.body,_that.eventType,_that.driverId,_that.tripId,_that.createdAt,_that.readAt,_that.childName,_that.driverName,_that.driverPhoto,_that.latitude,_that.longitude);case _:
   return orElse();
 
 }
@@ -187,10 +186,10 @@ return $default(_that.id,_that.title,_that.body,_that.eventType,_that.childId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'title')  String? title, @JsonKey(name: 'body')  String? body, @JsonKey(name: 'event_type')  String? eventType, @JsonKey(name: 'child_id')  String? childId, @JsonKey(name: 'driver_id')  String? driverId, @JsonKey(name: 'trip_id')  String? tripId, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'read_at')  DateTime? readAt, @JsonKey(name: 'child_name')  String childName, @JsonKey(name: 'driver_name')  String driverName, @JsonKey(name: 'driver_photo')  String? driverPhoto, @JsonKey(name: 'latitude')  double? latitude, @JsonKey(name: 'longitude')  double? longitude)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'title')  String? title, @JsonKey(name: 'body')  String? body, @JsonKey(name: 'event_type')  String? eventType, @JsonKey(name: 'driver_id')  String? driverId, @JsonKey(name: 'trip_id')  String? tripId, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'read_at')  DateTime? readAt, @JsonKey(name: 'child_name')  String childName, @JsonKey(name: 'driver_name')  String driverName, @JsonKey(name: 'driver_photo')  String? driverPhoto, @JsonKey(name: 'latitude')  double? latitude, @JsonKey(name: 'longitude')  double? longitude)  $default,) {final _that = this;
 switch (_that) {
 case _ParentNotification():
-return $default(_that.id,_that.title,_that.body,_that.eventType,_that.childId,_that.driverId,_that.tripId,_that.createdAt,_that.readAt,_that.childName,_that.driverName,_that.driverPhoto,_that.latitude,_that.longitude);case _:
+return $default(_that.id,_that.title,_that.body,_that.eventType,_that.driverId,_that.tripId,_that.createdAt,_that.readAt,_that.childName,_that.driverName,_that.driverPhoto,_that.latitude,_that.longitude);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -207,10 +206,10 @@ return $default(_that.id,_that.title,_that.body,_that.eventType,_that.childId,_t
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'title')  String? title, @JsonKey(name: 'body')  String? body, @JsonKey(name: 'event_type')  String? eventType, @JsonKey(name: 'child_id')  String? childId, @JsonKey(name: 'driver_id')  String? driverId, @JsonKey(name: 'trip_id')  String? tripId, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'read_at')  DateTime? readAt, @JsonKey(name: 'child_name')  String childName, @JsonKey(name: 'driver_name')  String driverName, @JsonKey(name: 'driver_photo')  String? driverPhoto, @JsonKey(name: 'latitude')  double? latitude, @JsonKey(name: 'longitude')  double? longitude)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function(@JsonKey(name: 'id')  String id, @JsonKey(name: 'title')  String? title, @JsonKey(name: 'body')  String? body, @JsonKey(name: 'event_type')  String? eventType, @JsonKey(name: 'driver_id')  String? driverId, @JsonKey(name: 'trip_id')  String? tripId, @JsonKey(name: 'created_at')  DateTime? createdAt, @JsonKey(name: 'read_at')  DateTime? readAt, @JsonKey(name: 'child_name')  String childName, @JsonKey(name: 'driver_name')  String driverName, @JsonKey(name: 'driver_photo')  String? driverPhoto, @JsonKey(name: 'latitude')  double? latitude, @JsonKey(name: 'longitude')  double? longitude)?  $default,) {final _that = this;
 switch (_that) {
 case _ParentNotification() when $default != null:
-return $default(_that.id,_that.title,_that.body,_that.eventType,_that.childId,_that.driverId,_that.tripId,_that.createdAt,_that.readAt,_that.childName,_that.driverName,_that.driverPhoto,_that.latitude,_that.longitude);case _:
+return $default(_that.id,_that.title,_that.body,_that.eventType,_that.driverId,_that.tripId,_that.createdAt,_that.readAt,_that.childName,_that.driverName,_that.driverPhoto,_that.latitude,_that.longitude);case _:
   return null;
 
 }
@@ -222,14 +221,13 @@ return $default(_that.id,_that.title,_that.body,_that.eventType,_that.childId,_t
 @JsonSerializable()
 
 class _ParentNotification extends ParentNotification {
-  const _ParentNotification({@JsonKey(name: 'id') required this.id, @JsonKey(name: 'title') this.title, @JsonKey(name: 'body') this.body, @JsonKey(name: 'event_type') this.eventType, @JsonKey(name: 'child_id') this.childId, @JsonKey(name: 'driver_id') this.driverId, @JsonKey(name: 'trip_id') this.tripId, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'read_at') this.readAt, @JsonKey(name: 'child_name') this.childName = 'Child', @JsonKey(name: 'driver_name') this.driverName = 'Driver', @JsonKey(name: 'driver_photo') this.driverPhoto, @JsonKey(name: 'latitude') this.latitude, @JsonKey(name: 'longitude') this.longitude}): super._();
+  const _ParentNotification({@JsonKey(name: 'id') required this.id, @JsonKey(name: 'title') this.title, @JsonKey(name: 'body') this.body, @JsonKey(name: 'event_type') this.eventType, @JsonKey(name: 'driver_id') this.driverId, @JsonKey(name: 'trip_id') this.tripId, @JsonKey(name: 'created_at') this.createdAt, @JsonKey(name: 'read_at') this.readAt, @JsonKey(name: 'child_name') this.childName = 'Child', @JsonKey(name: 'driver_name') this.driverName = 'Driver', @JsonKey(name: 'driver_photo') this.driverPhoto, @JsonKey(name: 'latitude') this.latitude, @JsonKey(name: 'longitude') this.longitude}): super._();
   factory _ParentNotification.fromJson(Map<String, dynamic> json) => _$ParentNotificationFromJson(json);
 
 @override@JsonKey(name: 'id') final  String id;
 @override@JsonKey(name: 'title') final  String? title;
 @override@JsonKey(name: 'body') final  String? body;
 @override@JsonKey(name: 'event_type') final  String? eventType;
-@override@JsonKey(name: 'child_id') final  String? childId;
 @override@JsonKey(name: 'driver_id') final  String? driverId;
 @override@JsonKey(name: 'trip_id') final  String? tripId;
 @override@JsonKey(name: 'created_at') final  DateTime? createdAt;
@@ -253,16 +251,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParentNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.childId, childId) || other.childId == childId)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.tripId, tripId) || other.tripId == tripId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.readAt, readAt) || other.readAt == readAt)&&(identical(other.childName, childName) || other.childName == childName)&&(identical(other.driverName, driverName) || other.driverName == driverName)&&(identical(other.driverPhoto, driverPhoto) || other.driverPhoto == driverPhoto)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _ParentNotification&&(identical(other.id, id) || other.id == id)&&(identical(other.title, title) || other.title == title)&&(identical(other.body, body) || other.body == body)&&(identical(other.eventType, eventType) || other.eventType == eventType)&&(identical(other.driverId, driverId) || other.driverId == driverId)&&(identical(other.tripId, tripId) || other.tripId == tripId)&&(identical(other.createdAt, createdAt) || other.createdAt == createdAt)&&(identical(other.readAt, readAt) || other.readAt == readAt)&&(identical(other.childName, childName) || other.childName == childName)&&(identical(other.driverName, driverName) || other.driverName == driverName)&&(identical(other.driverPhoto, driverPhoto) || other.driverPhoto == driverPhoto)&&(identical(other.latitude, latitude) || other.latitude == latitude)&&(identical(other.longitude, longitude) || other.longitude == longitude));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,id,title,body,eventType,childId,driverId,tripId,createdAt,readAt,childName,driverName,driverPhoto,latitude,longitude);
+int get hashCode => Object.hash(runtimeType,id,title,body,eventType,driverId,tripId,createdAt,readAt,childName,driverName,driverPhoto,latitude,longitude);
 
 @override
 String toString() {
-  return 'ParentNotification(id: $id, title: $title, body: $body, eventType: $eventType, childId: $childId, driverId: $driverId, tripId: $tripId, createdAt: $createdAt, readAt: $readAt, childName: $childName, driverName: $driverName, driverPhoto: $driverPhoto, latitude: $latitude, longitude: $longitude)';
+  return 'ParentNotification(id: $id, title: $title, body: $body, eventType: $eventType, driverId: $driverId, tripId: $tripId, createdAt: $createdAt, readAt: $readAt, childName: $childName, driverName: $driverName, driverPhoto: $driverPhoto, latitude: $latitude, longitude: $longitude)';
 }
 
 
@@ -273,7 +271,7 @@ abstract mixin class _$ParentNotificationCopyWith<$Res> implements $ParentNotifi
   factory _$ParentNotificationCopyWith(_ParentNotification value, $Res Function(_ParentNotification) _then) = __$ParentNotificationCopyWithImpl;
 @override @useResult
 $Res call({
-@JsonKey(name: 'id') String id,@JsonKey(name: 'title') String? title,@JsonKey(name: 'body') String? body,@JsonKey(name: 'event_type') String? eventType,@JsonKey(name: 'child_id') String? childId,@JsonKey(name: 'driver_id') String? driverId,@JsonKey(name: 'trip_id') String? tripId,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'read_at') DateTime? readAt,@JsonKey(name: 'child_name') String childName,@JsonKey(name: 'driver_name') String driverName,@JsonKey(name: 'driver_photo') String? driverPhoto,@JsonKey(name: 'latitude') double? latitude,@JsonKey(name: 'longitude') double? longitude
+@JsonKey(name: 'id') String id,@JsonKey(name: 'title') String? title,@JsonKey(name: 'body') String? body,@JsonKey(name: 'event_type') String? eventType,@JsonKey(name: 'driver_id') String? driverId,@JsonKey(name: 'trip_id') String? tripId,@JsonKey(name: 'created_at') DateTime? createdAt,@JsonKey(name: 'read_at') DateTime? readAt,@JsonKey(name: 'child_name') String childName,@JsonKey(name: 'driver_name') String driverName,@JsonKey(name: 'driver_photo') String? driverPhoto,@JsonKey(name: 'latitude') double? latitude,@JsonKey(name: 'longitude') double? longitude
 });
 
 
@@ -290,13 +288,12 @@ class __$ParentNotificationCopyWithImpl<$Res>
 
 /// Create a copy of ParentNotification
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = freezed,Object? body = freezed,Object? eventType = freezed,Object? childId = freezed,Object? driverId = freezed,Object? tripId = freezed,Object? createdAt = freezed,Object? readAt = freezed,Object? childName = null,Object? driverName = null,Object? driverPhoto = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? id = null,Object? title = freezed,Object? body = freezed,Object? eventType = freezed,Object? driverId = freezed,Object? tripId = freezed,Object? createdAt = freezed,Object? readAt = freezed,Object? childName = null,Object? driverName = null,Object? driverPhoto = freezed,Object? latitude = freezed,Object? longitude = freezed,}) {
   return _then(_ParentNotification(
 id: null == id ? _self.id : id // ignore: cast_nullable_to_non_nullable
 as String,title: freezed == title ? _self.title : title // ignore: cast_nullable_to_non_nullable
 as String?,body: freezed == body ? _self.body : body // ignore: cast_nullable_to_non_nullable
 as String?,eventType: freezed == eventType ? _self.eventType : eventType // ignore: cast_nullable_to_non_nullable
-as String?,childId: freezed == childId ? _self.childId : childId // ignore: cast_nullable_to_non_nullable
 as String?,driverId: freezed == driverId ? _self.driverId : driverId // ignore: cast_nullable_to_non_nullable
 as String?,tripId: freezed == tripId ? _self.tripId : tripId // ignore: cast_nullable_to_non_nullable
 as String?,createdAt: freezed == createdAt ? _self.createdAt : createdAt // ignore: cast_nullable_to_non_nullable

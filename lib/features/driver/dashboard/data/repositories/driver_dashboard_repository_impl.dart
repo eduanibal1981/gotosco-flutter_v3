@@ -364,7 +364,6 @@ class DriverDashboardRepositoryImpl implements DriverDashboardContract {
     );
   }
 
-
   @override
   Stream<List<DriverRequest>> getBookingRequestsStream() {
     return _supabase
@@ -440,25 +439,84 @@ class DriverDashboardRepositoryImpl implements DriverDashboardContract {
   ) async {
     if (bookingIds.isEmpty) return;
 
-    final payload = bookingIds.map((bid) {
-      return {
-        'booking_id': bid,
-        'daily_trip_id': tripId,
-        'driver_id': _driverId,
-        'event_type': 'trip_started',
-        'created_at': DateTime.now().toIso8601String(),
-        'event_data': {
-          'description': 'Driver has started the trip',
-          'event_time': DateTime.now().toIso8601String(),
-        },
-      };
-    }).toList();
-
     try {
+      // 1. Fetch parent IDs for all bookings
+      final bookingsResponse = await _supabase
+          .from('bookings')
+          .select('id, parent_id')
+          .inFilter('id', bookingIds);
+
+      final bookingsMap = {
+        for (final b in (bookingsResponse as List))
+          b['id'] as String: b['parent_id'] as String?,
+      };
+
+      // 2. Fetch all child IDs mapped to these bookings
+      final childrenResponse = await _supabase
+          .from('booking_children')
+          .select('booking_id, child_id')
+          .inFilter('booking_id', bookingIds);
+
+      final childrenMap = <String, List<String>>{};
+      for (final row in (childrenResponse as List)) {
+        final bId = row['booking_id'] as String;
+        final cId = row['child_id'] as String;
+        childrenMap.putIfAbsent(bId, () => []).add(cId);
+      }
+
+      // 3. Build payload with parent and children data
+      final payload = bookingIds.map((bid) {
+        return {
+          'booking_id': bid,
+          'daily_trip_id': tripId,
+          'driver_id': _driverId,
+          'parent_id': bookingsMap[bid],
+          'event_type': 'trip_started',
+          'created_at': DateTime.now().toIso8601String(),
+          'event_data': {
+            'description': 'Driver has started the trip',
+            'event_time': DateTime.now().toIso8601String(),
+            'child_ids': childrenMap[bid] ?? [],
+          },
+        };
+      }).toList();
+
       await _supabase.from('ride_events').insert(payload);
     } catch (e) {
       print('Error broadcasting trip start events: $e');
     }
   }
-}
 
+  @override
+  Future<void> updateDriverLocation({
+    required String tripId,
+    required double lat,
+    required double lng,
+    double? heading,
+    double? speed,
+  }) async {
+    try {
+      // Periodic write to trip_tracking table (history log)
+      await _supabase.from('trip_tracking').insert({
+        'daily_trip_id': tripId,
+        'latitude': lat,
+        'longitude': lng,
+        'heading': heading,
+        'speed': speed,
+      });
+
+      // Update the driver_locations active record
+      await _supabase.from('driver_locations').upsert({
+        'driver_id': _driverId,
+        'current_trip_id': tripId,
+        'latitude': lat,
+        'longitude': lng,
+        'heading': heading,
+        'speed': speed,
+        'updated_at': DateTime.now().toIso8601String(),
+      }, onConflict: 'driver_id');
+    } catch (e) {
+      print('Error updating driver location: $e');
+    }
+  }
+}

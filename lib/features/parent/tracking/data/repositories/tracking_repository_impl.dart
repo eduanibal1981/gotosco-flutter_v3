@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../domain/contracts/tracking_contract.dart';
@@ -19,14 +20,62 @@ class TrackingRepositoryImpl implements TrackingContract {
 
   @override
   Stream<TrackingViewModel?> getDriverLocationStream(String driverId) {
-    return _supabase
-        .from('tracking_view')
-        .stream(primaryKey: ['driver_id'])
-        .eq('driver_id', driverId)
-        .map((events) {
-          if (events.isEmpty) return null;
-          return TrackingViewModel.fromJson(events.first);
-        });
+    late StreamController<TrackingViewModel?> controller;
+    RealtimeChannel? channel;
+
+    controller = StreamController<TrackingViewModel?>.broadcast(
+      onListen: () async {
+        // 1. Initial Fetch to get the latest static location
+        try {
+          final data = await _supabase
+              .from('tracking_view')
+              .select()
+              .eq('driver_id', driverId)
+              .maybeSingle();
+
+          if (data != null && !controller.isClosed) {
+            controller.add(TrackingViewModel.fromJson(data));
+          }
+        } catch (e) {
+          print('Error fetching initial tracking view: $e');
+        }
+
+        // 2. Setup Broadcast Channel for high-frequency updates
+        channel = _supabase.channel('driver_tracking_$driverId');
+
+        channel
+            ?.onBroadcast(
+              event: 'location_update',
+              callback: (payload) {
+                if (controller.isClosed || payload.isEmpty) return;
+
+                try {
+                  // Map the broadcast payload back into a format TrackingViewModel expects
+                  final data = {
+                    'driver_id': payload['driver_id'],
+                    'latitude': payload['latitude'],
+                    'longitude': payload['longitude'],
+                    'heading': payload['heading'],
+                    'speed': payload['speed'],
+                    'updated_at': payload['updated_at'],
+                    'trip_type': payload['trip_type'],
+                    'trips_started': payload['trips_started'] ?? true,
+                  };
+                  controller.add(TrackingViewModel.fromJson(data));
+                } catch (e) {
+                  print("Error parsing location_update broadcast: $e");
+                }
+              },
+            )
+            .subscribe();
+      },
+      onCancel: () {
+        channel?.unsubscribe();
+        controller.close();
+      },
+    );
+
+    return controller.stream;
   }
 
   @override
@@ -46,54 +95,30 @@ class TrackingRepositoryImpl implements TrackingContract {
 
   @override
   Stream<Map<String, dynamic>?> streamLatestRideEvent(String bookingId) {
-    final now = DateTime.now();
-
-    // 1. Get Midnight in LOCAL time (e.g., 00:00 Muscat)
-    final localMidnight = DateTime(now.year, now.month, now.day);
-
-    // 2. Convert to UTC (e.g., 20:00 Yesterday UTC)
-    final utcMidnightStr = localMidnight.toUtc().toIso8601String();
-
     return _supabase
         .from('ride_events')
         .stream(primaryKey: ['id'])
         .eq('booking_id', bookingId)
         .order('created_at', ascending: false)
         .limit(1)
-        .map((events) {
-          if (events.isEmpty) return null;
-          final event = events.first;
-
-          // Filter in Dart since .gte() is not supported on stream()
-          final eventTime = DateTime.tryParse(event['created_at'].toString());
-          final cutoffTime = DateTime.parse(utcMidnightStr);
-
-          // If the event happened before today's start, execute logic?
-          // The query already orders by created_at desc limit 1.
-          // Wait, if the latest event is old (yesterday), we return null.
-          if (eventTime != null && eventTime.isBefore(cutoffTime)) {
-            return null;
-          }
-
-          return Map<String, dynamic>.from(event);
-        });
+        .map((events) => events.isEmpty ? null : events.first);
   }
 
   @override
   Future<ParentNextStopInfo?> getParentNextStopInfo(String bookingId) async {
     try {
-      final response = await _supabase.rpc(
-        'get_parent_tracking_ui_state',
-        params: {'booking_id_input': bookingId},
-      );
+      final response = await _supabase
+          .from('parent_tracking_snapshot')
+          .select()
+          .eq('booking_id', bookingId)
+          .maybeSingle();
 
-      if (response is List && response.isNotEmpty) {
-        return ParentNextStopInfo.fromMap(
-          Map<String, dynamic>.from(response.first),
-        );
+      if (response != null) {
+        return ParentNextStopInfo.fromMap(response);
       }
       return null;
-    } catch (_) {
+    } catch (e, stack) {
+      print('Error in getParentNextStopInfo: $e\n$stack');
       return null;
     }
   }

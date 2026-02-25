@@ -78,7 +78,6 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
     final bookingLocationsAsync = ref.watch(
       bookingLocationsProvider(widget.bookingId),
     );
-    final rideEventAsync = ref.watch(latestRideEventProvider(widget.bookingId));
     final nextStopAsync = ref.watch(
       parentNextStopInfoProvider(widget.bookingId, widget.driverId),
     );
@@ -138,7 +137,6 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
                 child: _buildInfoCard(
                   locationAsync: locationAsync,
                   bookingLocations: bookingLocation,
-                  rideEvent: rideEventAsync.value,
                   nextStopInfo: nextStopAsync.value,
                 ),
               ),
@@ -152,7 +150,6 @@ class _LiveTrackingScreenState extends ConsumerState<LiveTrackingScreen>
   Widget _buildInfoCard({
     required AsyncValue<TrackingViewModel?> locationAsync,
     required BookingLocation bookingLocations,
-    Map<String, dynamic>? rideEvent,
     ParentNextStopInfo? nextStopInfo,
   }) {
     final driverName = bookingLocations.driverName ?? 'Driver';

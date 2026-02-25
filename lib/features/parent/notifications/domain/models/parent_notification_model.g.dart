@@ -12,7 +12,6 @@ _ParentNotification _$ParentNotificationFromJson(Map<String, dynamic> json) =>
       title: json['title'] as String?,
       body: json['body'] as String?,
       eventType: json['event_type'] as String?,
-      childId: json['child_id'] as String?,
       driverId: json['driver_id'] as String?,
       tripId: json['trip_id'] as String?,
       createdAt: json['created_at'] == null
@@ -34,7 +33,6 @@ Map<String, dynamic> _$ParentNotificationToJson(_ParentNotification instance) =>
       'title': instance.title,
       'body': instance.body,
       'event_type': instance.eventType,
-      'child_id': instance.childId,
       'driver_id': instance.driverId,
       'trip_id': instance.tripId,
       'created_at': instance.createdAt?.toIso8601String(),

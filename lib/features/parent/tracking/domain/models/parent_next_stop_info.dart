@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 class ParentNextStopInfo {
   final String? statusBadge;
   final String? uiTitle;

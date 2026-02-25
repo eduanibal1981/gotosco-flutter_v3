@@ -27,7 +27,6 @@ class DriverStatusMonitor extends ConsumerWidget {
 
     // Watch the real-time location stream for this driver
     final driverLocationAsync = ref.watch(driverLocationProvider(driverId));
-    final rideEventAsync = ref.watch(latestRideEventProvider(bookingId));
     final nextStopAsync = ref.watch(
       parentNextStopInfoProvider(bookingId, driverId),
     );
@@ -42,10 +41,9 @@ class DriverStatusMonitor extends ConsumerWidget {
           bookingId,
           driverId,
           location: location,
-          rideEvent: rideEventAsync.asData?.value,
           nextStopInfo: nextStopAsync.asData?.value,
           isConnected: true,
-          isLoading: false,
+          isLoading: nextStopAsync.isLoading,
         );
       },
       error: (_, __) => _buildActiveCard(
@@ -56,10 +54,9 @@ class DriverStatusMonitor extends ConsumerWidget {
         bookingId,
         driverId,
         location: null,
-        rideEvent: rideEventAsync.asData?.value,
         nextStopInfo: nextStopAsync.asData?.value,
         isConnected: false,
-        isLoading: false,
+        isLoading: nextStopAsync.isLoading,
       ),
       loading: () => _buildActiveCard(
         context,
@@ -69,7 +66,6 @@ class DriverStatusMonitor extends ConsumerWidget {
         bookingId,
         driverId,
         location: null,
-        rideEvent: rideEventAsync.asData?.value,
         nextStopInfo: nextStopAsync.asData?.value,
         isConnected: false,
         isLoading: true,
@@ -84,7 +80,6 @@ class DriverStatusMonitor extends ConsumerWidget {
     String? driverPhoto,
     String bookingId,
     String driverId, {
-    required Map<String, dynamic>? rideEvent,
     required ParentNextStopInfo? nextStopInfo,
     required TrackingViewModel? location,
     required bool isConnected,
@@ -96,13 +91,12 @@ class DriverStatusMonitor extends ConsumerWidget {
     String title = nextStopInfo?.uiTitle ?? 'Scheduled Trip';
     String subtitle = nextStopInfo?.uiSubtitle ?? 'Driver is offline';
     Color badgeColor = Colors.grey;
-    
+
     if (isLoading && nextStopInfo == null) {
       badgeText = 'SCHEDULED';
       title = 'Loading...';
       subtitle = 'Checking status...';
     }
-
 
     if (badgeText == 'SCHEDULED')
       badgeColor = Colors.blue;

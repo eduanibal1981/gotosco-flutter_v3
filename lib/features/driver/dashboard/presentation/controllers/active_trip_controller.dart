@@ -1,5 +1,6 @@
 ﻿import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:geolocator/geolocator.dart'; // Add for distance calculation
+import 'package:supabase_flutter/supabase_flutter.dart'; // Add for Realtime Broadcast
 import '../../data/repositories/driver_dashboard_repository_impl.dart';
 import '../../domain/models/driver_trip_model.dart';
 
@@ -9,11 +10,73 @@ import '../../../availability/application/driver_availability_controller.dart';
 
 part 'active_trip_controller.g.dart';
 
-@riverpod
+@Riverpod(keepAlive: true)
 class ActiveTripController extends _$ActiveTripController {
+  DateTime? _lastDbUpdateTime;
+  RealtimeChannel? _trackingChannel;
+
   @override
   FutureOr<DriverTrip?> build() {
     return ref.watch(driverDashboardRepositoryProvider).getActiveTrip();
+  }
+
+  void initTrackingChannel() {
+    final driverId = Supabase.instance.client.auth.currentUser?.id;
+    if (driverId != null) {
+      _trackingChannel = Supabase.instance.client.channel(
+        'driver_tracking_$driverId',
+      );
+      _trackingChannel?.subscribe();
+    }
+  }
+
+  void cleanupTrackingChannel() {
+    _trackingChannel?.unsubscribe();
+    _trackingChannel = null;
+  }
+
+  Future<void> handleLocationUpdate(Position position) async {
+    final trip = state.value;
+    if (trip == null) return;
+
+    final driverId = Supabase.instance.client.auth.currentUser?.id;
+    if (driverId == null) return;
+
+    // 1. Broadcast to parents immediately
+    if (_trackingChannel != null) {
+      await _trackingChannel!.sendBroadcastMessage(
+        event: 'location_update',
+        payload: {
+          'driver_id': driverId,
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'heading': position.heading,
+          'speed': position.speed,
+          'updated_at': DateTime.now().toIso8601String(),
+          // include trip details for UI consistency
+          'trip_type': trip.tripType,
+          'trips_started': true,
+        },
+      );
+    }
+
+    // 2. Throttle database updates (every 2 minutes)
+    final now = DateTime.now();
+    if (_lastDbUpdateTime == null ||
+        now.difference(_lastDbUpdateTime!).inMinutes >= 2) {
+      _lastDbUpdateTime = now;
+      final repo = ref.read(driverDashboardRepositoryProvider);
+      await repo.updateDriverLocation(
+        tripId: trip.id,
+        lat: position.latitude,
+        lng: position.longitude,
+        heading: position.heading,
+        speed: position.speed,
+      );
+    }
+
+    // 3. Keep geofence check
+    await checkArrivalGeofence(position.latitude, position.longitude);
   }
 
   /// Start a trip

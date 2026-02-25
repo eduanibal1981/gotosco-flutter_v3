@@ -691,7 +691,7 @@ BEGIN
     END IF;
 
     -- 2. Check Driver & Global Location Status (Scenario 1 & 2)
-    SELECT d.is_profile_online, COALESCE(dl.trips_started, false), dl.eta_minutes
+    SELECT d.is_active, COALESCE(dl.trips_started, false), dl.eta_minutes
     INTO v_driver_online, v_trips_started, v_eta
     FROM public.drivers d
     LEFT JOIN public.driver_locations dl ON dl.driver_id = d.user_id
@@ -937,20 +937,36 @@ CREATE OR REPLACE FUNCTION "public"."process_stop"("stop_id_input" "uuid", "acti
     AS $$
 DECLARE
   v_booking_id uuid;
-  v_child_id uuid;
   v_trip_id uuid;
   v_driver_id uuid;
   v_parent_id uuid;
   v_next_stop_id uuid;
   v_current_seq int;
+  v_stop_type text;
+  v_location_name text;
+  v_child_ids jsonb;
 BEGIN
   -- Get context
-  SELECT rs.booking_id, rs.child_id, rs.trip_id, t.driver_id, b.parent_id, rs.sequence_order
-  INTO v_booking_id, v_child_id, v_trip_id, v_driver_id, v_parent_id, v_current_seq
+  SELECT rs.booking_id, rs.trip_id, t.driver_id, b.parent_id, rs.sequence_order, rs.stop_type
+  INTO v_booking_id, v_trip_id, v_driver_id, v_parent_id, v_current_seq, v_stop_type
   FROM public.route_stops rs
   JOIN public.trips t ON rs.trip_id = t.id
   JOIN public.bookings b ON rs.booking_id = b.id
   WHERE rs.id = stop_id_input;
+
+  -- Determine location name from stop type
+  IF v_stop_type ILIKE '%school%' THEN
+    v_location_name := 'the School';
+  ELSIF v_stop_type ILIKE '%home%' THEN
+    v_location_name := 'the Home';
+  ELSE
+    v_location_name := 'the stop';
+  END IF;
+
+  -- Aggregate children for this booking into a JSON array
+  SELECT jsonb_agg(child_id) INTO v_child_ids 
+  FROM public.booking_children 
+  WHERE booking_id = v_booking_id;
 
   -- Update Stop
   IF action = 'arrived' THEN
@@ -959,8 +975,20 @@ BEGIN
       WHERE id = stop_id_input;
       
       -- Insert Event for Arrived
-      INSERT INTO public.ride_events (booking_id, child_id, driver_id, parent_id, event_type, created_at)
-      VALUES (v_booking_id, v_child_id, v_driver_id, v_parent_id, 'arrived', NOW());
+      INSERT INTO public.ride_events (booking_id, driver_id, parent_id, daily_trip_id, event_type, event_data, created_at)
+      VALUES (
+        v_booking_id, 
+        v_driver_id, 
+        v_parent_id, 
+        v_trip_id,
+        'arrived', 
+        jsonb_build_object(
+            'description', 'Driver has arrived at ' || v_location_name,
+            'event_time', to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+            'child_ids', v_child_ids
+        ),
+        NOW()
+      );
 
   ELSIF action IN ('picked_up', 'dropped_off') THEN
       UPDATE public.route_stops
@@ -968,8 +996,20 @@ BEGIN
       WHERE id = stop_id_input;
       
       -- Insert Event
-      INSERT INTO public.ride_events (booking_id, child_id, driver_id, parent_id, event_type, created_at)
-      VALUES (v_booking_id, v_child_id, v_driver_id, v_parent_id, action, NOW());
+      INSERT INTO public.ride_events (booking_id, driver_id, parent_id, daily_trip_id, event_type, event_data, created_at)
+      VALUES (
+        v_booking_id, 
+        v_driver_id, 
+        v_parent_id, 
+        v_trip_id,
+        action, 
+        jsonb_build_object(
+            'description', 'Driver has ' || replace(action, '_', ' ') || ' the student',
+            'event_time', to_char(NOW() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+            'child_ids', v_child_ids
+        ),
+        NOW()
+      );
 
   ELSIF action = 'skipped' THEN
       UPDATE public.route_stops
@@ -1407,6 +1447,11 @@ BEGIN
   -- 5. Log initial location
   INSERT INTO public.trip_tracking (daily_trip_id, latitude, longitude)
   VALUES (trip_id_input, COALESCE(driver_lat, 0), COALESCE(driver_lng, 0));
+
+  -- 6. Ensure driver is active so parent tracking UI state returns true
+  UPDATE public.drivers
+  SET is_active = true
+  WHERE user_id = v_driver_id;
 END;
 $$;
 
@@ -2360,7 +2405,6 @@ COMMENT ON VIEW "public"."parent_bookings_view" IS 'Denormalized view for parent
 CREATE TABLE IF NOT EXISTS "public"."ride_events" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "booking_id" "uuid",
-    "child_id" "uuid",
     "driver_id" "uuid",
     "parent_id" "uuid",
     "event_type" "text" NOT NULL,
@@ -2375,21 +2419,23 @@ CREATE TABLE IF NOT EXISTS "public"."ride_events" (
 ALTER TABLE "public"."ride_events" OWNER TO "postgres";
 
 
-CREATE OR REPLACE VIEW "public"."parent_notifications_view" WITH ("security_invoker"='true') AS
+CREATE OR REPLACE VIEW "public"."parent_notifications_view" AS
  SELECT "re"."id",
     "re"."booking_id",
-    "re"."child_id",
     "re"."driver_id",
     "re"."parent_id",
+    "re"."daily_trip_id",
     "re"."event_type",
     "re"."event_data",
     "re"."created_at",
     "re"."read_at",
-    "c"."name" AS "child_name",
+    ( SELECT "string_agg"("c"."name", ', '::"text") AS "string_agg"
+           FROM ("public"."booking_children" "bc"
+             JOIN "public"."children" "c" ON (("bc"."child_id" = "c"."id")))
+          WHERE ("bc"."booking_id" = "re"."booking_id")) AS "child_name",
     "u"."full_name" AS "driver_name",
     "u"."photo_url" AS "driver_photo"
-   FROM (("public"."ride_events" "re"
-     LEFT JOIN "public"."children" "c" ON (("re"."child_id" = "c"."id")))
+   FROM ("public"."ride_events" "re"
      LEFT JOIN "public"."users" "u" ON (("re"."driver_id" = "u"."id")));
 
 

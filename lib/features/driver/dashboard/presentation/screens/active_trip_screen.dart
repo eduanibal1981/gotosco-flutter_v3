@@ -20,11 +20,15 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   @override
   void initState() {
     super.initState();
+    Future.microtask(() {
+      ref.read(activeTripControllerProvider.notifier).initTrackingChannel();
+    });
     _startLocationUpdates();
   }
 
   @override
   void dispose() {
+    ref.read(activeTripControllerProvider.notifier).cleanupTrackingChannel();
     _positionStreamSubscription?.cancel();
     super.dispose();
   }
@@ -38,10 +42,10 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     }
 
     // Start listening
-    // settings: distanceFilter: 10 meters to reduce jitter
+    // settings: distanceFilter: 20 meters to reduce jitter and database load
     const settings = LocationSettings(
       accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
+      distanceFilter: 20,
     );
 
     _positionStreamSubscription =
@@ -49,10 +53,10 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
           Position? position,
         ) {
           if (position != null) {
-            // Feed to controller for geofence check
+            // Feed to controller for tracking broadcast and geofence check
             ref
                 .read(activeTripControllerProvider.notifier)
-                .checkArrivalGeofence(position.latitude, position.longitude);
+                .handleLocationUpdate(position);
           }
         });
   }
@@ -508,4 +512,3 @@ class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
     return lower.contains('drop');
   }
 }
-
