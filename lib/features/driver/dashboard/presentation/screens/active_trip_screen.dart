@@ -17,18 +17,21 @@ class ActiveTripScreen extends ConsumerStatefulWidget {
 class _ActiveTripScreenState extends ConsumerState<ActiveTripScreen> {
   StreamSubscription<Position>? _positionStreamSubscription;
 
+  late final ActiveTripController _controller;
+
   @override
   void initState() {
     super.initState();
+    _controller = ref.read(activeTripControllerProvider.notifier);
     Future.microtask(() {
-      ref.read(activeTripControllerProvider.notifier).initTrackingChannel();
+      _controller.initTrackingChannel();
     });
     _startLocationUpdates();
   }
 
   @override
   void dispose() {
-    ref.read(activeTripControllerProvider.notifier).cleanupTrackingChannel();
+    _controller.cleanupTrackingChannel();
     _positionStreamSubscription?.cancel();
     super.dispose();
   }
