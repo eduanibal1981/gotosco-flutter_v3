@@ -813,6 +813,10 @@ $$;
 ALTER FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") OWNER TO "postgres";
 
 
+COMMENT ON FUNCTION "public"."get_parent_tracking_ui_state"("booking_id_input" "uuid") IS '@deprecated Use parent_tracking_snapshot view instead. Scheduled for removal in 1 week.';
+
+
+
 CREATE OR REPLACE FUNCTION "public"."handle_new_user"() RETURNS "trigger"
     LANGUAGE "plpgsql" SECURITY DEFINER
     SET "search_path" TO 'public'
@@ -868,10 +872,12 @@ BEGIN
   FROM users u
   WHERE u.id = NEW.parent_id;
 
-  -- Get child's name
-  SELECT c.name INTO child_name
+  -- Get child/children names from event_data->child_ids
+  SELECT string_agg(c.name, ' and ') INTO child_name
   FROM children c
-  WHERE c.id = NEW.child_id;
+  WHERE c.id IN (
+    SELECT jsonb_array_elements_text(NEW.event_data->'child_ids')::uuid
+  );
 
   -- Skip if no FCM token
   IF parent_fcm_token IS NULL THEN
@@ -893,6 +899,7 @@ BEGIN
       notification_title := 'Child Dropped Off ✓';
       notification_body := COALESCE(child_name, 'Your child') || ' has arrived at the destination.';
     ELSE
+      -- Don't notify on system events like trip_started, we assume UI updates are enough
       RETURN NEW;
   END CASE;
 
@@ -915,7 +922,7 @@ BEGIN
           'data', jsonb_build_object(
             'event_type', NEW.event_type,
             'booking_id', NEW.booking_id::text,
-            'child_id', NEW.child_id::text
+            'child_ids', NEW.event_data->'child_ids'
           )
         )
       );
@@ -937,6 +944,7 @@ CREATE OR REPLACE FUNCTION "public"."process_stop"("stop_id_input" "uuid", "acti
     AS $$
 DECLARE
   v_booking_id uuid;
+  v_child_id uuid;
   v_trip_id uuid;
   v_driver_id uuid;
   v_parent_id uuid;
@@ -947,8 +955,8 @@ DECLARE
   v_child_ids jsonb;
 BEGIN
   -- Get context
-  SELECT rs.booking_id, rs.trip_id, t.driver_id, b.parent_id, rs.sequence_order, rs.stop_type
-  INTO v_booking_id, v_trip_id, v_driver_id, v_parent_id, v_current_seq, v_stop_type
+  SELECT rs.booking_id, rs.child_id, rs.trip_id, t.driver_id, b.parent_id, rs.sequence_order, rs.stop_type
+  INTO v_booking_id, v_child_id, v_trip_id, v_driver_id, v_parent_id, v_current_seq, v_stop_type
   FROM public.route_stops rs
   JOIN public.trips t ON rs.trip_id = t.id
   JOIN public.bookings b ON rs.booking_id = b.id
@@ -967,6 +975,11 @@ BEGIN
   SELECT jsonb_agg(child_id) INTO v_child_ids 
   FROM public.booking_children 
   WHERE booking_id = v_booking_id;
+  
+  -- Fallback if booking_children is empty (though it shouldn't be)
+  IF v_child_ids IS NULL THEN
+    v_child_ids := jsonb_build_array(v_child_id);
+  END IF;
 
   -- Update Stop
   IF action = 'arrived' THEN
@@ -974,7 +987,7 @@ BEGIN
       SET status = 'arrived', arrived_at = NOW()
       WHERE id = stop_id_input;
       
-      -- Insert Event for Arrived
+      -- Insert Event for Arrived (no child_id column, passed via event_data)
       INSERT INTO public.ride_events (booking_id, driver_id, parent_id, daily_trip_id, event_type, event_data, created_at)
       VALUES (
         v_booking_id, 
@@ -995,7 +1008,7 @@ BEGIN
       SET status = 'completed', completed_at = NOW()
       WHERE id = stop_id_input;
       
-      -- Insert Event
+      -- Insert Event (no child_id column, passed via event_data)
       INSERT INTO public.ride_events (booking_id, driver_id, parent_id, daily_trip_id, event_type, event_data, created_at)
       VALUES (
         v_booking_id, 
@@ -2256,6 +2269,39 @@ CREATE TABLE IF NOT EXISTS "public"."i18n_strings" (
 ALTER TABLE "public"."i18n_strings" OWNER TO "postgres";
 
 
+CREATE TABLE IF NOT EXISTS "public"."ride_events" (
+    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
+    "booking_id" "uuid",
+    "driver_id" "uuid",
+    "parent_id" "uuid",
+    "event_type" "text" NOT NULL,
+    "event_data" "jsonb" DEFAULT '{}'::"jsonb",
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "read_at" timestamp with time zone,
+    "daily_trip_id" "uuid",
+    CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'arrived'::"text", 'picked_up'::"text", 'dropped_off'::"text", 'trip_started'::"text", 'skipped'::"text"])))
+);
+
+
+ALTER TABLE "public"."ride_events" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."latest_booking_event" AS
+ SELECT DISTINCT ON ("booking_id") "id",
+    "booking_id",
+    "driver_id",
+    "parent_id",
+    "daily_trip_id",
+    "event_type",
+    "event_data",
+    "created_at"
+   FROM "public"."ride_events"
+  ORDER BY "booking_id", "created_at" DESC;
+
+
+ALTER VIEW "public"."latest_booking_event" OWNER TO "postgres";
+
+
 CREATE TABLE IF NOT EXISTS "public"."media_assets" (
     "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
     "owner_id" "uuid" NOT NULL,
@@ -2402,23 +2448,6 @@ COMMENT ON VIEW "public"."parent_bookings_view" IS 'Denormalized view for parent
 
 
 
-CREATE TABLE IF NOT EXISTS "public"."ride_events" (
-    "id" "uuid" DEFAULT "gen_random_uuid"() NOT NULL,
-    "booking_id" "uuid",
-    "driver_id" "uuid",
-    "parent_id" "uuid",
-    "event_type" "text" NOT NULL,
-    "event_data" "jsonb" DEFAULT '{}'::"jsonb",
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "read_at" timestamp with time zone,
-    "daily_trip_id" "uuid",
-    CONSTRAINT "ride_events_event_type_check" CHECK (("event_type" = ANY (ARRAY['approaching'::"text", 'arrived'::"text", 'picked_up'::"text", 'dropped_off'::"text", 'trip_started'::"text", 'skipped'::"text"])))
-);
-
-
-ALTER TABLE "public"."ride_events" OWNER TO "postgres";
-
-
 CREATE OR REPLACE VIEW "public"."parent_notifications_view" AS
  SELECT "re"."id",
     "re"."booking_id",
@@ -2440,6 +2469,59 @@ CREATE OR REPLACE VIEW "public"."parent_notifications_view" AS
 
 
 ALTER VIEW "public"."parent_notifications_view" OWNER TO "postgres";
+
+
+CREATE OR REPLACE VIEW "public"."parent_tracking_snapshot" AS
+ SELECT "b"."id" AS "booking_id",
+    "b"."parent_id",
+    "lbe"."driver_id",
+    "lbe"."daily_trip_id" AS "trip_id",
+    "lbe"."event_type",
+    "lbe"."event_data",
+    "lbe"."created_at" AS "event_created_at",
+    "dl"."latitude",
+    "dl"."longitude",
+    "dl"."eta_minutes",
+    "dl"."trips_started",
+    "t"."trip_type",
+    "t"."trip_direction",
+    "t"."status" AS "trip_status",
+        CASE
+            WHEN ("d"."is_active" IS FALSE) THEN 'OFFLINE'::"text"
+            WHEN ("lbe"."event_type" = 'dropped_off'::"text") THEN 'COMPLETED'::"text"
+            WHEN ("lbe"."event_type" = 'arrived'::"text") THEN 'ARRIVED'::"text"
+            WHEN ("lbe"."event_type" = 'picked_up'::"text") THEN 'ON_TRIP'::"text"
+            WHEN ("lbe"."event_type" = 'trip_started'::"text") THEN 'LIVE_TRIP'::"text"
+            ELSE 'SCHEDULED'::"text"
+        END AS "status_badge",
+        CASE
+            WHEN ("d"."is_active" IS FALSE) THEN 'Scheduled Trip'::"text"
+            WHEN ("lbe"."event_type" = 'dropped_off'::"text") THEN 'Child Dropped Off'::"text"
+            WHEN ("lbe"."event_type" = 'arrived'::"text") THEN 'Driver Arrived'::"text"
+            WHEN ("lbe"."event_type" = 'picked_up'::"text") THEN 'Child Picked Up'::"text"
+            WHEN ("lbe"."event_type" = 'trip_started'::"text") THEN 'Trip Started'::"text"
+            ELSE 'Trip Scheduled'::"text"
+        END AS "ui_title",
+        CASE
+            WHEN ("d"."is_active" IS FALSE) THEN 'Driver is currently offline'::"text"
+            WHEN ("lbe"."event_type" = 'dropped_off'::"text") THEN 'Arrived safely'::"text"
+            WHEN ("lbe"."event_type" = 'arrived'::"text") THEN ("lbe"."event_data" ->> 'description'::"text")
+            WHEN ("lbe"."event_type" = 'picked_up'::"text") THEN (('Heading to destination · '::"text" || COALESCE("dl"."eta_minutes", 0)) || ' min'::"text")
+            WHEN ("lbe"."event_type" = 'trip_started'::"text") THEN (COALESCE("dl"."eta_minutes", 0) || ' min away'::"text")
+            ELSE 'Waiting for trip to begin'::"text"
+        END AS "ui_subtitle",
+        CASE
+            WHEN ("t"."trip_type" = 'Go to School(s)'::"text") THEN true
+            ELSE false
+        END AS "is_go_trip"
+   FROM (((("public"."bookings" "b"
+     LEFT JOIN "public"."latest_booking_event" "lbe" ON (("lbe"."booking_id" = "b"."id")))
+     LEFT JOIN "public"."driver_locations" "dl" ON (("dl"."driver_id" = "lbe"."driver_id")))
+     LEFT JOIN "public"."trips" "t" ON (("t"."id" = "lbe"."daily_trip_id")))
+     LEFT JOIN "public"."drivers" "d" ON (("d"."user_id" = "lbe"."driver_id")));
+
+
+ALTER VIEW "public"."parent_tracking_snapshot" OWNER TO "postgres";
 
 
 CREATE TABLE IF NOT EXISTS "public"."payments" (
@@ -2836,6 +2918,10 @@ CREATE INDEX "idx_messages_conversation_id" ON "public"."messages" USING "btree"
 
 
 CREATE INDEX "idx_ride_events_booking" ON "public"."ride_events" USING "btree" ("booking_id");
+
+
+
+CREATE INDEX "idx_ride_events_booking_created_desc" ON "public"."ride_events" USING "btree" ("booking_id", "created_at" DESC);
 
 
 
@@ -3763,6 +3849,18 @@ GRANT ALL ON TABLE "public"."i18n_strings" TO "service_role";
 
 
 
+GRANT ALL ON TABLE "public"."ride_events" TO "anon";
+GRANT ALL ON TABLE "public"."ride_events" TO "authenticated";
+GRANT ALL ON TABLE "public"."ride_events" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."latest_booking_event" TO "anon";
+GRANT ALL ON TABLE "public"."latest_booking_event" TO "authenticated";
+GRANT ALL ON TABLE "public"."latest_booking_event" TO "service_role";
+
+
+
 GRANT ALL ON TABLE "public"."media_assets" TO "anon";
 GRANT ALL ON TABLE "public"."media_assets" TO "authenticated";
 GRANT ALL ON TABLE "public"."media_assets" TO "service_role";
@@ -3787,15 +3885,15 @@ GRANT ALL ON TABLE "public"."parent_bookings_view" TO "service_role";
 
 
 
-GRANT ALL ON TABLE "public"."ride_events" TO "anon";
-GRANT ALL ON TABLE "public"."ride_events" TO "authenticated";
-GRANT ALL ON TABLE "public"."ride_events" TO "service_role";
-
-
-
 GRANT ALL ON TABLE "public"."parent_notifications_view" TO "anon";
 GRANT ALL ON TABLE "public"."parent_notifications_view" TO "authenticated";
 GRANT ALL ON TABLE "public"."parent_notifications_view" TO "service_role";
+
+
+
+GRANT ALL ON TABLE "public"."parent_tracking_snapshot" TO "anon";
+GRANT ALL ON TABLE "public"."parent_tracking_snapshot" TO "authenticated";
+GRANT ALL ON TABLE "public"."parent_tracking_snapshot" TO "service_role";
 
 
 
