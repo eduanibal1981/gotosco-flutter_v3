@@ -209,6 +209,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 children: [
                                   if (!_isLogin) ...[
                                     _buildTextField(
+                                      key: const ValueKey('name_field'),
                                       controller: _nameController,
                                       label: 'Full Name',
                                       icon: Icons.person_outline,
@@ -225,6 +226,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     const SizedBox(height: 16),
                                   ],
                                   _buildTextField(
+                                    key: const ValueKey('email_field'),
                                     controller: _emailController,
                                     label: 'Email Address',
                                     icon: Icons.email_outlined,
@@ -247,6 +249,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
+                                    key: const ValueKey('password_field'),
                                     controller: _passwordController,
                                     label: 'Password',
                                     icon: Icons.lock_outline,
@@ -467,6 +470,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildTextField({
+    Key? key,
     required TextEditingController controller,
     required String label,
     required IconData icon,
@@ -478,6 +482,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     String? Function(String?)? validator,
   }) {
     return TextFormField(
+      key: key,
       controller: controller,
       validator: validator,
       obscureText: isPassword && !_isPasswordVisible,
