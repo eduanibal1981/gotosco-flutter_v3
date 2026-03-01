@@ -16,6 +16,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _isLogin = true;
   // State to toggle password visibility
   bool _isPasswordVisible = false;
+  // Smart validation mode: disabled until first submit attempt
+  AutovalidateMode _autovalidateMode = AutovalidateMode.disabled;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -54,10 +56,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    // Listen to email changes to toggle the clear button visibility
+    _emailController.addListener(_onEmailChanged);
+  }
+
+  void _onEmailChanged() {
+    setState(() {});
   }
 
   @override
   void dispose() {
+    _emailController.removeListener(_onEmailChanged);
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
@@ -81,7 +90,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   // ============== EMAIL/PASSWORD HANDLER ==============
   Future<void> _handleEmailAuth() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      // Enable aggressive validation after first failed attempt
+      setState(() {
+        _autovalidateMode = AutovalidateMode.onUserInteraction;
+      });
+      return;
+    }
 
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -205,10 +220,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           AutofillGroup(
                             child: Form(
                               key: _formKey,
+                              autovalidateMode: _autovalidateMode,
                               child: Column(
                                 children: [
                                   if (!_isLogin) ...[
                                     _buildTextField(
+                                      key: const ValueKey('name_field'),
                                       controller: _nameController,
                                       label: 'Full Name',
                                       icon: Icons.person_outline,
@@ -225,12 +242,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     const SizedBox(height: 16),
                                   ],
                                   _buildTextField(
+                                    key: const ValueKey('email_field'),
                                     controller: _emailController,
                                     label: 'Email Address',
                                     icon: Icons.email_outlined,
                                     keyboardType: TextInputType.emailAddress,
                                     autofillHints: const [AutofillHints.email],
                                     textInputAction: TextInputAction.next,
+                                    suffixIcon: _emailController.text.isNotEmpty
+                                        ? IconButton(
+                                            icon: const Icon(Icons.clear),
+                                            onPressed: _emailController.clear,
+                                            tooltip: 'Clear email',
+                                          )
+                                        : null,
                                     validator: (value) {
                                       if (value == null ||
                                           value.trim().isEmpty) {
@@ -247,6 +272,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   const SizedBox(height: 16),
                                   _buildTextField(
+                                    key: const ValueKey('password_field'),
                                     controller: _passwordController,
                                     label: 'Password',
                                     icon: Icons.lock_outline,
@@ -324,7 +350,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             Align(
                               alignment: Alignment.centerRight,
                               child: TextButton(
-                                onPressed: () {}, // Mock action
+                                onPressed: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                        'Reset password feature is coming soon.',
+                                      ),
+                                      backgroundColor: Colors.grey.shade800,
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                },
                                 child: Text(
                                   'Forgot Password?',
                                   style: TextStyle(color: _primaryLight),
@@ -397,6 +433,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             // Animate the change between login and signup modes
                             setState(() {
                               _isLogin = !_isLogin;
+                              // Reset validation state when switching modes
+                              _autovalidateMode = AutovalidateMode.disabled;
+                              // Don't reset form fields to preserve input,
+                              // but keys ensure errors track correctly.
                             });
                           },
                           child: Text(
@@ -476,8 +516,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     TextInputAction? textInputAction,
     ValueChanged<String>? onSubmitted,
     String? Function(String?)? validator,
+    Widget? suffixIcon,
+    Key? key,
   }) {
     return TextFormField(
+      key: key,
       controller: controller,
       validator: validator,
       obscureText: isPassword && !_isPasswordVisible,
@@ -489,20 +532,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.grey.shade500),
-        suffixIcon: isPassword
-            ? IconButton(
-                icon: Icon(
-                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                  color: Colors.grey.shade500,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _isPasswordVisible = !_isPasswordVisible;
-                  });
-                },
-                tooltip: _isPasswordVisible ? 'Hide password' : 'Show password',
-              )
-            : null,
+        suffixIcon: suffixIcon ??
+            (isPassword
+                ? IconButton(
+                    icon: Icon(
+                      _isPasswordVisible
+                          ? Icons.visibility
+                          : Icons.visibility_off,
+                      color: Colors.grey.shade500,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
+                    tooltip:
+                        _isPasswordVisible ? 'Hide password' : 'Show password',
+                  )
+                : null),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 20,
