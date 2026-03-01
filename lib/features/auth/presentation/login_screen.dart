@@ -502,7 +502,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 },
                 tooltip: _isPasswordVisible ? 'Hide password' : 'Show password',
               )
-            : null,
+            : ValueListenableBuilder<TextEditingValue>(
+                valueListenable: controller,
+                builder: (context, value, child) {
+                  if (value.text.isEmpty) {
+                    return const SizedBox.shrink();
+                  }
+                  return IconButton(
+                    icon: Icon(Icons.clear, color: Colors.grey.shade500),
+                    onPressed: () => controller.clear(),
+                    tooltip: 'Clear text',
+                  );
+                },
+              ),
         contentPadding: const EdgeInsets.symmetric(
           vertical: 16,
           horizontal: 20,
